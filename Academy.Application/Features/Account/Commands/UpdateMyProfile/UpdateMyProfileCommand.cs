@@ -13,5 +13,5 @@ public sealed record UpdateMyProfileCommand(
     string? Bio,
     int AreaId,
     string? CurrentPassword,
-    string? NewPassword,
+    string? NewPassword, 
     string? ConfirmNewPassword) : IRequest<Result<UserProfileDto>>;
