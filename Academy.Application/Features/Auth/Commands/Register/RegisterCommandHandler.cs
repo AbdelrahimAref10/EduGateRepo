@@ -21,6 +21,9 @@ public sealed class RegisterCommandHandler(
         RegisterCommand request,
         CancellationToken cancellationToken)
     {
+        if (request.Role is AppRole.SuperAdmin)
+            return Result<AuthResponseDto>.Failure("SuperAdmin cannot be registered.");
+
         var email = request.Email.Trim();
 
         if (await userManager.FindByEmailAsync(email) is not null)
@@ -133,14 +136,6 @@ public sealed class RegisterCommandHandler(
 
             case AppRole.Teacher:
                 dbContext.Teachers.Add(new Domain.Entities.Teacher
-                {
-                    UserId = userId,
-                    CreatedAtUtc = DateTime.UtcNow
-                });
-                return null;
-
-            case AppRole.SuperAdmin:
-                dbContext.SuperAdmins.Add(new Domain.Entities.SuperAdmin
                 {
                     UserId = userId,
                     CreatedAtUtc = DateTime.UtcNow

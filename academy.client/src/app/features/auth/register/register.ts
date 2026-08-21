@@ -53,7 +53,6 @@ export class RegisterComponent implements OnInit {
     { value: AppRole.Teacher, labelKey: 'auth.roleTeacher', hintKey: 'auth.roleTeacherHint' },
     { value: AppRole.Student, labelKey: 'auth.roleStudent', hintKey: 'auth.roleStudentHint' },
     { value: AppRole.Parent, labelKey: 'auth.roleParent', hintKey: 'auth.roleParentHint' },
-    { value: AppRole.SuperAdmin, labelKey: 'auth.roleAdmin', hintKey: 'auth.roleAdminHint' },
   ];
 
   readonly form = this.fb.nonNullable.group({

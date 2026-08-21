@@ -36,7 +36,9 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
         RuleFor(x => x.Role)
             .IsInEnum()
             .Must(role => Enum.IsDefined(typeof(AppRole), role))
-            .WithMessage("Invalid role.");
+            .WithMessage("Invalid role.")
+            .Must(role => role is not AppRole.SuperAdmin)
+            .WithMessage("SuperAdmin cannot be registered. Use the seeded admin account.");
 
         RuleFor(x => x.AreaId)
             .GreaterThan(0);

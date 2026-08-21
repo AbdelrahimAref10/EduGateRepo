@@ -2,6 +2,7 @@ using System.Reflection;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.DependencyInjection;
 using Academy.Infrastructure.DependencyInjection;
+using Academy.Persistence.Seed;
 using Academy.Server.Hubs;
 using Academy.Server.Middlewares;
 using Academy.Server.Notifications;
@@ -38,6 +39,11 @@ builder.Services.AddOpenApiDocument(config =>
 
 var app = builder.Build();
 var isOpenApiGeneration = IsOpenApiGeneration();
+
+if (!isOpenApiGeneration)
+{
+    await IdentityDataSeeder.SeedAsync(app.Services);
+}
 
 app.UseExceptionHandler();
 
