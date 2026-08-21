@@ -1,0 +1,56 @@
+@if (isOpen()) {
+  @if (state(); as dialog) {
+    <div class="confirm-backdrop" (click)="onBackdrop($event)" role="presentation">
+      <div
+        class="confirm-panel"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="'confirm-title'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="confirm-icon" [attr.data-tone]="dialog.tone">
+          @if (dialog.tone === 'danger') {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 8v5.5M12 16.5h.01M4.8 19.5h14.4c1.3 0 2.1-1.4 1.5-2.5L13.5 4.6c-.6-1.1-2.4-1.1-3 0L3.3 17c-.6 1.1.2 2.5 1.5 2.5Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          } @else if (dialog.tone === 'warning') {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.8" />
+              <path d="M12 8v5M12 15.8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.8" />
+              <path d="m8.8 12.2 2.2 2.2 4.2-4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          }
+        </div>
+
+        <h2 id="confirm-title" class="confirm-title">{{ dialog.titleKey | t }}</h2>
+        <p class="confirm-message">{{ dialog.messageKey | t }}</p>
+
+        <div class="confirm-actions">
+          <button type="button" class="confirm-btn confirm-btn-ghost" (click)="onCancel($event)">
+            {{ dialog.cancelKey | t }}
+          </button>
+          <button
+            type="button"
+            class="confirm-btn"
+            [class.confirm-btn-primary]="dialog.tone === 'primary'"
+            [class.confirm-btn-danger]="dialog.tone === 'danger'"
+            [class.confirm-btn-warning]="dialog.tone === 'warning'"
+            (click)="onConfirm($event)"
+          >
+            {{ dialog.confirmKey | t }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}

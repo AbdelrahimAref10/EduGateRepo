@@ -1,0 +1,543 @@
+<section class="space-y-5">
+  <header>
+    <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleAdmin' | t }}</p>
+    <h2 class="page-title mt-1">{{ 'countries.title' | t }}</h2>
+    <p class="mt-1 text-sm text-muted">{{ 'countries.subtitle' | t }}</p>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">{{ error() }}</div>
+  }
+  @if (success() === 'countryCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.countryCreated' | t }}
+    </div>
+  }
+  @if (success() === 'countryUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.countryUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'countryDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.countryDeleted' | t }}
+    </div>
+  }
+  @if (success() === 'governorateCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.governorateCreated' | t }}
+    </div>
+  }
+  @if (success() === 'governorateUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.governorateUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'governorateDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.governorateDeleted' | t }}
+    </div>
+  }
+  @if (success() === 'cityCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.cityCreated' | t }}
+    </div>
+  }
+  @if (success() === 'cityUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.cityUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'cityDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.cityDeleted' | t }}
+    </div>
+  }
+  @if (success() === 'areaCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.areaCreated' | t }}
+    </div>
+  }
+  @if (success() === 'areaUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.areaUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'areaDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'countries.areaDeleted' | t }}
+    </div>
+  }
+
+  <!-- Countries -->
+  <section class="card overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div>
+        <h3 class="section-title">{{ 'countries.list' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">{{ 'countries.listHint' | t }}</p>
+      </div>
+      <button type="button" class="btn-ghost" (click)="loadCountries()" [disabled]="loading()">
+        {{ 'lessons.refresh' | t }}
+      </button>
+    </div>
+
+    <div class="border-b border-line bg-body/50 px-5 py-4">
+      <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ (editingCountryId() ? 'countries.editCountryTitle' : 'countries.addCountryTitle') | t }}
+      </p>
+      <form class="grid gap-3 md:grid-cols-4" [formGroup]="countryForm" (ngSubmit)="saveCountry()">
+        <label>
+          <span class="label-text">{{ 'countries.nameAr' | t }}</span>
+          <input class="field" type="text" formControlName="nameAr" placeholder="مصر" />
+        </label>
+        <label>
+          <span class="label-text">{{ 'countries.nameEn' | t }}</span>
+          <input class="field" type="text" formControlName="nameEn" placeholder="Egypt" />
+        </label>
+        <label>
+          <span class="label-text">{{ 'countries.code' | t }}</span>
+          <input class="field" type="text" formControlName="code" placeholder="EG" />
+        </label>
+        <div class="flex items-end gap-2">
+          @if (editingCountryId()) {
+            <button type="button" class="btn-ghost w-full" (click)="cancelEditCountry()" [disabled]="savingCountry()">
+              {{ 'countries.cancel' | t }}
+            </button>
+          }
+          <button type="submit" class="btn-primary w-full" [disabled]="savingCountry()">
+            {{
+              savingCountry()
+                ? ('lessons.saving' | t)
+                : (editingCountryId() ? 'countries.updateCountry' : 'countries.addCountry') | t
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="p-5">
+      @if (loading()) {
+        <p class="text-center text-sm text-muted">{{ 'countries.loadingCountries' | t }}</p>
+      } @else if (countries().length === 0) {
+        <p class="text-center text-sm text-muted">{{ 'countries.emptyCountries' | t }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-center text-sm">
+            <thead>
+              <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                <th class="px-3 py-3 text-center">#</th>
+                <th class="px-3 py-3 text-center">{{ 'countries.nameAr' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'countries.nameEn' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'countries.code' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'countries.governoratesCount' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'countries.action' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (country of countries(); track country.id) {
+                <tr
+                  class="border-b border-line/70 transition"
+                  [class]="selectedCountryId() === country.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                >
+                  <td class="px-3 py-3 text-center text-muted">#{{ country.id }}</td>
+                  <td class="px-3 py-3 text-center font-semibold text-ink">{{ country.nameAr }}</td>
+                  <td class="px-3 py-3 text-center">{{ country.nameEn }}</td>
+                  <td class="px-3 py-3 text-center font-mono text-xs">{{ country.code }}</td>
+                  <td class="px-3 py-3 text-center">
+                    <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                      {{ country.governoratesCount ?? 0 }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                        [class]="
+                          selectedCountryId() === country.id
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-body text-primary-700 hover:bg-primary-100'
+                        "
+                        (click)="selectCountry(country.id)"
+                      >
+                        {{
+                          selectedCountryId() === country.id
+                            ? ('countries.selected' | t)
+                            : ('countries.manageGovernorates' | t)
+                        }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                        (click)="startEditCountry(country)"
+                      >
+                        {{ 'countries.edit' | t }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                        (click)="deleteCountry(country)"
+                        [disabled]="deletingId() === 'country-' + country.id"
+                      >
+                        {{ 'countries.delete' | t }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Governorates -->
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'countries.governorates' | t }}</h3>
+      @if (selectedCountryId()) {
+        <p class="mt-1 text-sm text-muted">
+          {{ 'countries.governoratesForCountry' | t }}:
+          <strong class="text-primary-700">{{ selectedCountryName() }}</strong>
+        </p>
+      } @else {
+        <p class="mt-1 text-sm text-muted">{{ 'countries.selectCountry' | t }}</p>
+      }
+    </div>
+
+    @if (!selectedCountryId()) {
+      <div class="p-8 text-center text-sm text-muted">{{ 'countries.selectCountryHint' | t }}</div>
+    } @else {
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ (editingGovernorateId() ? 'countries.editGovernorateTitle' : 'countries.addGovernorateTitle') | t }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-3" [formGroup]="governorateForm" (ngSubmit)="saveGovernorate()">
+          <label>
+            <span class="label-text">{{ 'countries.nameAr' | t }}</span>
+            <input class="field" type="text" formControlName="nameAr" placeholder="القاهرة" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'countries.nameEn' | t }}</span>
+            <input class="field" type="text" formControlName="nameEn" placeholder="Cairo" />
+          </label>
+          <div class="flex items-end gap-2">
+            @if (editingGovernorateId()) {
+              <button
+                type="button"
+                class="btn-ghost w-full"
+                (click)="cancelEditGovernorate()"
+                [disabled]="savingGovernorate()"
+              >
+                {{ 'countries.cancel' | t }}
+              </button>
+            }
+            <button type="submit" class="btn-primary w-full" [disabled]="savingGovernorate()">
+              {{
+                savingGovernorate()
+                  ? ('lessons.saving' | t)
+                  : (editingGovernorateId() ? 'countries.updateGovernorate' : 'countries.addGovernorate') | t
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5">
+        @if (loadingGovernorates()) {
+          <p class="text-center text-sm text-muted">{{ 'countries.loadingGovernorates' | t }}</p>
+        } @else if (governorates().length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'countries.emptyGovernorates' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3 text-center">#</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.nameAr' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.nameEn' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.citiesCount' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.action' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (gov of governorates(); track gov.id) {
+                  <tr
+                    class="border-b border-line/70 transition"
+                    [class]="selectedGovernorateId() === gov.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                  >
+                    <td class="px-3 py-3 text-center text-muted">#{{ gov.id }}</td>
+                    <td class="px-3 py-3 text-center font-semibold">{{ gov.nameAr }}</td>
+                    <td class="px-3 py-3 text-center">{{ gov.nameEn }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                        {{ gov.citiesCount ?? 0 }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                          [class]="
+                            selectedGovernorateId() === gov.id
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-body text-primary-700 hover:bg-primary-100'
+                          "
+                          (click)="selectGovernorate(gov.id)"
+                        >
+                          {{
+                            selectedGovernorateId() === gov.id
+                              ? ('countries.selected' | t)
+                              : ('countries.manageCities' | t)
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                          (click)="startEditGovernorate(gov)"
+                        >
+                          {{ 'countries.edit' | t }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                          (click)="deleteGovernorate(gov)"
+                          [disabled]="deletingId() === 'gov-' + gov.id"
+                        >
+                          {{ 'countries.delete' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Cities -->
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'countries.cities' | t }}</h3>
+      @if (selectedGovernorateId()) {
+        <p class="mt-1 text-sm text-muted">
+          {{ 'countries.citiesForGovernorate' | t }}:
+          <strong class="text-primary-700">{{ selectedGovernorateName() }}</strong>
+        </p>
+      } @else {
+        <p class="mt-1 text-sm text-muted">{{ 'countries.selectGovernorate' | t }}</p>
+      }
+    </div>
+
+    @if (!selectedGovernorateId()) {
+      <div class="p-8 text-center text-sm text-muted">{{ 'countries.selectGovernorateHint' | t }}</div>
+    } @else {
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ (editingCityId() ? 'countries.editCityTitle' : 'countries.addCityTitle') | t }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-3" [formGroup]="cityForm" (ngSubmit)="saveCity()">
+          <label>
+            <span class="label-text">{{ 'countries.nameAr' | t }}</span>
+            <input class="field" type="text" formControlName="nameAr" placeholder="مدينة نصر" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'countries.nameEn' | t }}</span>
+            <input class="field" type="text" formControlName="nameEn" placeholder="Nasr City" />
+          </label>
+          <div class="flex items-end gap-2">
+            @if (editingCityId()) {
+              <button type="button" class="btn-ghost w-full" (click)="cancelEditCity()" [disabled]="savingCity()">
+                {{ 'countries.cancel' | t }}
+              </button>
+            }
+            <button type="submit" class="btn-primary w-full" [disabled]="savingCity()">
+              {{
+                savingCity()
+                  ? ('lessons.saving' | t)
+                  : (editingCityId() ? 'countries.updateCity' : 'countries.addCity') | t
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5">
+        @if (loadingCities()) {
+          <p class="text-center text-sm text-muted">{{ 'countries.loadingCities' | t }}</p>
+        } @else if (cities().length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'countries.emptyCities' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3 text-center">#</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.nameAr' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.nameEn' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.areasCount' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.action' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (city of cities(); track city.id) {
+                  <tr
+                    class="border-b border-line/70 transition"
+                    [class]="selectedCityId() === city.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                  >
+                    <td class="px-3 py-3 text-center text-muted">#{{ city.id }}</td>
+                    <td class="px-3 py-3 text-center font-semibold">{{ city.nameAr }}</td>
+                    <td class="px-3 py-3 text-center">{{ city.nameEn }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                        {{ city.areasCount ?? 0 }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                          [class]="
+                            selectedCityId() === city.id
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-body text-primary-700 hover:bg-primary-100'
+                          "
+                          (click)="selectCity(city.id)"
+                        >
+                          {{
+                            selectedCityId() === city.id
+                              ? ('countries.selected' | t)
+                              : ('countries.manageAreas' | t)
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                          (click)="startEditCity(city)"
+                        >
+                          {{ 'countries.edit' | t }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                          (click)="deleteCity(city)"
+                          [disabled]="deletingId() === 'city-' + city.id"
+                        >
+                          {{ 'countries.delete' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Areas -->
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'countries.areas' | t }}</h3>
+      @if (selectedCityId()) {
+        <p class="mt-1 text-sm text-muted">
+          {{ 'countries.areasForCity' | t }}:
+          <strong class="text-primary-700">{{ selectedCityName() }}</strong>
+        </p>
+      } @else {
+        <p class="mt-1 text-sm text-muted">{{ 'countries.selectCity' | t }}</p>
+      }
+    </div>
+
+    @if (!selectedCityId()) {
+      <div class="p-8 text-center text-sm text-muted">{{ 'countries.selectCityHint' | t }}</div>
+    } @else {
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ (editingAreaId() ? 'countries.editAreaTitle' : 'countries.addAreaTitle') | t }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-3" [formGroup]="areaForm" (ngSubmit)="saveArea()">
+          <label>
+            <span class="label-text">{{ 'countries.nameAr' | t }}</span>
+            <input class="field" type="text" formControlName="nameAr" placeholder="الحي السابع" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'countries.nameEn' | t }}</span>
+            <input class="field" type="text" formControlName="nameEn" placeholder="District 7" />
+          </label>
+          <div class="flex items-end gap-2">
+            @if (editingAreaId()) {
+              <button type="button" class="btn-ghost w-full" (click)="cancelEditArea()" [disabled]="savingArea()">
+                {{ 'countries.cancel' | t }}
+              </button>
+            }
+            <button type="submit" class="btn-primary w-full" [disabled]="savingArea()">
+              {{
+                savingArea()
+                  ? ('lessons.saving' | t)
+                  : (editingAreaId() ? 'countries.updateArea' : 'countries.addArea') | t
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5">
+        @if (loadingAreas()) {
+          <p class="text-center text-sm text-muted">{{ 'countries.loadingAreas' | t }}</p>
+        } @else if (areas().length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'countries.emptyAreas' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3 text-center">#</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.nameAr' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.nameEn' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'countries.action' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (area of areas(); track area.id) {
+                  <tr class="border-b border-line/70 hover:bg-body/70">
+                    <td class="px-3 py-3 text-center text-muted">#{{ area.id }}</td>
+                    <td class="px-3 py-3 text-center font-semibold">{{ area.nameAr }}</td>
+                    <td class="px-3 py-3 text-center">{{ area.nameEn }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                          (click)="startEditArea(area)"
+                        >
+                          {{ 'countries.edit' | t }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                          (click)="deleteArea(area)"
+                          [disabled]="deletingId() === 'area-' + area.id"
+                        >
+                          {{ 'countries.delete' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</section>

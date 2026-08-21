@@ -1,0 +1,262 @@
+<section class="space-y-5">
+  <header>
+    <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleAdmin' | t }}</p>
+    <h2 class="page-title mt-1">{{ 'education.title' | t }}</h2>
+    <p class="mt-1 text-sm text-muted">{{ 'education.subtitle' | t }}</p>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">{{ error() }}</div>
+  }
+  @if (success() === 'typeCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'education.typeCreated' | t }}
+    </div>
+  }
+  @if (success() === 'typeUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'education.typeUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'yearCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'education.yearCreated' | t }}
+    </div>
+  }
+  @if (success() === 'yearUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'education.yearUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'typeDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'education.typeDeleted' | t }}
+    </div>
+  }
+  @if (success() === 'yearDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'education.yearDeleted' | t }}
+    </div>
+  }
+
+  <section class="card overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div>
+        <h3 class="section-title">{{ 'education.types' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">{{ 'education.typesHint' | t }}</p>
+      </div>
+      <button type="button" class="btn-ghost" (click)="loadTypes()" [disabled]="loading()">
+        {{ 'lessons.refresh' | t }}
+      </button>
+    </div>
+
+    <div class="border-b border-line bg-body/50 px-5 py-4">
+      <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ (editingTypeId() ? 'education.editTypeTitle' : 'education.addTypeTitle') | t }}
+      </p>
+      <form class="grid gap-3 md:grid-cols-4" [formGroup]="typeForm" (ngSubmit)="saveType()">
+        <label>
+          <span class="label-text">{{ 'education.nameAr' | t }}</span>
+          <input class="field" type="text" formControlName="nameAr" placeholder="ابتدائي" />
+        </label>
+        <label>
+          <span class="label-text">{{ 'education.nameEn' | t }}</span>
+          <input class="field" type="text" formControlName="nameEn" placeholder="Primary" />
+        </label>
+        <label>
+          <span class="label-text">{{ 'education.sortOrder' | t }}</span>
+          <input class="field" type="number" min="0" formControlName="sortOrder" />
+        </label>
+        <div class="flex items-end gap-2">
+          @if (editingTypeId()) {
+            <button type="button" class="btn-ghost w-full" (click)="cancelEditType()" [disabled]="savingType()">
+              {{ 'education.cancel' | t }}
+            </button>
+          }
+          <button type="submit" class="btn-primary w-full" [disabled]="savingType()">
+            {{
+              savingType()
+                ? ('lessons.saving' | t)
+                : (editingTypeId() ? 'education.updateType' : 'education.addType') | t
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="p-5">
+      @if (loading()) {
+        <p class="text-center text-sm text-muted">{{ 'education.loadingTypes' | t }}</p>
+      } @else if (types().length === 0) {
+        <p class="text-center text-sm text-muted">{{ 'education.emptyTypes' | t }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-center text-sm">
+            <thead>
+              <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                <th class="px-3 py-3 text-center">#</th>
+                <th class="px-3 py-3 text-center">{{ 'education.nameAr' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'education.nameEn' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'education.sortOrder' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'education.yearsCount' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'education.action' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (type of types(); track type.id) {
+                <tr
+                  class="border-b border-line/70 transition"
+                  [class]="selectedTypeId() === type.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                >
+                  <td class="px-3 py-3 text-center text-muted">#{{ type.id }}</td>
+                  <td class="px-3 py-3 text-center font-semibold text-ink">{{ type.nameAr }}</td>
+                  <td class="px-3 py-3 text-center">{{ type.nameEn }}</td>
+                  <td class="px-3 py-3 text-center">{{ type.sortOrder }}</td>
+                  <td class="px-3 py-3 text-center">
+                    <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                      {{ type.yearsCount ?? 0 }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                        [class]="
+                          selectedTypeId() === type.id
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-body text-primary-700 hover:bg-primary-100'
+                        "
+                        (click)="selectType(type.id)"
+                      >
+                        {{ selectedTypeId() === type.id ? ('education.selected' | t) : ('education.manageYears' | t) }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                        (click)="startEditType(type)"
+                      >
+                        {{ 'education.edit' | t }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                        (click)="deleteType(type)"
+                        [disabled]="deletingId() === 'type-' + type.id"
+                      >
+                        {{ 'education.delete' | t }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'education.years' | t }}</h3>
+      @if (selectedTypeId()) {
+        <p class="mt-1 text-sm text-muted">
+          {{ 'education.yearsForType' | t }}:
+          <strong class="text-primary-700">{{ selectedTypeName() }}</strong>
+        </p>
+      } @else {
+        <p class="mt-1 text-sm text-muted">{{ 'education.selectType' | t }}</p>
+      }
+    </div>
+
+    @if (!selectedTypeId()) {
+      <div class="p-8 text-center text-sm text-muted">{{ 'education.selectTypeHint' | t }}</div>
+    } @else {
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ (editingYearId() ? 'education.editYearTitle' : 'education.addYearTitle') | t }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-4" [formGroup]="yearForm" (ngSubmit)="saveYear()">
+          <label>
+            <span class="label-text">{{ 'education.nameAr' | t }}</span>
+            <input class="field" type="text" formControlName="nameAr" placeholder="الأولى" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'education.nameEn' | t }}</span>
+            <input class="field" type="text" formControlName="nameEn" placeholder="Year 1" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'education.sortOrder' | t }}</span>
+            <input class="field" type="number" min="0" formControlName="sortOrder" />
+          </label>
+          <div class="flex items-end gap-2">
+            @if (editingYearId()) {
+              <button type="button" class="btn-ghost w-full" (click)="cancelEditYear()" [disabled]="savingYear()">
+                {{ 'education.cancel' | t }}
+              </button>
+            }
+            <button type="submit" class="btn-primary w-full" [disabled]="savingYear()">
+              {{
+                savingYear()
+                  ? ('lessons.saving' | t)
+                  : (editingYearId() ? 'education.updateYear' : 'education.addYear') | t
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5">
+        @if (loadingYears()) {
+          <p class="text-center text-sm text-muted">{{ 'education.loadingYears' | t }}</p>
+        } @else if (years().length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'education.emptyYears' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3 text-center">#</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.nameAr' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.nameEn' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.sortOrder' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.action' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (year of years(); track year.id) {
+                  <tr class="border-b border-line/70 hover:bg-body/70">
+                    <td class="px-3 py-3 text-center text-muted">#{{ year.id }}</td>
+                    <td class="px-3 py-3 text-center font-semibold">{{ year.nameAr }}</td>
+                    <td class="px-3 py-3 text-center">{{ year.nameEn }}</td>
+                    <td class="px-3 py-3 text-center">{{ year.sortOrder }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                          (click)="startEditYear(year)"
+                        >
+                          {{ 'education.edit' | t }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                          (click)="deleteYear(year)"
+                          [disabled]="deletingId() === 'year-' + year.id"
+                        >
+                          {{ 'education.delete' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</section>

@@ -1,0 +1,53 @@
+:host {
+  display: block;
+}
+
+.room-hero {
+  background:
+    radial-gradient(ellipse 80% 70% at 100% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+    linear-gradient(135deg, #6f42e8 0%, #4c28ab 100%);
+}
+
+.room-tab {
+  position: relative;
+}
+
+.room-tab.is-active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0.5rem;
+  bottom: -0.55rem;
+  height: 0.2rem;
+  border-radius: 999px;
+  background: #6f42e8;
+}
+
+.room-post {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.room-post:hover {
+  border-color: #bea6ff;
+  box-shadow: 0 2px 12px rgba(42, 49, 66, 0.06);
+  transform: translateY(-1px);
+}
+
+.room-class-card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.room-class-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(42, 49, 66, 0.1);
+}
+
+@media (max-width: 1279px) {
+  .room-panel-hidden {
+    display: none !important;
+  }
+}

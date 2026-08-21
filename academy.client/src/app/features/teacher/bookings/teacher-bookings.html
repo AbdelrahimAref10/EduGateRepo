@@ -1,0 +1,122 @@
+<section class="space-y-5">
+  <header>
+    <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleTeacher' | t }}</p>
+    <h2 class="page-title mt-1">{{ 'booking.teacherTitle' | t }}</h2>
+    <p class="mt-1 text-sm text-muted">{{ 'booking.teacherSubtitle' | t }}</p>
+  </header>
+
+  <section class="card overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div class="flex gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition"
+          [class]="tab() === 'pending' ? 'bg-primary-600 text-white' : 'bg-body text-ink hover:bg-primary-50'"
+          (click)="setTab('pending')"
+        >
+          {{ 'booking.pending' | t }}
+          <span class="grid min-w-5 place-items-center rounded-full bg-white/20 px-1.5 text-[11px]">{{ pending().length }}</span>
+        </button>
+        <button
+          type="button"
+          class="rounded-full px-3.5 py-2 text-sm font-semibold transition"
+          [class]="tab() === 'all' ? 'bg-primary-600 text-white' : 'bg-body text-ink hover:bg-primary-50'"
+          (click)="setTab('all')"
+        >
+          {{ 'booking.all' | t }}
+        </button>
+      </div>
+      <button type="button" class="btn-ghost" (click)="reload()" [disabled]="loading()">
+        {{ 'lessons.refresh' | t }}
+      </button>
+    </div>
+
+    <div class="p-5">
+      @if (error()) {
+        <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">{{ error() }}</div>
+      }
+      @if (success() === 'confirmed') {
+        <div class="mb-4 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+          {{ 'booking.confirmed' | t }}
+        </div>
+      }
+      @if (success() === 'rejected') {
+        <div class="mb-4 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+          {{ 'booking.rejected' | t }}
+        </div>
+      }
+
+      @if (loading()) {
+        <p class="text-sm text-muted">{{ 'booking.loading' | t }}</p>
+      } @else if (rows().length === 0) {
+        <p class="text-sm text-muted">
+          {{ tab() === 'pending' ? ('booking.emptyPending' | t) : ('booking.emptyAll' | t) }}
+        </p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                <th class="px-3 py-3">{{ 'booking.student' | t }}</th>
+                <th class="px-3 py-3">{{ 'booking.studentCode' | t }}</th>
+                <th class="px-3 py-3">{{ 'lessons.subject' | t }}</th>
+                <th class="px-3 py-3">{{ 'lessons.educationType' | t }}</th>
+                <th class="px-3 py-3">{{ 'lessons.educationYear' | t }}</th>
+                <th class="px-3 py-3">{{ 'lessons.startDate' | t }}</th>
+                <th class="px-3 py-3">{{ 'booking.status' | t }}</th>
+                <th class="px-3 py-3">{{ 'booking.requestedAt' | t }}</th>
+                @if (tab() === 'pending') {
+                  <th class="px-3 py-3"></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (booking of rows(); track booking.id) {
+                <tr class="border-b border-line/70 transition hover:bg-body/70">
+                  <td class="px-3 py-3 font-semibold">{{ booking.studentName }}</td>
+                  <td class="px-3 py-3 text-muted">{{ booking.studentCode || '—' }}</td>
+                  <td class="px-3 py-3">{{ booking.subject }}</td>
+                  <td class="px-3 py-3">{{ booking.educationTypeName }}</td>
+                  <td class="px-3 py-3">{{ booking.educationYearName }}</td>
+                  <td class="px-3 py-3">{{ booking.startDate | date: 'yyyy-MM-dd' }}</td>
+                  <td class="px-3 py-3">
+                    <span
+                      class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold"
+                      [class]="
+                        booking.status === 'Confirmed'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : booking.status === 'Rejected'
+                            ? 'bg-rose-50 text-rose-700'
+                            : 'bg-amber-50 text-amber-700'
+                      "
+                    >
+                      {{ statusLabel(booking.status) | t }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3">{{ booking.createdAtUtc | date: 'yyyy-MM-dd HH:mm' }}</td>
+                  @if (tab() === 'pending') {
+                    <td class="px-3 py-3">
+                      <div class="flex gap-2">
+                        <button type="button" class="btn-primary" (click)="confirm(booking)" [disabled]="actionId() !== null">
+                          {{ actionId() === booking.id ? ('booking.working' | t) : ('booking.confirm' | t) }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-danger transition hover:bg-rose-100 disabled:opacity-60"
+                          (click)="reject(booking)"
+                          [disabled]="actionId() !== null"
+                        >
+                          {{ 'booking.reject' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+</section>

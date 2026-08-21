@@ -1,0 +1,42 @@
+<div class="relative" [class]="open() ? 'relative z-[20000]' : 'relative'">
+  <button
+    type="button"
+    class="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold tracking-wide transition"
+    [class]="
+      tone === 'on-primary'
+        ? 'bg-white/15 text-white hover:bg-white/25'
+        : 'border border-line bg-surface text-ink shadow-card hover:bg-body'
+    "
+    (click)="toggle($event)"
+    [attr.aria-expanded]="open()"
+  >
+    <span class="text-sm">{{ current().flag }}</span>
+    <span>{{ current().code.toUpperCase() }}</span>
+  </button>
+
+  <div
+    class="absolute end-0 top-[calc(100%+0.55rem)] w-56 rounded-2xl border border-line bg-surface p-2 shadow-dropdown transition duration-200"
+    [class]="open() ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-2 scale-95 opacity-0'"
+    role="listbox"
+    [attr.aria-hidden]="!open()"
+  >
+    <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+      {{ 'common.language' | t }}
+    </p>
+    @for (lang of languages; track lang.code) {
+      <button
+        type="button"
+        class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-start transition hover:bg-body"
+        [class.bg-primary-50]="lang.code === current().code"
+        role="option"
+        (click)="select(lang.code, $event)"
+      >
+        <span class="text-base">{{ lang.flag }}</span>
+        <span class="min-w-0">
+          <strong class="block text-sm text-ink">{{ lang.nativeLabel }}</strong>
+          <small class="block text-xs text-muted">{{ lang.label }}</small>
+        </span>
+      </button>
+    }
+  </div>
+</div>

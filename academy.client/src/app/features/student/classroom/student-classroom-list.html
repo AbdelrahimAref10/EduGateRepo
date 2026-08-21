@@ -1,0 +1,76 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 class="page-title">{{ 'classroom.title' | t }}</h2>
+      <p class="mt-1 text-sm text-muted">{{ 'classroom.listSubtitle' | t }}</p>
+    </div>
+    <button type="button" class="btn-ghost" (click)="load()" [disabled]="loading()">
+      {{ 'lessons.refresh' | t }}
+    </button>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      @for (_ of [1, 2, 3]; track $index) {
+        <div class="h-52 animate-pulse rounded-2xl bg-white ring-1 ring-line"></div>
+      }
+    </div>
+  } @else if (items().length === 0) {
+    <div class="rounded-2xl bg-white px-6 py-16 text-center shadow-sm ring-1 ring-line">
+      <p class="text-base font-semibold text-ink">{{ 'classroom.empty' | t }}</p>
+      <p class="mt-1 text-sm text-muted">{{ 'classroom.emptyHint' | t }}</p>
+    </div>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      @for (item of items(); track item.sessionId) {
+        <article
+          class="room-class-card flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-line"
+        >
+          <div class="room-hero px-5 py-5 text-white">
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">
+              {{ item.groupName }}
+            </p>
+            <h3 class="mt-1 text-xl font-extrabold tracking-tight">{{ item.subject }}</h3>
+            @if (item.topic) {
+              <p class="mt-1 truncate text-sm text-white/85">{{ item.topic }}</p>
+            }
+          </div>
+          <div class="flex flex-1 flex-col gap-3 p-5">
+            <dl class="grid grid-cols-2 gap-2 text-sm">
+              <div class="rounded-xl border border-line/80 bg-body/40 px-3 py-2">
+                <dt class="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {{ 'lessons.sessionDate' | t }}
+                </dt>
+                <dd class="mt-1 font-semibold">{{ item.sessionDate | date: 'yyyy-MM-dd' }}</dd>
+              </div>
+              <div class="rounded-xl border border-line/80 bg-body/40 px-3 py-2">
+                <dt class="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {{ 'lessons.time' | t }}
+                </dt>
+                <dd class="mt-1 font-semibold">{{ toTimeInput(item.startTime) }}</dd>
+              </div>
+            </dl>
+            <p class="text-sm text-muted">
+              {{ item.teacherName }} · {{ statusKey(item) | t }}
+            </p>
+            <div class="mt-auto pt-1">
+              @if (item.canOpenClassroom) {
+                <a class="btn-primary inline-flex" [routerLink]="['/student/classroom', item.sessionId]">
+                  {{ 'classroom.open' | t }}
+                </a>
+              } @else {
+                <span class="text-sm font-semibold text-muted">{{ 'classroom.notOpenYet' | t }}</span>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

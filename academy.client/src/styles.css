@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary-50: #f3f0ff;
+  --color-primary-100: #ebe4ff;
+  --color-primary-200: #d9ccff;
+  --color-primary-300: #bea6ff;
+  --color-primary-400: #9f75ff;
+  --color-primary-500: #8352f5;
+  --color-primary-600: #6f42e8;
+  --color-primary-700: #5b2fd1;
+  --color-primary-800: #4c28ab;
+  --color-primary-900: #40248c;
+
+  --color-body: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-ink: #2a3142;
+  --color-muted: #8a93a6;
+  --color-line: #e9ecf2;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+
+  --shadow-card: 0 2px 12px rgba(42, 49, 66, 0.06);
+  --shadow-dropdown: 0 12px 32px rgba(42, 49, 66, 0.12);
+
+  --animate-fade-up: fade-up 0.45s ease-out both;
+  --animate-fade-in: fade-in 0.35s ease-out both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  html,
+  body {
+    @apply min-h-full;
+  }
+
+  body {
+    @apply m-0 bg-body font-sans text-ink antialiased;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  table th,
+  table td {
+    @apply text-center align-middle;
+  }
+}
+
+@utility card {
+  @apply rounded-xl border border-line bg-surface shadow-card;
+}
+
+@utility btn-primary {
+  @apply inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink transition hover:bg-body disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@utility field {
+  @apply w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-primary-500 focus:ring-4 focus:ring-primary-100;
+}
+
+@utility label-text {
+  @apply mb-1.5 block text-sm font-semibold text-ink;
+}
+
+@utility page-title {
+  @apply text-xl font-bold tracking-tight text-ink;
+}
+
+@utility section-title {
+  @apply text-base font-bold uppercase tracking-wide text-ink;
+}

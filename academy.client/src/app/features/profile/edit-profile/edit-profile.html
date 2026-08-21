@@ -1,0 +1,170 @@
+<section class="space-y-5">
+  <header>
+    <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'shell.account' | t }}</p>
+    <h2 class="page-title mt-1">{{ 'profile.title' | t }}</h2>
+    <p class="mt-1 text-sm text-muted">{{ 'profile.subtitle' | t }}</p>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+  @if (success()) {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'profile.saved' | t }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="card p-8 text-center text-sm text-muted">{{ 'profile.loading' | t }}</div>
+  } @else {
+    <form class="card w-full space-y-6 p-5 md:p-6 lg:p-8" [formGroup]="form" (ngSubmit)="submit()">
+      @if (profile(); as p) {
+        <div class="flex flex-wrap items-center gap-2 border-b border-line pb-4">
+          @for (role of p.roles; track role) {
+            <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+              {{ roleLabel(role) }}
+            </span>
+          }
+          @if (p.studentCode) {
+            <span class="inline-flex rounded-full bg-body px-2.5 py-1 text-xs font-bold text-ink">
+              {{ 'profile.studentCode' | t }}: {{ p.studentCode }}
+            </span>
+          }
+        </div>
+      }
+
+      <div>
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">{{ 'profile.basicInfo' | t }}</p>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <label class="block">
+            <span class="label-text">{{ 'auth.firstName' | t }}</span>
+            <input class="field" type="text" formControlName="firstName" />
+          </label>
+          <label class="block">
+            <span class="label-text">{{ 'auth.lastName' | t }}</span>
+            <input class="field" type="text" formControlName="lastName" />
+          </label>
+          <label class="block">
+            <span class="label-text">{{ 'profile.email' | t }}</span>
+            <input class="field" type="email" formControlName="email" />
+          </label>
+          <label class="block md:col-span-2 xl:col-span-1">
+            <span class="label-text">{{ 'profile.phone' | t }}</span>
+            <input class="field" type="tel" formControlName="phoneNumber" />
+          </label>
+        </div>
+      </div>
+
+      <label class="block">
+        <span class="label-text">{{ 'profile.bio' | t }}</span>
+        <textarea
+          class="field min-h-28 w-full"
+          rows="4"
+          formControlName="bio"
+          [placeholder]="'profile.bioPlaceholder' | t"
+        ></textarea>
+      </label>
+
+      <div>
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">{{ 'profile.location' | t }}</p>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <label>
+            <span class="label-text">{{ 'auth.country' | t }}</span>
+            <select class="field" formControlName="countryId">
+              <option [ngValue]="null" disabled>
+                {{ loadingCountries() ? ('auth.loadingCountries' | t) : ('auth.selectCountry' | t) }}
+              </option>
+              @for (country of countries(); track country.id) {
+                <option [ngValue]="country.id">{{ country.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span class="label-text">{{ 'auth.governorate' | t }}</span>
+            <select class="field" formControlName="governorateId">
+              <option [ngValue]="null" disabled>
+                {{
+                  !form.controls.countryId.value
+                    ? ('auth.selectCountryFirst' | t)
+                    : loadingGovernorates()
+                      ? ('auth.loadingGovernorates' | t)
+                      : governorates().length === 0
+                        ? ('auth.noGovernorates' | t)
+                        : ('auth.selectGovernorate' | t)
+                }}
+              </option>
+              @for (gov of governorates(); track gov.id) {
+                <option [ngValue]="gov.id">{{ gov.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span class="label-text">{{ 'auth.city' | t }}</span>
+            <select class="field" formControlName="cityId">
+              <option [ngValue]="null" disabled>
+                {{
+                  !form.controls.governorateId.value
+                    ? ('auth.selectGovernorateFirst' | t)
+                    : loadingCities()
+                      ? ('auth.loadingCities' | t)
+                      : cities().length === 0
+                        ? ('auth.noCities' | t)
+                        : ('auth.selectCity' | t)
+                }}
+              </option>
+              @for (city of cities(); track city.id) {
+                <option [ngValue]="city.id">{{ city.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span class="label-text">{{ 'auth.area' | t }}</span>
+            <select class="field" formControlName="areaId">
+              <option [ngValue]="null" disabled>
+                {{
+                  !form.controls.cityId.value
+                    ? ('auth.selectCityFirst' | t)
+                    : loadingAreas()
+                      ? ('auth.loadingAreas' | t)
+                      : areas().length === 0
+                        ? ('auth.noAreas' | t)
+                        : ('auth.selectArea' | t)
+                }}
+              </option>
+              @for (area of areas(); track area.id) {
+                <option [ngValue]="area.id">{{ area.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <p class="mb-1 text-xs font-bold uppercase tracking-wide text-muted">{{ 'profile.passwordSection' | t }}</p>
+        <p class="mb-3 text-sm text-muted">{{ 'profile.passwordHint' | t }}</p>
+        <div class="grid gap-4 md:grid-cols-3">
+          <label>
+            <span class="label-text">{{ 'profile.currentPassword' | t }}</span>
+            <input class="field" type="password" formControlName="currentPassword" autocomplete="current-password" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'profile.newPassword' | t }}</span>
+            <input class="field" type="password" formControlName="newPassword" autocomplete="new-password" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'profile.confirmNewPassword' | t }}</span>
+            <input class="field" type="password" formControlName="confirmNewPassword" autocomplete="new-password" />
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end border-t border-line pt-4">
+        <button type="submit" class="btn-primary min-w-40" [disabled]="saving()">
+          {{ saving() ? ('profile.saving' | t) : ('common.save' | t) }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

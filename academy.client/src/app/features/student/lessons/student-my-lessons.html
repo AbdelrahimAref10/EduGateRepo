@@ -1,0 +1,97 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleStudent' | t }}</p>
+      <h2 class="page-title mt-1">{{ 'studentLessons.title' | t }}</h2>
+      <p class="mt-1 text-sm text-muted">{{ 'studentLessons.subtitle' | t }}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/student/book" class="btn-ghost">{{ 'booking.studentNav' | t }}</a>
+      <button type="button" class="btn-ghost" (click)="load()" [disabled]="loading()">
+        {{ 'lessons.refresh' | t }}
+      </button>
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      @for (_ of [1, 2, 3]; track $index) {
+        <div class="h-52 animate-pulse rounded-2xl bg-white shadow-sm ring-1 ring-line"></div>
+      }
+    </div>
+  } @else if (!(lessons().length)) {
+    <div class="rounded-2xl bg-white px-6 py-16 text-center shadow-sm ring-1 ring-line">
+      <p class="text-base font-semibold text-ink">{{ 'studentLessons.empty' | t }}</p>
+      <p class="mt-1 text-sm text-muted">{{ 'studentLessons.emptyHint' | t }}</p>
+      <a routerLink="/student/book" class="btn-primary mt-5 inline-flex">{{ 'booking.studentNav' | t }}</a>
+    </div>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      @for (lesson of lessons(); track lesson.lessonId) {
+        <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-line">
+          <div class="h-1.5 w-full bg-gradient-to-l from-primary-600 via-primary-500 to-primary-300"></div>
+          <div class="flex flex-1 flex-col gap-3 p-5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-600">
+                  {{ lesson.educationTypeName }}
+                </p>
+                <h3 class="mt-1 truncate text-xl font-bold text-ink">{{ lesson.subject }}</h3>
+                <p class="mt-1 text-sm text-muted">{{ lesson.educationYearName }}</p>
+              </div>
+              <span
+                class="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold"
+                [class]="statusClass(lesson.bookingStatus)"
+              >
+                {{ statusKey(lesson.bookingStatus) | t }}
+              </span>
+            </div>
+
+            <p class="text-sm text-muted">
+              <span class="font-semibold text-ink">{{ 'booking.teacher' | t }}:</span>
+              {{ lesson.teacherName }}
+            </p>
+
+            @if (lesson.assignedGroupName) {
+              <p class="text-sm text-muted">
+                <span class="font-semibold text-ink">{{ 'studentLessons.group' | t }}:</span>
+                {{ lesson.assignedGroupName }}
+              </p>
+            } @else if (lesson.canEnterLesson) {
+              <p class="text-sm text-amber-700">{{ 'studentLessons.waitingGroup' | t }}</p>
+            }
+
+            @if (lesson.nextSessionDate) {
+              <p class="text-sm text-muted">
+                <span class="font-semibold text-ink">{{ 'studentLessons.nextSession' | t }}:</span>
+                {{ lesson.nextSessionDate | date: 'yyyy-MM-dd' }}
+              </p>
+            }
+
+            <div class="mt-auto pt-2">
+              @if (lesson.canEnterLesson) {
+                <a class="btn-primary inline-flex w-full justify-center" [routerLink]="['/student/lessons', lesson.lessonId]">
+                  {{ 'studentLessons.enter' | t }}
+                </a>
+              } @else {
+                <span class="block rounded-xl bg-body px-4 py-3 text-center text-sm font-semibold text-muted">
+                  {{
+                    lesson.bookingStatus === 'Rejected'
+                      ? ('studentLessons.rejectedHint' | t)
+                      : ('studentLessons.waitingConfirm' | t)
+                  }}
+                </span>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

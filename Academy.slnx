@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Backend/">
+    <Project Path="Academy.Application/Academy.Application.csproj" />
+    <Project Path="Academy.Domain/Academy.Domain.csproj" />
+    <Project Path="Academy.Infrastructure/Academy.Infrastructure.csproj" />
+    <Project Path="Academy.Persistence/Academy.Persistence.csproj" />
+    <Project Path="Academy.Server/Academy.Server.csproj" />
+  </Folder>
+  <Folder Name="/Frontend/">
+    <Project Path="academy.client/Academy.client.esproj">
+      <Build />
+      <Deploy />
+    </Project>
+  </Folder>
+</Solution>

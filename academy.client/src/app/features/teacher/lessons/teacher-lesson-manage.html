@@ -1,0 +1,362 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <a routerLink="/teacher/lessons" class="text-sm font-semibold text-primary-700 hover:underline">
+        ← {{ 'lessons.backToList' | t }}
+      </a>
+      <h2 class="page-title mt-2">
+        {{ manage()?.lesson?.subject || ('lessons.manageTitle' | t) }}
+      </h2>
+      @if (manage()?.lesson; as lesson) {
+        <p class="mt-1 text-sm text-muted">
+          {{ lesson.educationTypeName }}
+          · {{ lesson.educationYearName }}
+          · {{ lesson.areaName }}
+        </p>
+      }
+    </div>
+    <button type="button" class="btn-ghost" (click)="loadManage()" [disabled]="loading()">
+      {{ 'lessons.refresh' | t }}
+    </button>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">{{ error() }}</div>
+  }
+  @if (success() === 'groupCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.groupCreated' | t }}</div>
+  }
+  @if (success() === 'groupUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.groupUpdated' | t }}</div>
+  }
+  @if (success() === 'groupDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.groupDeleted' | t }}</div>
+  }
+  @if (success() === 'groupEnded') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.groupEndedMsg' | t }}</div>
+  }
+  @if (success() === 'memberAdded') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.memberAdded' | t }}</div>
+  }
+  @if (success() === 'memberRemoved') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.memberRemoved' | t }}</div>
+  }
+  @if (success() === 'studentAdded') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.studentAdded' | t }}</div>
+  }
+
+  @if (loading() && !manage()) {
+    <p class="text-center text-sm text-muted">{{ 'lessons.loadingManage' | t }}</p>
+  } @else if (manage(); as data) {
+    <section class="card overflow-hidden">
+      <div class="border-b border-line px-5 py-4">
+        <h3 class="section-title">{{ 'lessons.lessonOverview' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">
+          {{ data.lesson.hasStarted ? ('lessons.started' | t) : ('lessons.notStarted' | t) }}
+          · {{ data.lesson.confirmedBookingsCount }} {{ 'lessons.confirmedShort' | t }}
+          · {{ data.lesson.groupsCount }} {{ 'lessons.groupsShort' | t }}
+        </p>
+      </div>
+      <div class="grid gap-3 px-5 py-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'lessons.startDate' | t }}</p>
+          <p class="mt-1 font-semibold">{{ data.lesson.startDate | date: 'yyyy-MM-dd' }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'lessons.city' | t }}</p>
+          <p class="mt-1 font-semibold">{{ data.lesson.cityName }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'lessons.area' | t }}</p>
+          <p class="mt-1 font-semibold">{{ data.lesson.areaName }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'lessons.bookings' | t }}</p>
+          <p class="mt-1 font-semibold">{{ data.lesson.bookingsCount }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card overflow-hidden">
+      <div class="border-b border-line px-5 py-4">
+        <h3 class="section-title">{{ 'lessons.bookedStudents' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">{{ 'lessons.bookedStudentsHint' | t }}</p>
+      </div>
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="min-w-[14rem] flex-1">
+            <span class="label-text">{{ 'lessons.addStudentByCode' | t }}</span>
+            <input
+              class="field"
+              type="text"
+              [value]="lessonStudentCode()"
+              (input)="lessonStudentCode.set($any($event.target).value)"
+              [placeholder]="'lessons.studentCodePlaceholder' | t"
+            />
+          </label>
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="addLessonStudent()"
+            [disabled]="addingStudent()"
+          >
+            {{ addingStudent() ? ('lessons.saving' | t) : ('lessons.addStudentConfirmed' | t) }}
+          </button>
+        </div>
+      </div>
+      <div class="p-5">
+        @if (data.students.length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'lessons.noStudents' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3">{{ 'lessons.studentName' | t }}</th>
+                  <th class="px-3 py-3">{{ 'lessons.studentCode' | t }}</th>
+                  <th class="px-3 py-3">{{ 'lessons.bookingStatus' | t }}</th>
+                  <th class="px-3 py-3">{{ 'lessons.assignedGroup' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (student of data.students; track student.bookingId) {
+                  <tr class="border-b border-line/70">
+                    <td class="px-3 py-3 font-semibold">{{ student.studentName }}</td>
+                    <td class="px-3 py-3 font-mono text-xs">{{ student.studentCode || '—' }}</td>
+                    <td class="px-3 py-3">{{ bookingStatusKey(student.status) | t }}</td>
+                    <td class="px-3 py-3">{{ student.assignedGroupName || ('lessons.unassigned' | t) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="card overflow-hidden">
+      <div class="border-b border-line px-5 py-4">
+        <h3 class="section-title">{{ 'lessons.groups' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">{{ 'lessons.groupsHint' | t }}</p>
+      </div>
+
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ editingGroupId() ? ('lessons.editGroupTitle' | t) : ('lessons.createGroupTitle' | t) }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-2" [formGroup]="groupForm" (ngSubmit)="submitGroup()">
+          <label>
+            <span class="label-text">{{ 'lessons.groupName' | t }}</span>
+            <input class="field" type="text" formControlName="name" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'lessons.area' | t }}</span>
+            <select class="field" formControlName="areaId">
+              <option [ngValue]="0" disabled>{{ 'lessons.selectArea' | t }}</option>
+              @for (area of cityAreas(); track area.id) {
+                <option [ngValue]="area.id">{{ area.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span class="label-text">{{ 'lessons.periodStart' | t }}</span>
+            <input class="field" type="date" formControlName="periodStartDate" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'lessons.periodEnd' | t }}</span>
+            <input class="field" type="date" formControlName="periodEndDate" />
+          </label>
+          <label class="md:col-span-2">
+            <span class="label-text">{{ 'lessons.address' | t }}</span>
+            <input class="field" type="text" formControlName="address" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'lessons.maxCapacity' | t }}</span>
+            <input class="field" type="number" min="1" formControlName="maxCapacity" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'lessons.notes' | t }}</span>
+            <input class="field" type="text" formControlName="notes" />
+          </label>
+
+          <div class="md:col-span-2" formArrayName="dates">
+            <div class="mb-2 flex items-center justify-between gap-2">
+              <span class="label-text mb-0">{{ 'lessons.schedule' | t }}</span>
+              <button type="button" class="btn-ghost text-xs" (click)="addDateRow()">
+                {{ 'lessons.addDay' | t }}
+              </button>
+            </div>
+            <div class="space-y-2">
+              @for (row of dates.controls; track $index; let i = $index) {
+                <div class="grid grid-cols-[1fr_auto_auto] items-end gap-2" [formGroupName]="i">
+                  <label>
+                    <span class="sr-only">{{ 'lessons.day' | t }}</span>
+                    <select class="field" formControlName="dayOfWeek">
+                      @for (day of weekDays; track day) {
+                        <option [ngValue]="day">{{ dayLabel(day) }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label>
+                    <span class="sr-only">{{ 'lessons.time' | t }}</span>
+                    <input class="field w-32" type="time" formControlName="startTime" />
+                  </label>
+                  <button
+                    type="button"
+                    class="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-danger"
+                    (click)="removeDateRow(i)"
+                    [disabled]="dates.length <= 1"
+                  >
+                    {{ 'lessons.removeDay' | t }}
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 md:col-span-2">
+            <button type="submit" class="btn-primary" [disabled]="savingGroup() || loadingAreas()">
+              {{
+                savingGroup()
+                  ? ('lessons.saving' | t)
+                  : editingGroupId()
+                    ? ('lessons.updateGroup' | t)
+                    : ('lessons.createGroup' | t)
+              }}
+            </button>
+            @if (editingGroupId()) {
+              <button type="button" class="btn-ghost" (click)="cancelEditGroup()" [disabled]="savingGroup()">
+                {{ 'lessons.cancel' | t }}
+              </button>
+            }
+          </div>
+        </form>
+      </div>
+
+      <div class="space-y-4 p-5">
+        @if (data.groups.length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'lessons.noGroups' | t }}</p>
+        } @else {
+          @for (group of data.groups; track group.id) {
+            <article class="rounded-xl border border-line bg-white p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h4 class="text-base font-bold text-ink">{{ group.name }}</h4>
+                  <p class="mt-1 text-sm text-muted">{{ formatSchedule(group) }}</p>
+                  <p class="mt-1 text-sm text-muted">
+                    {{ group.periodStartDate | date: 'yyyy-MM-dd' }}
+                    → {{ group.periodEndDate | date: 'yyyy-MM-dd' }}
+                    · {{ group.sessionsCount }} {{ 'lessons.sessionsShort' | t }}
+                  </p>
+                  <p class="mt-1 text-sm text-muted">
+                    {{ group.areaName }} · {{ group.address }}
+                    · {{ group.membersCount }}{{ group.maxCapacity ? ' / ' + group.maxCapacity : '' }}
+                    {{ 'lessons.studentsShort' | t }}
+                    · {{ groupStatusKey(group) | t }}
+                  </p>
+                  @if (group.notes) {
+                    <p class="mt-1 text-sm text-ink/80">{{ group.notes }}</p>
+                  }
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  <a
+                    class="rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-bold text-white"
+                    [routerLink]="['/teacher/lessons', lessonId(), 'groups', group.id]"
+                  >
+                    {{ 'lessons.manageGroup' | t }}
+                  </a>
+                  @if (group.canEdit) {
+                    <button type="button" class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700" (click)="startEditGroup(group)">
+                      {{ 'lessons.edit' | t }}
+                    </button>
+                  }
+                  @if (group.hasStarted && !group.hasEnded) {
+                    <button
+                      type="button"
+                      class="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"
+                      (click)="endGroup(group)"
+                      [disabled]="endingGroupId() === group.id"
+                    >
+                      {{ endingGroupId() === group.id ? ('lessons.ending' | t) : ('lessons.endGroup' | t) }}
+                    </button>
+                  }
+                  @if (group.canDelete) {
+                    <button
+                      type="button"
+                      class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-bold text-danger"
+                      (click)="deleteGroup(group)"
+                      [disabled]="deletingGroupId() === group.id"
+                    >
+                      {{ deletingGroupId() === group.id ? ('lessons.deleting' | t) : ('lessons.delete' | t) }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              @if (group.canEdit) {
+                <div class="mt-3 flex flex-wrap items-end gap-2 border-t border-line pt-3">
+                  <label class="min-w-[12rem] flex-1">
+                    <span class="label-text">{{ 'lessons.addByCode' | t }}</span>
+                    <input
+                      class="field"
+                      type="text"
+                      [value]="memberCode(group.id)"
+                      (input)="setMemberCode(group.id, $any($event.target).value)"
+                      [placeholder]="'lessons.studentCodePlaceholder' | t"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="addMember(group)"
+                    [disabled]="addingMemberGroupId() === group.id"
+                  >
+                    {{ addingMemberGroupId() === group.id ? ('lessons.saving' | t) : ('lessons.addStudent' | t) }}
+                  </button>
+                </div>
+              }
+
+              <div class="mt-3 overflow-x-auto">
+                @if (!group.members?.length) {
+                  <p class="text-sm text-muted">{{ 'lessons.noMembers' | t }}</p>
+                } @else {
+                  <table class="min-w-full text-center text-sm">
+                    <thead>
+                      <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                        <th class="px-2 py-2">{{ 'lessons.studentName' | t }}</th>
+                        <th class="px-2 py-2">{{ 'lessons.studentCode' | t }}</th>
+                        <th class="px-2 py-2">{{ 'lessons.action' | t }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (member of group.members; track member.id) {
+                        <tr class="border-b border-line/60">
+                          <td class="px-2 py-2 font-semibold">{{ member.studentName }}</td>
+                          <td class="px-2 py-2 font-mono text-xs">{{ member.studentCode || '—' }}</td>
+                          <td class="px-2 py-2">
+                            @if (group.canEdit) {
+                              <button
+                                type="button"
+                                class="text-xs font-bold text-danger"
+                                (click)="removeMember(group, member.studentId)"
+                                [disabled]="removingMemberKey() === group.id + ':' + member.studentId"
+                              >
+                                {{ 'lessons.removeStudent' | t }}
+                              </button>
+                            } @else {
+                              —
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            </article>
+          }
+        }
+      </div>
+    </section>
+  }
+</section>

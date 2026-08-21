@@ -1,0 +1,128 @@
+<section class="space-y-5" [attr.data-accent]="accent()">
+  <!-- Stat cards like Metor -->
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @for (stat of stats; track stat.labelKey; let i = $index) {
+      <article
+        class="card group flex items-center gap-4 p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-dropdown"
+        [style.animation-delay]="i * 60 + 'ms'"
+      >
+        <div
+          class="flex size-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
+          [class]="stat.iconClass"
+        >
+          <svg class="size-6" viewBox="0 0 24 24" fill="none">
+            <path [attr.d]="stat.iconPath" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ stat.value }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ stat.labelKey | t }}</p>
+        </div>
+        <a
+          [routerLink]="quickLinks()[0]?.link || '.'"
+          class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white"
+          [attr.aria-label]="'common.dashboard' | t"
+        >
+          <svg class="size-4" viewBox="0 0 24 24" fill="none">
+            <path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.7"/>
+            <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.7"/>
+          </svg>
+        </a>
+      </article>
+    }
+  </div>
+
+  <div class="grid gap-5 xl:grid-cols-[1.4fr_0.9fr]">
+    <!-- Main panel -->
+    <section class="card overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <div>
+          <h2 class="section-title">{{ kickerKey | t }}</h2>
+          <p class="mt-1 text-sm text-muted">{{ subtitleKey | t }}</p>
+        </div>
+        <span class="rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-700">
+          {{ 'dashboard.thisWeek' | t }}
+        </span>
+      </div>
+
+      <div class="space-y-5 p-5">
+        <div>
+          <h3 class="page-title">{{ titleKey | t }}</h3>
+          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{{ 'dashboard.activitySub' | t }}</p>
+        </div>
+
+        <div class="grid h-44 grid-cols-7 items-end gap-2 rounded-xl bg-body/80 p-4">
+          @for (bar of bars; track $index; let i = $index) {
+            <div class="flex h-full flex-col items-center justify-end gap-2">
+              <div
+                class="w-full max-w-7 rounded-t-md bg-gradient-to-t from-primary-700 to-primary-400 shadow-sm transition duration-300 hover:opacity-90"
+                [style.height]="bar + '%'"
+              ></div>
+              <span class="text-[10px] font-semibold text-muted">D{{ i + 1 }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          @for (meter of meters; track meter.labelKey) {
+            <div class="rounded-xl border border-line bg-body/50 p-3">
+              <div class="mb-2 flex items-center justify-between text-xs">
+                <span class="font-semibold text-muted">{{ meter.labelKey | t }}</span>
+                <strong class="text-ink">{{ meter.value }}%</strong>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-line">
+                <div class="h-full rounded-full bg-gradient-to-r from-primary-600 to-info" [style.width]="meter.value + '%'"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Side panels -->
+    <div class="space-y-5">
+      <section class="card p-5">
+        <h3 class="section-title">{{ 'dashboard.quickActions' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">{{ 'dashboard.quickActionsSub' | t }}</p>
+        <div class="mt-4 space-y-2">
+          @for (item of quickLinks(); track item.link) {
+            <a
+              [routerLink]="item.link"
+              class="flex items-center justify-between rounded-xl border border-line bg-white px-3.5 py-3 text-sm font-semibold text-ink transition hover:border-primary-200 hover:bg-primary-50/60"
+            >
+              <span>{{ item.labelKey | t }}</span>
+              <span class="text-primary-600">→</span>
+            </a>
+          }
+        </div>
+      </section>
+
+      <section class="card p-5">
+        <h3 class="section-title">{{ 'dashboard.activity' | t }}</h3>
+        <ul class="mt-4 space-y-3">
+          <li class="flex gap-3 rounded-xl bg-body px-3 py-3">
+            <span class="mt-1 size-2.5 shrink-0 rounded-full bg-primary-600"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-ink">{{ 'dashboard.activity1' | t }}</p>
+              <p class="text-xs text-muted">2m</p>
+            </div>
+          </li>
+          <li class="flex gap-3 rounded-xl bg-body px-3 py-3">
+            <span class="mt-1 size-2.5 shrink-0 rounded-full bg-info"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-ink">{{ 'dashboard.activity2' | t }}</p>
+              <p class="text-xs text-muted">1h</p>
+            </div>
+          </li>
+          <li class="flex gap-3 rounded-xl bg-body px-3 py-3">
+            <span class="mt-1 size-2.5 shrink-0 rounded-full bg-muted"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-ink">{{ 'dashboard.activity3' | t }}</p>
+              <p class="text-xs text-muted">Yesterday</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</section>

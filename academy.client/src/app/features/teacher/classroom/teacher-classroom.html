@@ -1,0 +1,385 @@
+<section class="space-y-5">
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+  @if (success() === 'infoSaved') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.infoSaved' | t }}
+    </div>
+  }
+  @if (success() === 'studentSaved') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.studentSaved' | t }}
+    </div>
+  }
+  @if (success() === 'materialCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.materialCreated' | t }}
+    </div>
+  }
+  @if (success() === 'materialUpdated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.materialUpdated' | t }}
+    </div>
+  }
+  @if (success() === 'materialDeleted') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.materialDeleted' | t }}
+    </div>
+  }
+
+  @if (loading() && !classroom()) {
+    <p class="text-center text-sm text-muted">{{ 'classroom.loading' | t }}</p>
+  } @else if (classroom(); as room) {
+    <a
+      [routerLink]="['/teacher/lessons', room.lessonId, 'groups', room.lessonGroupId]"
+      class="inline-flex text-sm font-semibold text-primary-700 hover:underline"
+    >
+      ← {{ 'classroom.backToGroup' | t }}
+    </a>
+
+    <header class="room-hero overflow-hidden rounded-2xl text-white shadow-card">
+      <div class="relative px-5 py-8 sm:px-8 sm:py-10">
+        <div class="relative z-[1] flex flex-wrap items-end justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">
+              {{ room.groupName }}
+            </p>
+            <h2 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ room.subject }}</h2>
+            <p class="mt-2 text-sm text-white/85">
+              {{ room.sessionDate | date: 'yyyy-MM-dd' }}
+              · {{ toTimeInput(room.startTime) }}
+              · {{ room.teacherName }}
+            </p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
+                {{ statusKey(room) | t }}
+              </span>
+              @if (room.topic) {
+                <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
+                  {{ room.topic }}
+                </span>
+              }
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="rounded-xl bg-white/12 px-4 py-3 backdrop-blur-sm">
+              <p class="text-[10px] font-bold uppercase tracking-wide text-white/70">
+                {{ 'classroom.students' | t }}
+              </p>
+              <p class="mt-1 text-xl font-extrabold">{{ room.students?.length || 0 }}</p>
+            </div>
+            <div class="rounded-xl bg-white/12 px-4 py-3 backdrop-blur-sm">
+              <p class="text-[10px] font-bold uppercase tracking-wide text-white/70">
+                {{ 'classroom.present' | t }}
+              </p>
+              <p class="mt-1 text-xl font-extrabold">{{ presentCount() }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex gap-1 border-b border-line">
+      <button
+        type="button"
+        class="room-tab px-4 py-2.5 text-sm font-bold transition"
+        [class.is-active]="tab() === 'stream'"
+        [class.text-primary-700]="tab() === 'stream'"
+        [class.text-muted]="tab() !== 'stream'"
+        (click)="setTab('stream')"
+      >
+        {{ 'classroom.stream' | t }}
+      </button>
+      <button
+        type="button"
+        class="room-tab px-4 py-2.5 text-sm font-bold transition"
+        [class.is-active]="tab() === 'people'"
+        [class.text-primary-700]="tab() === 'people'"
+        [class.text-muted]="tab() !== 'people'"
+        (click)="setTab('people')"
+      >
+        {{ 'classroom.people' | t }}
+      </button>
+    </div>
+
+    <div class="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+      <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'stream'">
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'classroom.topic' | t }}</h3>
+            <p class="mt-1 text-sm text-muted">{{ 'classroom.topicHint' | t }}</p>
+          </div>
+          <form class="grid gap-3 p-5" [formGroup]="infoForm" (ngSubmit)="saveInfo()">
+            <label>
+              <span class="label-text">{{ 'classroom.topic' | t }}</span>
+              <input class="field" type="text" formControlName="topic" />
+            </label>
+            <label>
+              <span class="label-text">{{ 'classroom.description' | t }}</span>
+              <textarea class="field min-h-24" rows="3" formControlName="description"></textarea>
+            </label>
+            <div>
+              <button type="submit" class="btn-primary" [disabled]="savingInfo()">
+                {{ savingInfo() ? ('common.save' | t) : ('classroom.saveInfo' | t) }}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card overflow-hidden">
+          <div class="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+            <div>
+              <h3 class="section-title">{{ 'classroom.materials' | t }}</h3>
+              <p class="mt-1 text-sm text-muted">{{ 'classroom.materialsHint' | t }}</p>
+            </div>
+            <button type="button" class="btn-primary" (click)="openAddMaterial()">
+              {{ 'classroom.addMaterial' | t }}
+            </button>
+          </div>
+
+          <div class="space-y-3 p-5">
+            @if (!(room.materials?.length)) {
+              <div class="rounded-xl border border-dashed border-line bg-body/40 px-4 py-10 text-center">
+                <p class="text-sm font-semibold text-ink">{{ 'classroom.noMaterials' | t }}</p>
+                <p class="mt-1 text-xs text-muted">{{ 'classroom.materialsEmptyHint' | t }}</p>
+              </div>
+            } @else {
+              @for (material of room.materials; track material.id) {
+                <article class="room-post rounded-xl border border-line bg-white p-4">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="flex min-w-0 gap-3">
+                      <div
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-[10px] font-extrabold tracking-wide text-primary-700"
+                      >
+                        {{ fileLabel(material) }}
+                      </div>
+                      <div class="min-w-0">
+                        <h4 class="text-base font-bold text-ink">
+                          {{ material.description || material.originalFileName || material.title }}
+                        </h4>
+                        <p class="mt-1 text-xs text-muted">
+                          {{ material.originalFileName || material.title }}
+                          @if (formatSize(material.fileSizeBytes)) {
+                            · {{ formatSize(material.fileSizeBytes) }}
+                          }
+                          · {{ material.createdAtUtc | date: 'yyyy-MM-dd HH:mm' }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                      @if (material.hasFile) {
+                        <button
+                          type="button"
+                          class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700"
+                          (click)="openMaterial(material)"
+                          [disabled]="openingMaterialId() === material.id"
+                        >
+                          {{
+                            openingMaterialId() === material.id
+                              ? ('classroom.opening' | t)
+                              : ('classroom.openFile' | t)
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700"
+                          (click)="downloadMaterial(material)"
+                          [disabled]="downloadingMaterialId() === material.id"
+                        >
+                          {{
+                            downloadingMaterialId() === material.id
+                              ? ('classroom.downloading' | t)
+                              : ('classroom.download' | t)
+                          }}
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700"
+                        (click)="startEditMaterial(material)"
+                      >
+                        {{ 'lessons.edit' | t }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-bold text-danger"
+                        (click)="deleteMaterial(material)"
+                        [disabled]="deletingMaterialId() === material.id"
+                      >
+                        {{
+                          deletingMaterialId() === material.id
+                            ? ('lessons.deleting' | t)
+                            : ('lessons.delete' | t)
+                        }}
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (editingMaterialId() === material.id) {
+                    <form
+                      class="mt-3 grid gap-3 border-t border-line pt-3"
+                      [formGroup]="editMaterialForm"
+                      (ngSubmit)="saveMaterialEdit(material)"
+                    >
+                      <label>
+                        <span class="label-text">{{ 'classroom.description' | t }}</span>
+                        <textarea class="field min-h-20" rows="2" formControlName="description"></textarea>
+                      </label>
+                      <div class="flex flex-wrap gap-2">
+                        <button type="submit" class="btn-primary" [disabled]="savingMaterial()">
+                          {{ 'common.save' | t }}
+                        </button>
+                        <button type="button" class="btn-ghost" (click)="cancelEditMaterial()">
+                          {{ 'common.cancel' | t }}
+                        </button>
+                      </div>
+                    </form>
+                  }
+                </article>
+              }
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'people'">
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'classroom.people' | t }}</h3>
+            <p class="mt-1 text-sm text-muted">{{ 'classroom.peopleHint' | t }}</p>
+          </div>
+          <div class="p-5">
+            @if (!(room.students?.length)) {
+              <p class="text-center text-sm text-muted">{{ 'classroom.noStudents' | t }}</p>
+            } @else {
+              <div class="space-y-3">
+                @for (student of room.students; track student.studentId) {
+                  <article class="rounded-xl border border-line p-4 transition hover:border-primary-200">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div class="flex items-center gap-3">
+                        <div
+                          class="flex size-10 items-center justify-center rounded-full bg-primary-50 text-xs font-extrabold text-primary-700"
+                        >
+                          {{ initials(student.studentName) }}
+                        </div>
+                        <div>
+                          <p class="font-bold text-ink">{{ student.studentName }}</p>
+                          <p class="font-mono text-xs text-muted">{{ student.studentCode || '—' }}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn-primary text-xs"
+                        (click)="saveStudent(student)"
+                        [disabled]="savingStudentId() === student.studentId"
+                      >
+                        {{
+                          savingStudentId() === student.studentId
+                            ? ('lessons.saving' | t)
+                            : ('common.save' | t)
+                        }}
+                      </button>
+                    </div>
+                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                      <label class="flex items-center gap-2 rounded-lg bg-body px-3 py-2 text-sm font-semibold">
+                        <input
+                          type="checkbox"
+                          [checked]="studentDraft(student.studentId).isPresent"
+                          (change)="
+                            patchStudentDraft(student.studentId, {
+                              isPresent: $any($event.target).checked
+                            })
+                          "
+                        />
+                        {{ 'classroom.present' | t }}
+                      </label>
+                      <label class="flex items-center gap-2 rounded-lg bg-body px-3 py-2 text-sm font-semibold">
+                        <input
+                          type="checkbox"
+                          [checked]="studentDraft(student.studentId).isPaid"
+                          (change)="
+                            patchStudentDraft(student.studentId, {
+                              isPaid: $any($event.target).checked
+                            })
+                          "
+                        />
+                        {{ 'classroom.paid' | t }}
+                      </label>
+                      <label class="sm:col-span-2">
+                        <span class="label-text">{{ 'classroom.teacherNotes' | t }}</span>
+                        <input
+                          class="field"
+                          type="text"
+                          [value]="studentDraft(student.studentId).teacherNotes"
+                          (input)="
+                            patchStudentDraft(student.studentId, {
+                              teacherNotes: $any($event.target).value
+                            })
+                          "
+                        />
+                      </label>
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+
+  @if (materialModalOpen()) {
+    <div
+      class="fixed inset-0 z-[25000] grid place-items-center bg-ink/45 p-4 backdrop-blur-[2px]"
+      (click)="closeMaterialModal()"
+      role="presentation"
+    >
+      <div
+        class="w-[min(440px,100%)] rounded-2xl border border-line bg-surface p-5 shadow-dropdown animate-fade-up"
+        role="dialog"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+      >
+        <h3 class="text-lg font-extrabold tracking-tight text-ink">{{ 'classroom.addMaterial' | t }}</h3>
+        <p class="mt-1 text-sm text-muted">{{ 'classroom.addMaterialHint' | t }}</p>
+
+        <form class="mt-4 grid gap-3" [formGroup]="materialForm" (ngSubmit)="submitMaterial()">
+          <label>
+            <span class="label-text">{{ 'classroom.description' | t }}</span>
+            <textarea
+              class="field min-h-24"
+              rows="3"
+              formControlName="description"
+              [placeholder]="'classroom.descriptionPlaceholder' | t"
+            ></textarea>
+          </label>
+          <label>
+            <span class="label-text">{{ 'classroom.upload' | t }}</span>
+            <input
+              class="field"
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              (change)="onFileSelected($event)"
+            />
+            <span class="mt-1 block text-xs text-muted">{{ 'classroom.allowedFiles' | t }}</span>
+            @if (selectedFile(); as file) {
+              <span class="mt-1 block text-xs font-semibold text-primary-700">{{ file.name }}</span>
+            }
+          </label>
+          <div class="mt-1 flex flex-wrap gap-2">
+            <button type="submit" class="btn-primary" [disabled]="uploading()">
+              {{ uploading() ? ('lessons.saving' | t) : ('classroom.uploadMaterial' | t) }}
+            </button>
+            <button type="button" class="btn-ghost" (click)="closeMaterialModal()">
+              {{ 'common.cancel' | t }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

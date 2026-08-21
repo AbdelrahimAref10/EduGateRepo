@@ -1,0 +1,207 @@
+<section class="space-y-5">
+  <a
+    [routerLink]="classroom()?.lessonId ? ['/student/lessons', classroom()!.lessonId] : ['/student/lessons']"
+    class="inline-flex text-sm font-semibold text-primary-700 hover:underline"
+  >
+    ← {{ 'studentLessons.backToMyLessons' | t }}
+  </a>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading() && !classroom()) {
+    <p class="text-center text-sm text-muted">{{ 'classroom.loading' | t }}</p>
+  } @else if (classroom(); as room) {
+    <header class="room-hero overflow-hidden rounded-2xl text-white shadow-card">
+      <div class="relative px-5 py-8 sm:px-8 sm:py-10">
+        <div class="relative z-[1]">
+          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">{{ room.groupName }}</p>
+          <h2 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ room.subject }}</h2>
+          <p class="mt-2 text-sm text-white/85">
+            {{ room.sessionDate | date: 'yyyy-MM-dd' }}
+            · {{ toTimeInput(room.startTime) }}
+            · {{ room.teacherName }}
+          </p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
+              {{ statusKey(room) | t }}
+            </span>
+            @if (room.topic) {
+              <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
+                {{ room.topic }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex gap-1 border-b border-line">
+      <button
+        type="button"
+        class="room-tab px-4 py-2.5 text-sm font-bold transition"
+        [class.is-active]="tab() === 'stream'"
+        [class.text-primary-700]="tab() === 'stream'"
+        [class.text-muted]="tab() !== 'stream'"
+        (click)="setTab('stream')"
+      >
+        {{ 'classroom.stream' | t }}
+      </button>
+      <button
+        type="button"
+        class="room-tab px-4 py-2.5 text-sm font-bold transition"
+        [class.is-active]="tab() === 'people'"
+        [class.text-primary-700]="tab() === 'people'"
+        [class.text-muted]="tab() !== 'people'"
+        (click)="setTab('people')"
+      >
+        {{ 'classroom.people' | t }}
+      </button>
+    </div>
+
+    <div class="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+      <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'stream'">
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'classroom.topic' | t }}</h3>
+          </div>
+          <div class="space-y-2 px-5 py-4">
+            <p class="text-base font-bold text-ink">{{ room.topic || ('classroom.noTopic' | t) }}</p>
+            @if (room.description) {
+              <p class="whitespace-pre-wrap text-sm leading-relaxed text-muted">{{ room.description }}</p>
+            }
+          </div>
+        </section>
+
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'classroom.materials' | t }}</h3>
+            <p class="mt-1 text-sm text-muted">{{ 'classroom.studentMaterialsHint' | t }}</p>
+          </div>
+          <div class="space-y-3 p-5">
+            @if (!(room.materials?.length)) {
+              <div class="rounded-xl border border-dashed border-line bg-body/40 px-4 py-10 text-center">
+                <p class="text-sm font-semibold text-ink">{{ 'classroom.noMaterials' | t }}</p>
+              </div>
+            } @else {
+              @for (material of room.materials; track material.id) {
+                <article class="room-post rounded-xl border border-line bg-white p-4">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="flex min-w-0 gap-3">
+                      <div
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-[10px] font-extrabold tracking-wide text-primary-700"
+                      >
+                        {{ fileLabel(material) }}
+                      </div>
+                      <div class="min-w-0">
+                        <h4 class="text-base font-bold text-ink">
+                          {{ material.description || material.originalFileName || material.title }}
+                        </h4>
+                        <p class="mt-1 text-xs text-muted">
+                          {{ material.originalFileName || material.title }}
+                          @if (formatSize(material.fileSizeBytes)) {
+                            · {{ formatSize(material.fileSizeBytes) }}
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    @if (material.hasFile) {
+                      <div class="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          class="rounded-lg bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700"
+                          (click)="openMaterial(material)"
+                          [disabled]="openingMaterialId() === material.id"
+                        >
+                          {{
+                            openingMaterialId() === material.id
+                              ? ('classroom.opening' | t)
+                              : ('classroom.openFile' | t)
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700"
+                          (click)="downloadMaterial(material)"
+                          [disabled]="downloadingMaterialId() === material.id"
+                        >
+                          {{
+                            downloadingMaterialId() === material.id
+                              ? ('classroom.downloading' | t)
+                              : ('classroom.download' | t)
+                          }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </article>
+              }
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'people'">
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'classroom.myDetail' | t }}</h3>
+          </div>
+          <div class="grid gap-3 px-5 py-4 sm:grid-cols-2">
+            <div class="rounded-xl border border-line bg-body/40 px-3 py-3">
+              <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'classroom.present' | t }}</p>
+              <p class="mt-1 text-sm font-bold">
+                {{ room.myDetail?.isPresent ? ('classroom.yes' | t) : ('classroom.no' | t) }}
+              </p>
+            </div>
+            <div class="rounded-xl border border-line bg-body/40 px-3 py-3">
+              <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'classroom.paid' | t }}</p>
+              <p class="mt-1 text-sm font-bold">
+                {{ room.myDetail?.isPaid ? ('classroom.yes' | t) : ('classroom.no' | t) }}
+              </p>
+            </div>
+            @if (room.myDetail?.teacherNotes) {
+              <div class="rounded-xl border border-line bg-body/40 px-3 py-3 sm:col-span-2">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-muted">
+                  {{ 'classroom.teacherNotes' | t }}
+                </p>
+                <p class="mt-1 text-sm font-semibold">{{ room.myDetail?.teacherNotes }}</p>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'classroom.classmates' | t }}</h3>
+          </div>
+          <div class="p-5">
+            @if (!(room.classmates?.length)) {
+              <p class="text-center text-sm text-muted">{{ 'classroom.noClassmates' | t }}</p>
+            } @else {
+              <ul class="space-y-2">
+                @for (mate of room.classmates; track mate.studentName + (mate.studentCode || '')) {
+                  <li
+                    class="flex items-center gap-3 rounded-xl border border-line px-3 py-2.5 transition hover:border-primary-200"
+                  >
+                    <div
+                      class="flex size-9 items-center justify-center rounded-full bg-primary-50 text-[11px] font-extrabold text-primary-700"
+                    >
+                      {{ initials(mate.studentName) }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-bold text-ink">{{ mate.studentName }}</p>
+                      <p class="font-mono text-xs text-muted">{{ mate.studentCode || '—' }}</p>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</section>
