@@ -6,46 +6,49 @@ using Academy.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Academy.Application.Features.SuperAdmin.Education.Queries.GetEducationYearsByType;
+namespace Academy.Application.Features.SuperAdmin.Education.Queries.GetEducationStagesByType;
 
-public sealed class GetEducationYearsByTypeQueryHandler(
+public sealed class GetEducationStagesByTypeQueryHandler(
     IApplicationDbContext dbContext,
     IRequestLanguage requestLanguage)
-    : IRequestHandler<GetEducationYearsByTypeQuery, Result<IReadOnlyList<EducationYearDto>>>
+    : IRequestHandler<GetEducationStagesByTypeQuery, Result<IReadOnlyList<EducationStageDto>>>
 {
-    public async Task<Result<IReadOnlyList<EducationYearDto>>> Handle(
-        GetEducationYearsByTypeQuery request,
+    public async Task<Result<IReadOnlyList<EducationStageDto>>> Handle(
+        GetEducationStagesByTypeQuery request,
         CancellationToken cancellationToken)
     {
-        var typeExists = await dbContext.EducationTypes
-            .AnyAsync(x => x.Id == request.EducationTypeId, cancellationToken);
+        var type = await dbContext.EducationTypes
+            .FirstOrDefaultAsync(x => x.Id == request.EducationTypeId, cancellationToken);
 
-        if (!typeExists)
-            return Result<IReadOnlyList<EducationYearDto>>.NotFound("Education type was not found.");
+        if (type is null)
+            return Result<IReadOnlyList<EducationStageDto>>.NotFound("Education type was not found.");
 
-        var query = dbContext.EducationYears
+        var query = dbContext.EducationStages
             .Where(x => x.EducationTypeId == request.EducationTypeId);
 
         if (request.ActiveOnly)
             query = query.Where(x => x.IsActive);
 
         var language = requestLanguage.Current;
+        var typeName = language == AppLanguage.Arabic ? type.NameAr : type.NameEn;
 
         var items = await query
             .OrderBy(x => x.SortOrder)
             .ThenBy(x => x.NameEn)
-            .Select(x => new EducationYearDto
+            .Select(x => new EducationStageDto
             {
                 Id = x.Id,
                 EducationTypeId = x.EducationTypeId,
+                EducationTypeName = typeName,
                 Name = language == AppLanguage.Arabic ? x.NameAr : x.NameEn,
                 NameAr = x.NameAr,
                 NameEn = x.NameEn,
                 SortOrder = x.SortOrder,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                YearsCount = x.Years.Count
             })
             .ToListAsync(cancellationToken);
 
-        return Result<IReadOnlyList<EducationYearDto>>.Success(items);
+        return Result<IReadOnlyList<EducationStageDto>>.Success(items);
     }
 }

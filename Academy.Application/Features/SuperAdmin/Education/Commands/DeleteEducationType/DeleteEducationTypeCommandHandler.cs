@@ -17,8 +17,8 @@ public sealed class DeleteEducationTypeCommandHandler(IApplicationDbContext dbCo
         if (entity is null)
             return Result.NotFound("Education type was not found.");
 
-        if (await dbContext.EducationYears.AnyAsync(x => x.EducationTypeId == request.Id, cancellationToken))
-            return Result.Conflict("لا يمكن حذف نوع التعليم لأنه يحتوي على سنوات دراسية. احذف السنوات أولاً.");
+        if (await dbContext.EducationStages.AnyAsync(x => x.EducationTypeId == request.Id, cancellationToken))
+            return Result.Conflict("لا يمكن حذف نوع التعليم لأنه يحتوي على مراحل. احذف المراحل أولاً.");
 
         if (await dbContext.Lessons.AnyAsync(x => x.EducationTypeId == request.Id, cancellationToken))
             return Result.Conflict("لا يمكن حذف نوع التعليم لأنه مرتبط بدروس.");

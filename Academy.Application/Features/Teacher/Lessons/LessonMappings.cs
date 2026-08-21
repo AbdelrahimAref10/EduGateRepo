@@ -21,11 +21,20 @@ internal static class LessonMappings
         {
             Id = lesson.Id,
             TeacherId = lesson.TeacherId,
-            Subject = lesson.Subject,
+            Subject = LocalizedNames.Pick(
+                lesson.EducationSubject.NameAr,
+                lesson.EducationSubject.NameEn,
+                language),
+            EducationSubjectId = lesson.EducationSubjectId,
             EducationTypeId = lesson.EducationTypeId,
             EducationTypeName = LocalizedNames.Pick(
                 lesson.EducationType.NameAr,
                 lesson.EducationType.NameEn,
+                language),
+            EducationStageId = lesson.EducationStageId,
+            EducationStageName = LocalizedNames.Pick(
+                lesson.EducationStage.NameAr,
+                lesson.EducationStage.NameEn,
                 language),
             EducationYearId = lesson.EducationYearId,
             EducationYearName = LocalizedNames.Pick(

@@ -4,11 +4,13 @@ namespace Academy.Application.Features.Teacher.Lessons.Dtos;
 
 public sealed class CreateLessonRequest
 {
-    public string Subject { get; set; } = null!;
-
     public int EducationTypeId { get; set; }
 
+    public int EducationStageId { get; set; }
+
     public int EducationYearId { get; set; }
+
+    public int EducationSubjectId { get; set; }
 
     public BillingType BillingType { get; set; }
 

@@ -4066,12 +4066,20 @@ export class CitiesClient implements ICitiesClient {
 export interface IEducationTypesClient {
     getTypes(activeOnly: boolean | undefined): Observable<EducationTypeDto[]>;
     createType(request: CreateEducationTypeRequest): Observable<EducationTypeDto>;
-    getYears(educationTypeId: number, activeOnly: boolean | undefined): Observable<EducationYearDto[]>;
-    createYear(educationTypeId: number, request: CreateEducationYearRequest): Observable<EducationYearDto>;
+    getStages(educationTypeId: number, activeOnly: boolean | undefined): Observable<EducationStageDto[]>;
+    createStage(educationTypeId: number, request: CreateEducationStageRequest): Observable<EducationStageDto>;
+    getYears(educationTypeId: number, stageId: number, activeOnly: boolean | undefined): Observable<EducationYearDto[]>;
+    createYear(educationTypeId: number, stageId: number, request: CreateEducationYearRequest): Observable<EducationYearDto>;
+    getSubjects(educationTypeId: number, stageId: number, yearId: number, activeOnly: boolean | undefined): Observable<EducationSubjectDto[]>;
+    createSubject(educationTypeId: number, stageId: number, yearId: number, request: CreateEducationSubjectRequest): Observable<EducationSubjectDto>;
     updateType(educationTypeId: number, request: UpdateEducationTypeRequest): Observable<EducationTypeDto>;
     deleteType(educationTypeId: number): Observable<void>;
-    updateYear(educationTypeId: number, yearId: number, request: UpdateEducationYearRequest): Observable<EducationYearDto>;
-    deleteYear(educationTypeId: number, yearId: number): Observable<void>;
+    updateStage(educationTypeId: number, stageId: number, request: UpdateEducationStageRequest): Observable<EducationStageDto>;
+    deleteStage(educationTypeId: number, stageId: number): Observable<void>;
+    updateYear(educationTypeId: number, stageId: number, yearId: number, request: UpdateEducationYearRequest): Observable<EducationYearDto>;
+    deleteYear(educationTypeId: number, stageId: number, yearId: number): Observable<void>;
+    updateSubject(educationTypeId: number, stageId: number, yearId: number, subjectId: number, request: UpdateEducationSubjectRequest): Observable<EducationSubjectDto>;
+    deleteSubject(educationTypeId: number, stageId: number, yearId: number, subjectId: number): Observable<void>;
 }
 
 @Injectable({
@@ -4212,11 +4220,159 @@ export class EducationTypesClient implements IEducationTypesClient {
         return _observableOf(null as any);
     }
 
-    getYears(educationTypeId: number, activeOnly: boolean | undefined): Observable<EducationYearDto[]> {
-        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/years?";
+    getStages(educationTypeId: number, activeOnly: boolean | undefined): Observable<EducationStageDto[]> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages?";
         if (educationTypeId === undefined || educationTypeId === null)
             throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
         url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (activeOnly === null)
+            throw new globalThis.Error("The parameter 'activeOnly' cannot be null.");
+        else if (activeOnly !== undefined)
+            url_ += "activeOnly=" + encodeURIComponent("" + activeOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetStages(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetStages(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<EducationStageDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<EducationStageDto[]>;
+        }));
+    }
+
+    protected processGetStages(response: HttpResponseBase): Observable<EducationStageDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(EducationStageDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    createStage(educationTypeId: number, request: CreateEducationStageRequest): Observable<EducationStageDto> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreateStage(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreateStage(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<EducationStageDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<EducationStageDto>;
+        }));
+    }
+
+    protected processCreateStage(response: HttpResponseBase): Observable<EducationStageDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EducationStageDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getYears(educationTypeId: number, stageId: number, activeOnly: boolean | undefined): Observable<EducationYearDto[]> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years?";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         if (activeOnly === null)
             throw new globalThis.Error("The parameter 'activeOnly' cannot be null.");
         else if (activeOnly !== undefined)
@@ -4281,11 +4437,14 @@ export class EducationTypesClient implements IEducationTypesClient {
         return _observableOf(null as any);
     }
 
-    createYear(educationTypeId: number, request: CreateEducationYearRequest): Observable<EducationYearDto> {
-        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/years";
+    createYear(educationTypeId: number, stageId: number, request: CreateEducationYearRequest): Observable<EducationYearDto> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years";
         if (educationTypeId === undefined || educationTypeId === null)
             throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
         url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);
@@ -4326,6 +4485,163 @@ export class EducationTypesClient implements IEducationTypesClient {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = EducationYearDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getSubjects(educationTypeId: number, stageId: number, yearId: number, activeOnly: boolean | undefined): Observable<EducationSubjectDto[]> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years/{yearId}/subjects?";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
+        if (yearId === undefined || yearId === null)
+            throw new globalThis.Error("The parameter 'yearId' must be defined.");
+        url_ = url_.replace("{yearId}", encodeURIComponent("" + yearId));
+        if (activeOnly === null)
+            throw new globalThis.Error("The parameter 'activeOnly' cannot be null.");
+        else if (activeOnly !== undefined)
+            url_ += "activeOnly=" + encodeURIComponent("" + activeOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetSubjects(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetSubjects(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<EducationSubjectDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<EducationSubjectDto[]>;
+        }));
+    }
+
+    protected processGetSubjects(response: HttpResponseBase): Observable<EducationSubjectDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(EducationSubjectDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    createSubject(educationTypeId: number, stageId: number, yearId: number, request: CreateEducationSubjectRequest): Observable<EducationSubjectDto> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years/{yearId}/subjects";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
+        if (yearId === undefined || yearId === null)
+            throw new globalThis.Error("The parameter 'yearId' must be defined.");
+        url_ = url_.replace("{yearId}", encodeURIComponent("" + yearId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreateSubject(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreateSubject(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<EducationSubjectDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<EducationSubjectDto>;
+        }));
+    }
+
+    protected processCreateSubject(response: HttpResponseBase): Observable<EducationSubjectDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EducationSubjectDto.fromJS(resultData200);
             return _observableOf(result200);
             }));
         } else if (status === 400) {
@@ -4494,11 +4810,157 @@ export class EducationTypesClient implements IEducationTypesClient {
         return _observableOf(null as any);
     }
 
-    updateYear(educationTypeId: number, yearId: number, request: UpdateEducationYearRequest): Observable<EducationYearDto> {
-        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/years/{yearId}";
+    updateStage(educationTypeId: number, stageId: number, request: UpdateEducationStageRequest): Observable<EducationStageDto> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}";
         if (educationTypeId === undefined || educationTypeId === null)
             throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
         url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdateStage(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdateStage(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<EducationStageDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<EducationStageDto>;
+        }));
+    }
+
+    protected processUpdateStage(response: HttpResponseBase): Observable<EducationStageDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EducationStageDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    deleteStage(educationTypeId: number, stageId: number): Observable<void> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("delete", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processDeleteStage(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processDeleteStage(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processDeleteStage(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    updateYear(educationTypeId: number, stageId: number, yearId: number, request: UpdateEducationYearRequest): Observable<EducationYearDto> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years/{yearId}";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         if (yearId === undefined || yearId === null)
             throw new globalThis.Error("The parameter 'yearId' must be defined.");
         url_ = url_.replace("{yearId}", encodeURIComponent("" + yearId));
@@ -4573,11 +5035,14 @@ export class EducationTypesClient implements IEducationTypesClient {
         return _observableOf(null as any);
     }
 
-    deleteYear(educationTypeId: number, yearId: number): Observable<void> {
-        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/years/{yearId}";
+    deleteYear(educationTypeId: number, stageId: number, yearId: number): Observable<void> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years/{yearId}";
         if (educationTypeId === undefined || educationTypeId === null)
             throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
         url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
         if (yearId === undefined || yearId === null)
             throw new globalThis.Error("The parameter 'yearId' must be defined.");
         url_ = url_.replace("{yearId}", encodeURIComponent("" + yearId));
@@ -4605,6 +5070,161 @@ export class EducationTypesClient implements IEducationTypesClient {
     }
 
     protected processDeleteYear(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    updateSubject(educationTypeId: number, stageId: number, yearId: number, subjectId: number, request: UpdateEducationSubjectRequest): Observable<EducationSubjectDto> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years/{yearId}/subjects/{subjectId}";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
+        if (yearId === undefined || yearId === null)
+            throw new globalThis.Error("The parameter 'yearId' must be defined.");
+        url_ = url_.replace("{yearId}", encodeURIComponent("" + yearId));
+        if (subjectId === undefined || subjectId === null)
+            throw new globalThis.Error("The parameter 'subjectId' must be defined.");
+        url_ = url_.replace("{subjectId}", encodeURIComponent("" + subjectId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdateSubject(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdateSubject(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<EducationSubjectDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<EducationSubjectDto>;
+        }));
+    }
+
+    protected processUpdateSubject(response: HttpResponseBase): Observable<EducationSubjectDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EducationSubjectDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    deleteSubject(educationTypeId: number, stageId: number, yearId: number, subjectId: number): Observable<void> {
+        let url_ = this.baseUrl + "/api/super-admin/education-types/{educationTypeId}/stages/{stageId}/years/{yearId}/subjects/{subjectId}";
+        if (educationTypeId === undefined || educationTypeId === null)
+            throw new globalThis.Error("The parameter 'educationTypeId' must be defined.");
+        url_ = url_.replace("{educationTypeId}", encodeURIComponent("" + educationTypeId));
+        if (stageId === undefined || stageId === null)
+            throw new globalThis.Error("The parameter 'stageId' must be defined.");
+        url_ = url_.replace("{stageId}", encodeURIComponent("" + stageId));
+        if (yearId === undefined || yearId === null)
+            throw new globalThis.Error("The parameter 'yearId' must be defined.");
+        url_ = url_.replace("{yearId}", encodeURIComponent("" + yearId));
+        if (subjectId === undefined || subjectId === null)
+            throw new globalThis.Error("The parameter 'subjectId' must be defined.");
+        url_ = url_.replace("{subjectId}", encodeURIComponent("" + subjectId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("delete", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processDeleteSubject(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processDeleteSubject(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processDeleteSubject(response: HttpResponseBase): Observable<void> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -5920,8 +6540,11 @@ export class LessonDto implements ILessonDto {
     id!: number;
     teacherId!: number;
     subject!: string;
+    educationSubjectId!: number;
     educationTypeId!: number;
     educationTypeName!: string;
+    educationStageId!: number;
+    educationStageName!: string;
     educationYearId!: number;
     educationYearName!: string;
     billingType!: string;
@@ -5957,8 +6580,11 @@ export class LessonDto implements ILessonDto {
             this.id = _data["id"];
             this.teacherId = _data["teacherId"];
             this.subject = _data["subject"];
+            this.educationSubjectId = _data["educationSubjectId"];
             this.educationTypeId = _data["educationTypeId"];
             this.educationTypeName = _data["educationTypeName"];
+            this.educationStageId = _data["educationStageId"];
+            this.educationStageName = _data["educationStageName"];
             this.educationYearId = _data["educationYearId"];
             this.educationYearName = _data["educationYearName"];
             this.billingType = _data["billingType"];
@@ -5994,8 +6620,11 @@ export class LessonDto implements ILessonDto {
         data["id"] = this.id;
         data["teacherId"] = this.teacherId;
         data["subject"] = this.subject;
+        data["educationSubjectId"] = this.educationSubjectId;
         data["educationTypeId"] = this.educationTypeId;
         data["educationTypeName"] = this.educationTypeName;
+        data["educationStageId"] = this.educationStageId;
+        data["educationStageName"] = this.educationStageName;
         data["educationYearId"] = this.educationYearId;
         data["educationYearName"] = this.educationYearName;
         data["billingType"] = this.billingType;
@@ -6024,8 +6653,11 @@ export interface ILessonDto {
     id: number;
     teacherId: number;
     subject: string;
+    educationSubjectId: number;
     educationTypeId: number;
     educationTypeName: string;
+    educationStageId: number;
+    educationStageName: string;
     educationYearId: number;
     educationYearName: string;
     billingType: string;
@@ -6583,9 +7215,10 @@ export interface ILessonGroupSessionDto {
 }
 
 export class CreateLessonRequest implements ICreateLessonRequest {
-    subject?: string;
     educationTypeId?: number;
+    educationStageId?: number;
     educationYearId?: number;
+    educationSubjectId?: number;
     billingType?: BillingType;
     sessionPrice?: number | undefined;
     monthlyPrice?: number | undefined;
@@ -6603,9 +7236,10 @@ export class CreateLessonRequest implements ICreateLessonRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.subject = _data["subject"];
             this.educationTypeId = _data["educationTypeId"];
+            this.educationStageId = _data["educationStageId"];
             this.educationYearId = _data["educationYearId"];
+            this.educationSubjectId = _data["educationSubjectId"];
             this.billingType = _data["billingType"];
             this.sessionPrice = _data["sessionPrice"];
             this.monthlyPrice = _data["monthlyPrice"];
@@ -6623,9 +7257,10 @@ export class CreateLessonRequest implements ICreateLessonRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["subject"] = this.subject;
         data["educationTypeId"] = this.educationTypeId;
+        data["educationStageId"] = this.educationStageId;
         data["educationYearId"] = this.educationYearId;
+        data["educationSubjectId"] = this.educationSubjectId;
         data["billingType"] = this.billingType;
         data["sessionPrice"] = this.sessionPrice;
         data["monthlyPrice"] = this.monthlyPrice;
@@ -6636,9 +7271,10 @@ export class CreateLessonRequest implements ICreateLessonRequest {
 }
 
 export interface ICreateLessonRequest {
-    subject?: string;
     educationTypeId?: number;
+    educationStageId?: number;
     educationYearId?: number;
+    educationSubjectId?: number;
     billingType?: BillingType;
     sessionPrice?: number | undefined;
     monthlyPrice?: number | undefined;
@@ -6652,9 +7288,10 @@ export enum BillingType {
 }
 
 export class UpdateLessonRequest implements IUpdateLessonRequest {
-    subject?: string;
     educationTypeId?: number;
+    educationStageId?: number;
     educationYearId?: number;
+    educationSubjectId?: number;
     billingType?: BillingType;
     sessionPrice?: number | undefined;
     monthlyPrice?: number | undefined;
@@ -6672,9 +7309,10 @@ export class UpdateLessonRequest implements IUpdateLessonRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.subject = _data["subject"];
             this.educationTypeId = _data["educationTypeId"];
+            this.educationStageId = _data["educationStageId"];
             this.educationYearId = _data["educationYearId"];
+            this.educationSubjectId = _data["educationSubjectId"];
             this.billingType = _data["billingType"];
             this.sessionPrice = _data["sessionPrice"];
             this.monthlyPrice = _data["monthlyPrice"];
@@ -6692,9 +7330,10 @@ export class UpdateLessonRequest implements IUpdateLessonRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["subject"] = this.subject;
         data["educationTypeId"] = this.educationTypeId;
+        data["educationStageId"] = this.educationStageId;
         data["educationYearId"] = this.educationYearId;
+        data["educationSubjectId"] = this.educationSubjectId;
         data["billingType"] = this.billingType;
         data["sessionPrice"] = this.sessionPrice;
         data["monthlyPrice"] = this.monthlyPrice;
@@ -6705,9 +7344,10 @@ export class UpdateLessonRequest implements IUpdateLessonRequest {
 }
 
 export interface IUpdateLessonRequest {
-    subject?: string;
     educationTypeId?: number;
+    educationStageId?: number;
     educationYearId?: number;
+    educationSubjectId?: number;
     billingType?: BillingType;
     sessionPrice?: number | undefined;
     monthlyPrice?: number | undefined;
@@ -6984,6 +7624,7 @@ export class TeacherBookingDto implements ITeacherBookingDto {
     studentCode?: string | undefined;
     subject!: string;
     educationTypeName!: string;
+    educationStageName!: string;
     educationYearName!: string;
     startDate!: Date;
     status!: string;
@@ -7009,6 +7650,7 @@ export class TeacherBookingDto implements ITeacherBookingDto {
             this.studentCode = _data["studentCode"];
             this.subject = _data["subject"];
             this.educationTypeName = _data["educationTypeName"];
+            this.educationStageName = _data["educationStageName"];
             this.educationYearName = _data["educationYearName"];
             this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : undefined as any;
             this.status = _data["status"];
@@ -7034,6 +7676,7 @@ export class TeacherBookingDto implements ITeacherBookingDto {
         data["studentCode"] = this.studentCode;
         data["subject"] = this.subject;
         data["educationTypeName"] = this.educationTypeName;
+        data["educationStageName"] = this.educationStageName;
         data["educationYearName"] = this.educationYearName;
         data["startDate"] = this.startDate ? formatDate(this.startDate) : undefined as any;
         data["status"] = this.status;
@@ -7052,6 +7695,7 @@ export interface ITeacherBookingDto {
     studentCode?: string | undefined;
     subject: string;
     educationTypeName: string;
+    educationStageName: string;
     educationYearName: string;
     startDate: Date;
     status: string;
@@ -7330,7 +7974,7 @@ export class EducationTypeDto implements IEducationTypeDto {
     nameEn!: string;
     sortOrder!: number;
     isActive!: boolean;
-    yearsCount!: number;
+    stagesCount!: number;
 
     constructor(data?: IEducationTypeDto) {
         if (data) {
@@ -7349,7 +7993,7 @@ export class EducationTypeDto implements IEducationTypeDto {
             this.nameEn = _data["nameEn"];
             this.sortOrder = _data["sortOrder"];
             this.isActive = _data["isActive"];
-            this.yearsCount = _data["yearsCount"];
+            this.stagesCount = _data["stagesCount"];
         }
     }
 
@@ -7368,7 +8012,7 @@ export class EducationTypeDto implements IEducationTypeDto {
         data["nameEn"] = this.nameEn;
         data["sortOrder"] = this.sortOrder;
         data["isActive"] = this.isActive;
-        data["yearsCount"] = this.yearsCount;
+        data["stagesCount"] = this.stagesCount;
         return data;
     }
 }
@@ -7380,17 +8024,89 @@ export interface IEducationTypeDto {
     nameEn: string;
     sortOrder: number;
     isActive: boolean;
-    yearsCount: number;
+    stagesCount: number;
 }
 
-export class EducationYearDto implements IEducationYearDto {
+export class EducationStageDto implements IEducationStageDto {
     id!: number;
     educationTypeId!: number;
+    educationTypeName!: string;
     name!: string;
     nameAr!: string;
     nameEn!: string;
     sortOrder!: number;
     isActive!: boolean;
+    yearsCount!: number;
+
+    constructor(data?: IEducationStageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.educationTypeId = _data["educationTypeId"];
+            this.educationTypeName = _data["educationTypeName"];
+            this.name = _data["name"];
+            this.nameAr = _data["nameAr"];
+            this.nameEn = _data["nameEn"];
+            this.sortOrder = _data["sortOrder"];
+            this.isActive = _data["isActive"];
+            this.yearsCount = _data["yearsCount"];
+        }
+    }
+
+    static fromJS(data: any): EducationStageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EducationStageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["educationTypeId"] = this.educationTypeId;
+        data["educationTypeName"] = this.educationTypeName;
+        data["name"] = this.name;
+        data["nameAr"] = this.nameAr;
+        data["nameEn"] = this.nameEn;
+        data["sortOrder"] = this.sortOrder;
+        data["isActive"] = this.isActive;
+        data["yearsCount"] = this.yearsCount;
+        return data;
+    }
+}
+
+export interface IEducationStageDto {
+    id: number;
+    educationTypeId: number;
+    educationTypeName: string;
+    name: string;
+    nameAr: string;
+    nameEn: string;
+    sortOrder: number;
+    isActive: boolean;
+    yearsCount: number;
+}
+
+export class EducationYearDto implements IEducationYearDto {
+    id!: number;
+    educationStageId!: number;
+    educationStageName!: string;
+    educationTypeId!: number;
+    educationTypeName!: string;
+    name!: string;
+    nameAr!: string;
+    nameEn!: string;
+    sortOrder!: number;
+    isActive!: boolean;
+    subjectsCount!: number;
 
     constructor(data?: IEducationYearDto) {
         if (data) {
@@ -7404,12 +8120,16 @@ export class EducationYearDto implements IEducationYearDto {
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
+            this.educationStageId = _data["educationStageId"];
+            this.educationStageName = _data["educationStageName"];
             this.educationTypeId = _data["educationTypeId"];
+            this.educationTypeName = _data["educationTypeName"];
             this.name = _data["name"];
             this.nameAr = _data["nameAr"];
             this.nameEn = _data["nameEn"];
             this.sortOrder = _data["sortOrder"];
             this.isActive = _data["isActive"];
+            this.subjectsCount = _data["subjectsCount"];
         }
     }
 
@@ -7423,7 +8143,90 @@ export class EducationYearDto implements IEducationYearDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
+        data["educationStageId"] = this.educationStageId;
+        data["educationStageName"] = this.educationStageName;
         data["educationTypeId"] = this.educationTypeId;
+        data["educationTypeName"] = this.educationTypeName;
+        data["name"] = this.name;
+        data["nameAr"] = this.nameAr;
+        data["nameEn"] = this.nameEn;
+        data["sortOrder"] = this.sortOrder;
+        data["isActive"] = this.isActive;
+        data["subjectsCount"] = this.subjectsCount;
+        return data;
+    }
+}
+
+export interface IEducationYearDto {
+    id: number;
+    educationStageId: number;
+    educationStageName: string;
+    educationTypeId: number;
+    educationTypeName: string;
+    name: string;
+    nameAr: string;
+    nameEn: string;
+    sortOrder: number;
+    isActive: boolean;
+    subjectsCount: number;
+}
+
+export class EducationSubjectDto implements IEducationSubjectDto {
+    id!: number;
+    educationYearId!: number;
+    educationYearName!: string;
+    educationStageId!: number;
+    educationStageName!: string;
+    educationTypeId!: number;
+    educationTypeName!: string;
+    name!: string;
+    nameAr!: string;
+    nameEn!: string;
+    sortOrder!: number;
+    isActive!: boolean;
+
+    constructor(data?: IEducationSubjectDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.educationYearId = _data["educationYearId"];
+            this.educationYearName = _data["educationYearName"];
+            this.educationStageId = _data["educationStageId"];
+            this.educationStageName = _data["educationStageName"];
+            this.educationTypeId = _data["educationTypeId"];
+            this.educationTypeName = _data["educationTypeName"];
+            this.name = _data["name"];
+            this.nameAr = _data["nameAr"];
+            this.nameEn = _data["nameEn"];
+            this.sortOrder = _data["sortOrder"];
+            this.isActive = _data["isActive"];
+        }
+    }
+
+    static fromJS(data: any): EducationSubjectDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EducationSubjectDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["educationYearId"] = this.educationYearId;
+        data["educationYearName"] = this.educationYearName;
+        data["educationStageId"] = this.educationStageId;
+        data["educationStageName"] = this.educationStageName;
+        data["educationTypeId"] = this.educationTypeId;
+        data["educationTypeName"] = this.educationTypeName;
         data["name"] = this.name;
         data["nameAr"] = this.nameAr;
         data["nameEn"] = this.nameEn;
@@ -7433,9 +8236,14 @@ export class EducationYearDto implements IEducationYearDto {
     }
 }
 
-export interface IEducationYearDto {
+export interface IEducationSubjectDto {
     id: number;
+    educationYearId: number;
+    educationYearName: string;
+    educationStageId: number;
+    educationStageName: string;
     educationTypeId: number;
+    educationTypeName: string;
     name: string;
     nameAr: string;
     nameEn: string;
@@ -7487,6 +8295,50 @@ export interface ICreateEducationTypeRequest {
     sortOrder?: number;
 }
 
+export class CreateEducationStageRequest implements ICreateEducationStageRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+
+    constructor(data?: ICreateEducationStageRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.nameAr = _data["nameAr"];
+            this.nameEn = _data["nameEn"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): CreateEducationStageRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateEducationStageRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["nameAr"] = this.nameAr;
+        data["nameEn"] = this.nameEn;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface ICreateEducationStageRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+}
+
 export class CreateEducationYearRequest implements ICreateEducationYearRequest {
     nameAr?: string;
     nameEn?: string;
@@ -7526,6 +8378,50 @@ export class CreateEducationYearRequest implements ICreateEducationYearRequest {
 }
 
 export interface ICreateEducationYearRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+}
+
+export class CreateEducationSubjectRequest implements ICreateEducationSubjectRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+
+    constructor(data?: ICreateEducationSubjectRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.nameAr = _data["nameAr"];
+            this.nameEn = _data["nameEn"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): CreateEducationSubjectRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateEducationSubjectRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["nameAr"] = this.nameAr;
+        data["nameEn"] = this.nameEn;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface ICreateEducationSubjectRequest {
     nameAr?: string;
     nameEn?: string;
     sortOrder?: number;
@@ -7575,6 +8471,50 @@ export interface IUpdateEducationTypeRequest {
     sortOrder?: number;
 }
 
+export class UpdateEducationStageRequest implements IUpdateEducationStageRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+
+    constructor(data?: IUpdateEducationStageRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.nameAr = _data["nameAr"];
+            this.nameEn = _data["nameEn"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): UpdateEducationStageRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateEducationStageRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["nameAr"] = this.nameAr;
+        data["nameEn"] = this.nameEn;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface IUpdateEducationStageRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+}
+
 export class UpdateEducationYearRequest implements IUpdateEducationYearRequest {
     nameAr?: string;
     nameEn?: string;
@@ -7614,6 +8554,50 @@ export class UpdateEducationYearRequest implements IUpdateEducationYearRequest {
 }
 
 export interface IUpdateEducationYearRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+}
+
+export class UpdateEducationSubjectRequest implements IUpdateEducationSubjectRequest {
+    nameAr?: string;
+    nameEn?: string;
+    sortOrder?: number;
+
+    constructor(data?: IUpdateEducationSubjectRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.nameAr = _data["nameAr"];
+            this.nameEn = _data["nameEn"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): UpdateEducationSubjectRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateEducationSubjectRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["nameAr"] = this.nameAr;
+        data["nameEn"] = this.nameEn;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface IUpdateEducationSubjectRequest {
     nameAr?: string;
     nameEn?: string;
     sortOrder?: number;
@@ -7866,6 +8850,8 @@ export class AvailableLessonDto implements IAvailableLessonDto {
     subject!: string;
     educationTypeId!: number;
     educationTypeName!: string;
+    educationStageId!: number;
+    educationStageName!: string;
     educationYearId!: number;
     educationYearName!: string;
     billingType!: string;
@@ -7892,6 +8878,8 @@ export class AvailableLessonDto implements IAvailableLessonDto {
             this.subject = _data["subject"];
             this.educationTypeId = _data["educationTypeId"];
             this.educationTypeName = _data["educationTypeName"];
+            this.educationStageId = _data["educationStageId"];
+            this.educationStageName = _data["educationStageName"];
             this.educationYearId = _data["educationYearId"];
             this.educationYearName = _data["educationYearName"];
             this.billingType = _data["billingType"];
@@ -7918,6 +8906,8 @@ export class AvailableLessonDto implements IAvailableLessonDto {
         data["subject"] = this.subject;
         data["educationTypeId"] = this.educationTypeId;
         data["educationTypeName"] = this.educationTypeName;
+        data["educationStageId"] = this.educationStageId;
+        data["educationStageName"] = this.educationStageName;
         data["educationYearId"] = this.educationYearId;
         data["educationYearName"] = this.educationYearName;
         data["billingType"] = this.billingType;
@@ -7937,6 +8927,8 @@ export interface IAvailableLessonDto {
     subject: string;
     educationTypeId: number;
     educationTypeName: string;
+    educationStageId: number;
+    educationStageName: string;
     educationYearId: number;
     educationYearName: string;
     billingType: string;
@@ -7954,6 +8946,7 @@ export class StudentLessonListItemDto implements IStudentLessonListItemDto {
     subject!: string;
     teacherName!: string;
     educationTypeName!: string;
+    educationStageName!: string;
     educationYearName!: string;
     billingType!: string;
     sessionPrice?: number | undefined;
@@ -7981,6 +8974,7 @@ export class StudentLessonListItemDto implements IStudentLessonListItemDto {
             this.subject = _data["subject"];
             this.teacherName = _data["teacherName"];
             this.educationTypeName = _data["educationTypeName"];
+            this.educationStageName = _data["educationStageName"];
             this.educationYearName = _data["educationYearName"];
             this.billingType = _data["billingType"];
             this.sessionPrice = _data["sessionPrice"];
@@ -8008,6 +9002,7 @@ export class StudentLessonListItemDto implements IStudentLessonListItemDto {
         data["subject"] = this.subject;
         data["teacherName"] = this.teacherName;
         data["educationTypeName"] = this.educationTypeName;
+        data["educationStageName"] = this.educationStageName;
         data["educationYearName"] = this.educationYearName;
         data["billingType"] = this.billingType;
         data["sessionPrice"] = this.sessionPrice;
@@ -8028,6 +9023,7 @@ export interface IStudentLessonListItemDto {
     subject: string;
     teacherName: string;
     educationTypeName: string;
+    educationStageName: string;
     educationYearName: string;
     billingType: string;
     sessionPrice?: number | undefined;
@@ -8046,6 +9042,7 @@ export class StudentLessonDetailDto implements IStudentLessonDetailDto {
     subject!: string;
     teacherName!: string;
     educationTypeName!: string;
+    educationStageName!: string;
     educationYearName!: string;
     billingType!: string;
     sessionPrice?: number | undefined;
@@ -8072,6 +9069,7 @@ export class StudentLessonDetailDto implements IStudentLessonDetailDto {
             this.subject = _data["subject"];
             this.teacherName = _data["teacherName"];
             this.educationTypeName = _data["educationTypeName"];
+            this.educationStageName = _data["educationStageName"];
             this.educationYearName = _data["educationYearName"];
             this.billingType = _data["billingType"];
             this.sessionPrice = _data["sessionPrice"];
@@ -8098,6 +9096,7 @@ export class StudentLessonDetailDto implements IStudentLessonDetailDto {
         data["subject"] = this.subject;
         data["teacherName"] = this.teacherName;
         data["educationTypeName"] = this.educationTypeName;
+        data["educationStageName"] = this.educationStageName;
         data["educationYearName"] = this.educationYearName;
         data["billingType"] = this.billingType;
         data["sessionPrice"] = this.sessionPrice;
@@ -8117,6 +9116,7 @@ export interface IStudentLessonDetailDto {
     subject: string;
     teacherName: string;
     educationTypeName: string;
+    educationStageName: string;
     educationYearName: string;
     billingType: string;
     sessionPrice?: number | undefined;
@@ -8282,6 +9282,7 @@ export class BookingDto implements IBookingDto {
     status!: string;
     subject!: string;
     educationTypeName!: string;
+    educationStageName!: string;
     educationYearName!: string;
     startDate!: Date;
     createdAtUtc!: Date;
@@ -8304,6 +9305,7 @@ export class BookingDto implements IBookingDto {
             this.status = _data["status"];
             this.subject = _data["subject"];
             this.educationTypeName = _data["educationTypeName"];
+            this.educationStageName = _data["educationStageName"];
             this.educationYearName = _data["educationYearName"];
             this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : undefined as any;
             this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
@@ -8326,6 +9328,7 @@ export class BookingDto implements IBookingDto {
         data["status"] = this.status;
         data["subject"] = this.subject;
         data["educationTypeName"] = this.educationTypeName;
+        data["educationStageName"] = this.educationStageName;
         data["educationYearName"] = this.educationYearName;
         data["startDate"] = this.startDate ? formatDate(this.startDate) : undefined as any;
         data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
@@ -8341,6 +9344,7 @@ export interface IBookingDto {
     status: string;
     subject: string;
     educationTypeName: string;
+    educationStageName: string;
     educationYearName: string;
     startDate: Date;
     createdAtUtc: Date;

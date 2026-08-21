@@ -85,9 +85,10 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         var result = await sender.Send(
             new CreateLessonCommand(
                 userId.Value,
-                request.Subject,
                 request.EducationTypeId,
+                request.EducationStageId,
                 request.EducationYearId,
+                request.EducationSubjectId,
                 request.BillingType,
                 request.SessionPrice,
                 request.MonthlyPrice,
@@ -116,9 +117,10 @@ public sealed class LessonsController(ISender sender) : ControllerBase
             new UpdateLessonCommand(
                 userId.Value,
                 lessonId,
-                request.Subject,
                 request.EducationTypeId,
+                request.EducationStageId,
                 request.EducationYearId,
+                request.EducationSubjectId,
                 request.BillingType,
                 request.SessionPrice,
                 request.MonthlyPrice,

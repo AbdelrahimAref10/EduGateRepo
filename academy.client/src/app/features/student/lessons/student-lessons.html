@@ -51,7 +51,7 @@
                 </p>
                 <h3 class="mt-1 truncate text-xl font-bold text-ink">{{ lesson.subject }}</h3>
                 <p class="mt-1 text-sm text-muted">
-                  {{ lesson.educationYearName }}
+                  {{ lesson.educationStageName }} · {{ lesson.educationYearName }}
                 </p>
               </div>
               <div
@@ -131,6 +131,10 @@
             <div class="flex items-center justify-between gap-3">
               <dt class="text-muted">{{ 'booking.teacher' | t }}</dt>
               <dd class="font-semibold text-ink">{{ lesson.teacherName }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <dt class="text-muted">{{ 'lessons.educationStage' | t }}</dt>
+              <dd class="font-semibold text-ink">{{ lesson.educationStageName }}</dd>
             </div>
             <div class="flex items-center justify-between gap-3">
               <dt class="text-muted">{{ 'lessons.educationYear' | t }}</dt>

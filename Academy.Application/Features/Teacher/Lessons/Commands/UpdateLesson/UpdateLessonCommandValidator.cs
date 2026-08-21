@@ -9,13 +9,10 @@ public sealed class UpdateLessonCommandValidator : AbstractValidator<UpdateLesso
     {
         RuleFor(x => x.UserId).GreaterThan(0);
         RuleFor(x => x.LessonId).GreaterThan(0);
-
-        RuleFor(x => x.Subject)
-            .NotEmpty()
-            .MaximumLength(200);
-
         RuleFor(x => x.EducationTypeId).GreaterThan(0);
+        RuleFor(x => x.EducationStageId).GreaterThan(0);
         RuleFor(x => x.EducationYearId).GreaterThan(0);
+        RuleFor(x => x.EducationSubjectId).GreaterThan(0);
         RuleFor(x => x.AreaId).GreaterThan(0);
         RuleFor(x => x.BillingType).IsInEnum();
         RuleFor(x => x.StartDate).NotEmpty();

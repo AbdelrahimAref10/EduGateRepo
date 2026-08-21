@@ -6,6 +6,7 @@ namespace Academy.Application.Features.SuperAdmin.Education.Commands.UpdateEduca
 
 public sealed record UpdateEducationYearCommand(
     int EducationTypeId,
+    int EducationStageId,
     int YearId,
     string NameAr,
     string NameEn,

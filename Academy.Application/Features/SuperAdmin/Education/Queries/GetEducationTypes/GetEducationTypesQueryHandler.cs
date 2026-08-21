@@ -36,7 +36,7 @@ public sealed class GetEducationTypesQueryHandler(
                 NameEn = x.NameEn,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                YearsCount = x.Years.Count
+                StagesCount = x.Stages.Count
             })
             .ToListAsync(cancellationToken);
 

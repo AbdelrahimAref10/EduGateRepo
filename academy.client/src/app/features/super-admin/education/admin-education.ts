@@ -1,16 +1,22 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, WritableSignal, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
+  CreateEducationStageRequest,
+  CreateEducationSubjectRequest,
   CreateEducationTypeRequest,
   CreateEducationYearRequest,
+  EducationStageDto,
+  EducationSubjectDto,
   EducationTypeDto,
   EducationTypesClient,
   EducationYearDto,
+  UpdateEducationStageRequest,
+  UpdateEducationSubjectRequest,
   UpdateEducationTypeRequest,
   UpdateEducationYearRequest,
 } from '../../../core/api/academy-api.generated';
+import { Observable } from 'rxjs';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
-import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
@@ -23,33 +29,38 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 export class AdminEducationComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(EducationTypesClient);
-  private readonly i18n = inject(TranslationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly loading = signal(false);
-  readonly savingType = signal(false);
-  readonly savingYear = signal(false);
+  readonly loadingStages = signal(false);
   readonly loadingYears = signal(false);
+  readonly loadingSubjects = signal(false);
+  readonly savingType = signal(false);
+  readonly savingStage = signal(false);
+  readonly savingYear = signal(false);
+  readonly savingSubject = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
+
   readonly types = signal<EducationTypeDto[]>([]);
+  readonly stages = signal<EducationStageDto[]>([]);
   readonly years = signal<EducationYearDto[]>([]);
+  readonly subjects = signal<EducationSubjectDto[]>([]);
+
   readonly selectedTypeId = signal<number | null>(null);
+  readonly selectedStageId = signal<number | null>(null);
+  readonly selectedYearId = signal<number | null>(null);
+
   readonly editingTypeId = signal<number | null>(null);
+  readonly editingStageId = signal<number | null>(null);
   readonly editingYearId = signal<number | null>(null);
+  readonly editingSubjectId = signal<number | null>(null);
 
-  readonly typeForm = this.fb.nonNullable.group({
-    nameAr: ['', [Validators.required, Validators.maxLength(150)]],
-    nameEn: ['', [Validators.required, Validators.maxLength(150)]],
-    sortOrder: [0, [Validators.required, Validators.min(0)]],
-  });
-
-  readonly yearForm = this.fb.nonNullable.group({
-    nameAr: ['', [Validators.required, Validators.maxLength(150)]],
-    nameEn: ['', [Validators.required, Validators.maxLength(150)]],
-    sortOrder: [0, [Validators.required, Validators.min(0)]],
-  });
+  readonly typeForm = this.nameForm();
+  readonly stageForm = this.nameForm();
+  readonly yearForm = this.nameForm();
+  readonly subjectForm = this.nameForm();
 
   ngOnInit(): void {
     this.loadTypes();
@@ -66,54 +77,53 @@ export class AdminEducationComponent implements OnInit {
 
         const selected = this.selectedTypeId();
         if (selected && !(items ?? []).some((item) => item.id === selected)) {
-          this.selectedTypeId.set(null);
-          this.years.set([]);
+          this.clearFromType();
         }
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to load education types.');
+        this.error.set(this.apiError(err, 'Failed to load education types.'));
       },
     });
   }
 
   selectType(typeId: number): void {
     this.selectedTypeId.set(typeId);
-    this.success.set(null);
-    this.error.set(null);
+    this.selectedStageId.set(null);
+    this.selectedYearId.set(null);
+    this.stages.set([]);
+    this.years.set([]);
+    this.subjects.set([]);
+    this.cancelEditStage();
     this.cancelEditYear();
-    this.loadYears(typeId);
-  }
-
-  loadYears(typeId: number): void {
-    this.loadingYears.set(true);
-
-    this.api.getYears(typeId, false).subscribe({
-      next: (items) => {
-        this.years.set(items ?? []);
-        this.loadingYears.set(false);
-      },
-      error: (err) => {
-        this.loadingYears.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to load education years.');
-      },
-    });
-  }
-
-  startEditType(type: EducationTypeDto): void {
-    this.editingTypeId.set(type.id);
-    this.typeForm.setValue({
-      nameAr: type.nameAr,
-      nameEn: type.nameEn,
-      sortOrder: type.sortOrder,
-    });
-    this.error.set(null);
+    this.cancelEditSubject();
     this.success.set(null);
+    this.error.set(null);
+    this.loadStages(typeId);
   }
 
-  cancelEditType(): void {
-    this.editingTypeId.set(null);
-    this.typeForm.reset({ nameAr: '', nameEn: '', sortOrder: this.types().length });
+  selectStage(stageId: number): void {
+    this.selectedStageId.set(stageId);
+    this.selectedYearId.set(null);
+    this.years.set([]);
+    this.subjects.set([]);
+    this.cancelEditYear();
+    this.cancelEditSubject();
+    this.success.set(null);
+    this.error.set(null);
+    const typeId = this.selectedTypeId();
+    if (typeId) this.loadYears(typeId, stageId);
+  }
+
+  selectYear(yearId: number): void {
+    this.selectedYearId.set(yearId);
+    this.subjects.set([]);
+    this.cancelEditSubject();
+    this.success.set(null);
+    this.error.set(null);
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    if (typeId && stageId) this.loadSubjects(typeId, stageId, yearId);
   }
 
   saveType(): void {
@@ -124,93 +134,42 @@ export class AdminEducationComponent implements OnInit {
     this.createType();
   }
 
-  createType(): void {
-    this.error.set(null);
-    this.success.set(null);
+  startEditType(type: EducationTypeDto): void {
+    this.editingTypeId.set(type.id);
+    this.typeForm.setValue({
+      nameAr: type.nameAr,
+      nameEn: type.nameEn,
+      sortOrder: type.sortOrder,
+    });
+    this.clearMessages();
+  }
 
-    if (this.typeForm.invalid) {
-      this.typeForm.markAllAsTouched();
+  cancelEditType(): void {
+    this.editingTypeId.set(null);
+    this.typeForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+  }
+
+  saveStage(): void {
+    if (this.editingStageId()) {
+      this.updateStage();
       return;
     }
-
-    const value = this.typeForm.getRawValue();
-    const request = new CreateEducationTypeRequest({
-      nameAr: value.nameAr.trim(),
-      nameEn: value.nameEn.trim(),
-      sortOrder: value.sortOrder,
-    });
-
-    this.savingType.set(true);
-    this.api.createType(request).subscribe({
-      next: (created) => {
-        this.savingType.set(false);
-        this.success.set('typeCreated');
-        this.typeForm.reset({ nameAr: '', nameEn: '', sortOrder: this.types().length + 1 });
-        this.types.update((items) =>
-          [...items, created].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-        );
-        this.selectType(created.id);
-      },
-      error: (err) => {
-        this.savingType.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to create education type.');
-      },
-    });
+    this.createStage();
   }
 
-  updateType(): void {
-    this.error.set(null);
-    this.success.set(null);
-
-    const typeId = this.editingTypeId();
-    if (!typeId) return;
-
-    if (this.typeForm.invalid) {
-      this.typeForm.markAllAsTouched();
-      return;
-    }
-
-    const value = this.typeForm.getRawValue();
-    const request = new UpdateEducationTypeRequest({
-      nameAr: value.nameAr.trim(),
-      nameEn: value.nameEn.trim(),
-      sortOrder: value.sortOrder,
+  startEditStage(stage: EducationStageDto): void {
+    this.editingStageId.set(stage.id);
+    this.stageForm.setValue({
+      nameAr: stage.nameAr,
+      nameEn: stage.nameEn,
+      sortOrder: stage.sortOrder,
     });
-
-    this.savingType.set(true);
-    this.api.updateType(typeId, request).subscribe({
-      next: (updated) => {
-        this.savingType.set(false);
-        this.success.set('typeUpdated');
-        this.editingTypeId.set(null);
-        this.typeForm.reset({ nameAr: '', nameEn: '', sortOrder: this.types().length });
-        this.types.update((items) =>
-          items
-            .map((item) => (item.id === updated.id ? updated : item))
-            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-        );
-      },
-      error: (err) => {
-        this.savingType.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to update education type.');
-      },
-    });
+    this.clearMessages();
   }
 
-  startEditYear(year: EducationYearDto): void {
-    this.editingYearId.set(year.id);
-    this.yearForm.setValue({
-      nameAr: year.nameAr,
-      nameEn: year.nameEn,
-      sortOrder: year.sortOrder,
-    });
-    this.error.set(null);
-    this.success.set(null);
-  }
-
-  cancelEditYear(): void {
-    this.editingYearId.set(null);
-    this.yearForm.reset({ nameAr: '', nameEn: '', sortOrder: this.years().length });
+  cancelEditStage(): void {
+    this.editingStageId.set(null);
+    this.stageForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
   }
 
   saveYear(): void {
@@ -221,176 +180,495 @@ export class AdminEducationComponent implements OnInit {
     this.createYear();
   }
 
-  createYear(): void {
-    this.error.set(null);
-    this.success.set(null);
+  startEditYear(year: EducationYearDto): void {
+    this.editingYearId.set(year.id);
+    this.yearForm.setValue({
+      nameAr: year.nameAr,
+      nameEn: year.nameEn,
+      sortOrder: year.sortOrder,
+    });
+    this.clearMessages();
+  }
 
+  cancelEditYear(): void {
+    this.editingYearId.set(null);
+    this.yearForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+  }
+
+  saveSubject(): void {
+    if (this.editingSubjectId()) {
+      this.updateSubject();
+      return;
+    }
+    this.createSubject();
+  }
+
+  startEditSubject(subject: EducationSubjectDto): void {
+    this.editingSubjectId.set(subject.id);
+    this.subjectForm.setValue({
+      nameAr: subject.nameAr,
+      nameEn: subject.nameEn,
+      sortOrder: subject.sortOrder,
+    });
+    this.clearMessages();
+  }
+
+  cancelEditSubject(): void {
+    this.editingSubjectId.set(null);
+    this.subjectForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+  }
+
+  createType(): void {
+    const value = this.readForm(this.typeForm);
+    if (!value) return;
+
+    this.savingType.set(true);
+    this.api
+      .createType(
+        new CreateEducationTypeRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: (created) => {
+          this.savingType.set(false);
+          this.success.set('typeCreated');
+          this.typeForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+          this.loadTypes();
+          if (created.id) this.selectType(created.id);
+        },
+        error: (err) => this.failSave(this.savingType, err, 'Failed to create education type.'),
+      });
+  }
+
+  updateType(): void {
+    const typeId = this.editingTypeId();
+    const value = this.readForm(this.typeForm);
+    if (!typeId || !value) return;
+
+    this.savingType.set(true);
+    this.api
+      .updateType(
+        typeId,
+        new UpdateEducationTypeRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.savingType.set(false);
+          this.success.set('typeUpdated');
+          this.cancelEditType();
+          this.loadTypes();
+        },
+        error: (err) => this.failSave(this.savingType, err, 'Failed to update education type.'),
+      });
+  }
+
+  deleteType(type: EducationTypeDto): void {
+    void this.runDelete({
+      messageKey: 'education.confirmDeleteType',
+      id: `type-${type.id}`,
+      successKey: 'typeDeleted',
+      request: this.api.deleteType(type.id),
+      after: () => {
+        if (this.selectedTypeId() === type.id) this.clearFromType();
+        if (this.editingTypeId() === type.id) this.cancelEditType();
+        this.loadTypes();
+      },
+      fallback: 'Failed to delete education type.',
+    });
+  }
+
+  createStage(): void {
     const typeId = this.selectedTypeId();
+    const value = this.readForm(this.stageForm);
     if (!typeId) {
       this.error.set('Select an education type first.');
       return;
     }
+    if (!value) return;
 
-    if (this.yearForm.invalid) {
-      this.yearForm.markAllAsTouched();
-      return;
-    }
-
-    const value = this.yearForm.getRawValue();
-    const request = new CreateEducationYearRequest({
-      nameAr: value.nameAr.trim(),
-      nameEn: value.nameEn.trim(),
-      sortOrder: value.sortOrder,
-    });
-
-    this.savingYear.set(true);
-    this.api.createYear(typeId, request).subscribe({
-      next: (created) => {
-        this.savingYear.set(false);
-        this.success.set('yearCreated');
-        this.yearForm.reset({ nameAr: '', nameEn: '', sortOrder: this.years().length + 1 });
-        this.years.update((items) =>
-          [...items, created].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-        );
-        this.types.update((items) =>
-          items.map((item) =>
-            item.id === typeId
-              ? Object.assign(new EducationTypeDto(), item, {
-                  yearsCount: (item.yearsCount ?? 0) + 1,
-                })
-              : item,
-          ),
-        );
-      },
-      error: (err) => {
-        this.savingYear.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to create education year.');
-      },
-    });
+    this.savingStage.set(true);
+    this.api
+      .createStage(
+        typeId,
+        new CreateEducationStageRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: (created) => {
+          this.savingStage.set(false);
+          this.success.set('stageCreated');
+          this.stageForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+          this.loadTypes();
+          this.loadStages(typeId);
+          if (created.id) this.selectStage(created.id);
+        },
+        error: (err) => this.failSave(this.savingStage, err, 'Failed to create education stage.'),
+      });
   }
 
-  updateYear(): void {
-    this.error.set(null);
-    this.success.set(null);
-
+  updateStage(): void {
     const typeId = this.selectedTypeId();
-    const yearId = this.editingYearId();
-    if (!typeId || !yearId) return;
+    const stageId = this.editingStageId();
+    const value = this.readForm(this.stageForm);
+    if (!typeId || !stageId || !value) return;
 
-    if (this.yearForm.invalid) {
-      this.yearForm.markAllAsTouched();
-      return;
-    }
-
-    const value = this.yearForm.getRawValue();
-    const request = new UpdateEducationYearRequest({
-      nameAr: value.nameAr.trim(),
-      nameEn: value.nameEn.trim(),
-      sortOrder: value.sortOrder,
-    });
-
-    this.savingYear.set(true);
-    this.api.updateYear(typeId, yearId, request).subscribe({
-      next: (updated) => {
-        this.savingYear.set(false);
-        this.success.set('yearUpdated');
-        this.editingYearId.set(null);
-        this.yearForm.reset({ nameAr: '', nameEn: '', sortOrder: this.years().length });
-        this.years.update((items) =>
-          items
-            .map((item) => (item.id === updated.id ? updated : item))
-            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-        );
-      },
-      error: (err) => {
-        this.savingYear.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to update education year.');
-      },
-    });
+    this.savingStage.set(true);
+    this.api
+      .updateStage(
+        typeId,
+        stageId,
+        new UpdateEducationStageRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.savingStage.set(false);
+          this.success.set('stageUpdated');
+          this.cancelEditStage();
+          this.loadStages(typeId);
+        },
+        error: (err) => this.failSave(this.savingStage, err, 'Failed to update education stage.'),
+      });
   }
 
-  deleteType(type: EducationTypeDto): void {
-    void this.runDeleteType(type);
-  }
-
-  private async runDeleteType(type: EducationTypeDto): Promise<void> {
-    const ok = await this.confirmDialog.ask({
-      messageKey: 'education.confirmDeleteType',
-      confirmKey: 'common.delete',
-      tone: 'danger',
-    });
-    if (!ok) return;
-
-    this.error.set(null);
-    this.success.set(null);
-    this.deletingId.set(`type-${type.id}`);
-
-    this.api.deleteType(type.id).subscribe({
-      next: () => {
-        this.deletingId.set(null);
-        this.success.set('typeDeleted');
-        this.types.update((items) => items.filter((item) => item.id !== type.id));
-        if (this.selectedTypeId() === type.id) {
-          this.selectedTypeId.set(null);
-          this.years.set([]);
-        }
-        if (this.editingTypeId() === type.id) this.cancelEditType();
-      },
-      error: (err) => {
-        this.deletingId.set(null);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to delete education type.');
-      },
-    });
-  }
-
-  deleteYear(year: EducationYearDto): void {
-    void this.runDeleteYear(year);
-  }
-
-  private async runDeleteYear(year: EducationYearDto): Promise<void> {
+  deleteStage(stage: EducationStageDto): void {
     const typeId = this.selectedTypeId();
     if (!typeId) return;
 
-    const ok = await this.confirmDialog.ask({
+    void this.runDelete({
+      messageKey: 'education.confirmDeleteStage',
+      id: `stage-${stage.id}`,
+      successKey: 'stageDeleted',
+      request: this.api.deleteStage(typeId, stage.id),
+      after: () => {
+        if (this.selectedStageId() === stage.id) {
+          this.selectedStageId.set(null);
+          this.selectedYearId.set(null);
+          this.years.set([]);
+          this.subjects.set([]);
+        }
+        if (this.editingStageId() === stage.id) this.cancelEditStage();
+        this.loadTypes();
+        this.loadStages(typeId);
+      },
+      fallback: 'Failed to delete education stage.',
+    });
+  }
+
+  createYear(): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    const value = this.readForm(this.yearForm);
+    if (!typeId || !stageId) {
+      this.error.set('Select an education stage first.');
+      return;
+    }
+    if (!value) return;
+
+    this.savingYear.set(true);
+    this.api
+      .createYear(
+        typeId,
+        stageId,
+        new CreateEducationYearRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: (created) => {
+          this.savingYear.set(false);
+          this.success.set('yearCreated');
+          this.yearForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+          this.loadStages(typeId);
+          this.loadYears(typeId, stageId);
+          if (created.id) this.selectYear(created.id);
+        },
+        error: (err) => this.failSave(this.savingYear, err, 'Failed to create education year.'),
+      });
+  }
+
+  updateYear(): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    const yearId = this.editingYearId();
+    const value = this.readForm(this.yearForm);
+    if (!typeId || !stageId || !yearId || !value) return;
+
+    this.savingYear.set(true);
+    this.api
+      .updateYear(
+        typeId,
+        stageId,
+        yearId,
+        new UpdateEducationYearRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.savingYear.set(false);
+          this.success.set('yearUpdated');
+          this.cancelEditYear();
+          this.loadYears(typeId, stageId);
+        },
+        error: (err) => this.failSave(this.savingYear, err, 'Failed to update education year.'),
+      });
+  }
+
+  deleteYear(year: EducationYearDto): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    if (!typeId || !stageId) return;
+
+    void this.runDelete({
       messageKey: 'education.confirmDeleteYear',
+      id: `year-${year.id}`,
+      successKey: 'yearDeleted',
+      request: this.api.deleteYear(typeId, stageId, year.id),
+      after: () => {
+        if (this.selectedYearId() === year.id) {
+          this.selectedYearId.set(null);
+          this.subjects.set([]);
+        }
+        if (this.editingYearId() === year.id) this.cancelEditYear();
+        this.loadStages(typeId);
+        this.loadYears(typeId, stageId);
+      },
+      fallback: 'Failed to delete education year.',
+    });
+  }
+
+  createSubject(): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    const yearId = this.selectedYearId();
+    const value = this.readForm(this.subjectForm);
+    if (!typeId || !stageId || !yearId) {
+      this.error.set('Select a study year first.');
+      return;
+    }
+    if (!value) return;
+
+    this.savingSubject.set(true);
+    this.api
+      .createSubject(
+        typeId,
+        stageId,
+        yearId,
+        new CreateEducationSubjectRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.savingSubject.set(false);
+          this.success.set('subjectCreated');
+          this.subjectForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
+          this.loadYears(typeId, stageId);
+          this.loadSubjects(typeId, stageId, yearId);
+        },
+        error: (err) => this.failSave(this.savingSubject, err, 'Failed to create subject.'),
+      });
+  }
+
+  updateSubject(): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    const yearId = this.selectedYearId();
+    const subjectId = this.editingSubjectId();
+    const value = this.readForm(this.subjectForm);
+    if (!typeId || !stageId || !yearId || !subjectId || !value) return;
+
+    this.savingSubject.set(true);
+    this.api
+      .updateSubject(
+        typeId,
+        stageId,
+        yearId,
+        subjectId,
+        new UpdateEducationSubjectRequest({
+          nameAr: value.nameAr,
+          nameEn: value.nameEn,
+          sortOrder: value.sortOrder,
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.savingSubject.set(false);
+          this.success.set('subjectUpdated');
+          this.cancelEditSubject();
+          this.loadSubjects(typeId, stageId, yearId);
+        },
+        error: (err) => this.failSave(this.savingSubject, err, 'Failed to update subject.'),
+      });
+  }
+
+  deleteSubject(subject: EducationSubjectDto): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.selectedStageId();
+    const yearId = this.selectedYearId();
+    if (!typeId || !stageId || !yearId) return;
+
+    void this.runDelete({
+      messageKey: 'education.confirmDeleteSubject',
+      id: `subject-${subject.id}`,
+      successKey: 'subjectDeleted',
+      request: this.api.deleteSubject(typeId, stageId, yearId, subject.id),
+      after: () => {
+        if (this.editingSubjectId() === subject.id) this.cancelEditSubject();
+        this.loadYears(typeId, stageId);
+        this.loadSubjects(typeId, stageId, yearId);
+      },
+      fallback: 'Failed to delete subject.',
+    });
+  }
+
+  selectedTypeName(): string {
+    return this.types().find((item) => item.id === this.selectedTypeId())?.name ?? '';
+  }
+
+  selectedStageName(): string {
+    return this.stages().find((item) => item.id === this.selectedStageId())?.name ?? '';
+  }
+
+  selectedYearName(): string {
+    return this.years().find((item) => item.id === this.selectedYearId())?.name ?? '';
+  }
+
+  private loadStages(typeId: number): void {
+    this.loadingStages.set(true);
+    this.api.getStages(typeId, false).subscribe({
+      next: (items) => {
+        this.stages.set(items ?? []);
+        this.loadingStages.set(false);
+      },
+      error: (err) => {
+        this.loadingStages.set(false);
+        this.error.set(this.apiError(err, 'Failed to load education stages.'));
+      },
+    });
+  }
+
+  private loadYears(typeId: number, stageId: number): void {
+    this.loadingYears.set(true);
+    this.api.getYears(typeId, stageId, false).subscribe({
+      next: (items) => {
+        this.years.set(items ?? []);
+        this.loadingYears.set(false);
+      },
+      error: (err) => {
+        this.loadingYears.set(false);
+        this.error.set(this.apiError(err, 'Failed to load education years.'));
+      },
+    });
+  }
+
+  private loadSubjects(typeId: number, stageId: number, yearId: number): void {
+    this.loadingSubjects.set(true);
+    this.api.getSubjects(typeId, stageId, yearId, false).subscribe({
+      next: (items) => {
+        this.subjects.set(items ?? []);
+        this.loadingSubjects.set(false);
+      },
+      error: (err) => {
+        this.loadingSubjects.set(false);
+        this.error.set(this.apiError(err, 'Failed to load subjects.'));
+      },
+    });
+  }
+
+  private clearFromType(): void {
+    this.selectedTypeId.set(null);
+    this.selectedStageId.set(null);
+    this.selectedYearId.set(null);
+    this.stages.set([]);
+    this.years.set([]);
+    this.subjects.set([]);
+  }
+
+  private nameForm() {
+    return this.fb.nonNullable.group({
+      nameAr: ['', [Validators.required, Validators.maxLength(150)]],
+      nameEn: ['', [Validators.required, Validators.maxLength(150)]],
+      sortOrder: [0, [Validators.required, Validators.min(0)]],
+    });
+  }
+
+  private readForm(form: ReturnType<AdminEducationComponent['nameForm']>) {
+    this.clearMessages();
+    if (form.invalid) {
+      form.markAllAsTouched();
+      return null;
+    }
+    const value = form.getRawValue();
+    return {
+      nameAr: value.nameAr.trim(),
+      nameEn: value.nameEn.trim(),
+      sortOrder: value.sortOrder,
+    };
+  }
+
+  private clearMessages(): void {
+    this.error.set(null);
+    this.success.set(null);
+  }
+
+  private failSave(saving: WritableSignal<boolean>, err: unknown, fallback: string): void {
+    saving.set(false);
+    this.error.set(this.apiError(err, fallback));
+  }
+
+  private async runDelete(options: {
+    messageKey: string;
+    id: string;
+    successKey: string;
+    request: Observable<void>;
+    after: () => void;
+    fallback: string;
+  }): Promise<void> {
+    const ok = await this.confirmDialog.ask({
+      messageKey: options.messageKey,
       confirmKey: 'common.delete',
       tone: 'danger',
     });
     if (!ok) return;
 
-    this.error.set(null);
-    this.success.set(null);
-    this.deletingId.set(`year-${year.id}`);
+    this.clearMessages();
+    this.deletingId.set(options.id);
 
-    this.api.deleteYear(typeId, year.id).subscribe({
+    options.request.subscribe({
       next: () => {
         this.deletingId.set(null);
-        this.success.set('yearDeleted');
-        this.years.update((items) => items.filter((item) => item.id !== year.id));
-        this.types.update((items) =>
-          items.map((item) =>
-            item.id === typeId
-              ? Object.assign(new EducationTypeDto(), item, {
-                  yearsCount: Math.max(0, (item.yearsCount ?? 0) - 1),
-                })
-              : item,
-          ),
-        );
-        if (this.editingYearId() === year.id) this.cancelEditYear();
+        this.success.set(options.successKey);
+        options.after();
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.deletingId.set(null);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to delete education year.');
+        this.error.set(this.apiError(err, options.fallback));
       },
     });
   }
 
-  label(ar?: string, en?: string): string {
-    return this.i18n.language() === 'ar' ? ar || en || '' : en || ar || '';
-  }
-
-  selectedTypeName(): string {
-    const type = this.types().find((item) => item.id === this.selectedTypeId());
-    return type ? type.name : '';
+  private apiError(err: any, fallback: string): string {
+    return err?.result?.detail || err?.message || fallback;
   }
 }

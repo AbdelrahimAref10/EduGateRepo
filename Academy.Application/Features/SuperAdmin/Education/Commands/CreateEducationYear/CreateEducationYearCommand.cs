@@ -6,6 +6,7 @@ namespace Academy.Application.Features.SuperAdmin.Education.Commands.CreateEduca
 
 public sealed record CreateEducationYearCommand(
     int EducationTypeId,
+    int EducationStageId,
     string NameAr,
     string NameEn,
     int SortOrder) : IRequest<Result<EducationYearDto>>;

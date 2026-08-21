@@ -115,18 +115,44 @@
         </p>
         <form class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
           <label>
-            <span class="label-text">{{ 'lessons.subject' | t }}</span>
-            <input class="field" type="text" formControlName="subject" />
+            <span class="label-text">{{ 'lessons.educationStage' | t }}</span>
+            <select class="field" formControlName="educationStageId" (change)="onStagePicked()">
+              <option [ngValue]="0" disabled>
+                {{ loadingStages() ? ('lessons.loadingStages' | t) : ('lessons.selectEducationStage' | t) }}
+              </option>
+              @for (stage of educationStages(); track stage.id) {
+                <option [ngValue]="stage.id">{{ stage.name }}</option>
+              }
+            </select>
           </label>
 
           <label>
             <span class="label-text">{{ 'lessons.educationYear' | t }}</span>
-            <select class="field" formControlName="educationYearId">
+            <select
+              class="field"
+              formControlName="educationYearId"
+              (change)="onYearPicked()"
+            >
               <option [ngValue]="0" disabled>
                 {{ loadingYears() ? ('lessons.loadingYears' | t) : ('lessons.selectEducationYear' | t) }}
               </option>
               @for (year of educationYears(); track year.id) {
                 <option [ngValue]="year.id">{{ year.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label>
+            <span class="label-text">{{ 'lessons.subject' | t }}</span>
+            <select
+              class="field"
+              formControlName="educationSubjectId"
+            >
+              <option [ngValue]="0" disabled>
+                {{ loadingSubjects() ? ('lessons.loadingSubjects' | t) : ('lessons.selectSubject' | t) }}
+              </option>
+              @for (subject of educationSubjects(); track subject.id) {
+                <option [ngValue]="subject.id">{{ subject.name }}</option>
               }
             </select>
           </label>
@@ -184,7 +210,7 @@
             <button
               type="submit"
               class="btn-primary flex-1"
-              [disabled]="saving() || loadingYears() || loadingAreas() || cityAreas().length === 0"
+              [disabled]="saving() || loadingStages() || loadingYears() || loadingSubjects() || loadingAreas() || cityAreas().length === 0"
             >
               {{
                 saving()
@@ -214,6 +240,7 @@
               <thead>
                 <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
                   <th class="px-3 py-3 text-center">{{ 'lessons.subject' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'lessons.educationStage' | t }}</th>
                   <th class="px-3 py-3 text-center">{{ 'lessons.educationYear' | t }}</th>
                   <th class="px-3 py-3 text-center">{{ 'lessons.area' | t }}</th>
                   <th class="px-3 py-3 text-center">{{ 'lessons.startDate' | t }}</th>
@@ -227,9 +254,8 @@
                 @for (lesson of filteredLessons(); track lesson.id) {
                   <tr class="border-b border-line/70 hover:bg-body/70">
                     <td class="px-3 py-3 text-center font-semibold text-ink">{{ lesson.subject }}</td>
-                    <td class="px-3 py-3 text-center">
-                      {{ lesson.educationYearName }}
-                    </td>
+                    <td class="px-3 py-3 text-center">{{ lesson.educationStageName }}</td>
+                    <td class="px-3 py-3 text-center">{{ lesson.educationYearName }}</td>
                     <td class="px-3 py-3 text-center">{{ lesson.areaName }}</td>
                     <td class="px-3 py-3 text-center">{{ lesson.startDate | date: 'yyyy-MM-dd' }}</td>
                     <td class="px-3 py-3 text-center">{{ billingLabel(lesson.billingType) | t }}</td>

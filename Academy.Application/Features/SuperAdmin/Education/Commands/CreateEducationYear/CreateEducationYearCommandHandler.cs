@@ -1,4 +1,3 @@
-using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
@@ -18,25 +17,28 @@ public sealed class CreateEducationYearCommandHandler(
         CreateEducationYearCommand request,
         CancellationToken cancellationToken)
     {
-        var typeExists = await dbContext.EducationTypes
-            .AnyAsync(x => x.Id == request.EducationTypeId, cancellationToken);
+        var stage = await dbContext.EducationStages
+            .Include(x => x.EducationType)
+            .FirstOrDefaultAsync(
+                x => x.Id == request.EducationStageId && x.EducationTypeId == request.EducationTypeId,
+                cancellationToken);
 
-        if (!typeExists)
-            return Result<EducationYearDto>.NotFound("Education type was not found.");
+        if (stage is null)
+            return Result<EducationYearDto>.NotFound("Education stage was not found.");
 
         var nameEn = request.NameEn.Trim();
 
         var exists = await dbContext.EducationYears
             .AnyAsync(
-                x => x.EducationTypeId == request.EducationTypeId && x.NameEn == nameEn,
+                x => x.EducationStageId == request.EducationStageId && x.NameEn == nameEn,
                 cancellationToken);
 
         if (exists)
-            return Result<EducationYearDto>.Conflict("Education year already exists for this type.");
+            return Result<EducationYearDto>.Conflict("Education year already exists for this stage.");
 
         var entity = new EducationYear
         {
-            EducationTypeId = request.EducationTypeId,
+            EducationStageId = request.EducationStageId,
             NameAr = request.NameAr.Trim(),
             NameEn = nameEn,
             SortOrder = request.SortOrder,
@@ -46,15 +48,8 @@ public sealed class CreateEducationYearCommandHandler(
         dbContext.EducationYears.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Result<EducationYearDto>.Success(new EducationYearDto
-        {
-            Id = entity.Id,
-            EducationTypeId = entity.EducationTypeId,
-            Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, requestLanguage.Current),
-            NameAr = entity.NameAr,
-            NameEn = entity.NameEn,
-            SortOrder = entity.SortOrder,
-            IsActive = entity.IsActive
-        });
+        entity.EducationStage = stage;
+        return Result<EducationYearDto>.Success(
+            EducationMappings.ToYearDto(entity, requestLanguage.Current, subjectsCount: 0));
     }
 }

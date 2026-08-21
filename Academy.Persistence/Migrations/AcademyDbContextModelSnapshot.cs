@@ -376,6 +376,78 @@ namespace Academy.Persistence.Migrations
                     b.ToTable("Countries", (string)null);
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.EducationStage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EducationTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EducationTypeId", "NameEn");
+
+                    b.HasIndex("EducationTypeId", "SortOrder");
+
+                    b.ToTable("EducationStages", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.EducationSubject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EducationYearId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EducationYearId", "NameEn");
+
+                    b.HasIndex("EducationYearId", "SortOrder");
+
+                    b.ToTable("EducationSubjects", (string)null);
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.EducationType", b =>
                 {
                     b.Property<int>("Id")
@@ -415,7 +487,7 @@ namespace Academy.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("EducationTypeId")
+                    b.Property<int>("EducationStageId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
@@ -436,9 +508,9 @@ namespace Academy.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EducationTypeId", "NameEn");
+                    b.HasIndex("EducationStageId", "NameEn");
 
-                    b.HasIndex("EducationTypeId", "SortOrder");
+                    b.HasIndex("EducationStageId", "SortOrder");
 
                     b.ToTable("EducationYears", (string)null);
                 });
@@ -494,6 +566,12 @@ namespace Academy.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("EducationStageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EducationSubjectId")
+                        .HasColumnType("int");
+
                     b.Property<int>("EducationTypeId")
                         .HasColumnType("int");
 
@@ -530,6 +608,10 @@ namespace Academy.Persistence.Migrations
                     b.HasIndex("AreaId");
 
                     b.HasIndex("CountryId");
+
+                    b.HasIndex("EducationStageId");
+
+                    b.HasIndex("EducationSubjectId");
 
                     b.HasIndex("EducationTypeId");
 
@@ -1141,15 +1223,37 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Governorate");
                 });
 
-            modelBuilder.Entity("Academy.Domain.Entities.EducationYear", b =>
+            modelBuilder.Entity("Academy.Domain.Entities.EducationStage", b =>
                 {
                     b.HasOne("Academy.Domain.Entities.EducationType", "EducationType")
-                        .WithMany("Years")
+                        .WithMany("Stages")
                         .HasForeignKey("EducationTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("EducationType");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.EducationSubject", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.EducationYear", "EducationYear")
+                        .WithMany("Subjects")
+                        .HasForeignKey("EducationYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EducationYear");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.EducationYear", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.EducationStage", "EducationStage")
+                        .WithMany("Years")
+                        .HasForeignKey("EducationStageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EducationStage");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Governorate", b =>
@@ -1177,6 +1281,18 @@ namespace Academy.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Academy.Domain.Entities.EducationStage", "EducationStage")
+                        .WithMany("Lessons")
+                        .HasForeignKey("EducationStageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.EducationSubject", "EducationSubject")
+                        .WithMany("Lessons")
+                        .HasForeignKey("EducationSubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Academy.Domain.Entities.EducationType", "EducationType")
                         .WithMany("Lessons")
                         .HasForeignKey("EducationTypeId")
@@ -1198,6 +1314,10 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Area");
 
                     b.Navigation("Country");
+
+                    b.Navigation("EducationStage");
+
+                    b.Navigation("EducationSubject");
 
                     b.Navigation("EducationType");
 
@@ -1453,16 +1573,30 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Lessons");
                 });
 
-            modelBuilder.Entity("Academy.Domain.Entities.EducationType", b =>
+            modelBuilder.Entity("Academy.Domain.Entities.EducationStage", b =>
                 {
                     b.Navigation("Lessons");
 
                     b.Navigation("Years");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.EducationSubject", b =>
+                {
+                    b.Navigation("Lessons");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.EducationType", b =>
+                {
+                    b.Navigation("Lessons");
+
+                    b.Navigation("Stages");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.EducationYear", b =>
                 {
                     b.Navigation("Lessons");
+
+                    b.Navigation("Subjects");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Governorate", b =>

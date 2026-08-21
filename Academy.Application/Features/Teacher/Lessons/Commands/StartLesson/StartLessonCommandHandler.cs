@@ -26,7 +26,9 @@ public sealed class StartLessonCommandHandler(
         var lesson = await dbContext.Lessons
             .AsTracking()
             .Include(x => x.EducationType)
+            .Include(x => x.EducationStage)
             .Include(x => x.EducationYear)
+            .Include(x => x.EducationSubject)
             .Include(x => x.Country)
             .Include(x => x.Area)
                 .ThenInclude(x => x.City)

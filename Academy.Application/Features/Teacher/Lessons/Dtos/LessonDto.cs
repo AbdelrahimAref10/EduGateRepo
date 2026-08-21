@@ -8,9 +8,15 @@ public sealed class LessonDto
 
     public required string Subject { get; init; }
 
+    public required int EducationSubjectId { get; init; }
+
     public required int EducationTypeId { get; init; }
 
     public required string EducationTypeName { get; init; }
+
+    public required int EducationStageId { get; init; }
+
+    public required string EducationStageName { get; init; }
 
     public required int EducationYearId { get; init; }
 

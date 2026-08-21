@@ -3,7 +3,7 @@ using Academy.Domain.Common;
 namespace Academy.Domain.Entities;
 
 /// <summary>
-/// Education stage managed by SuperAdmin (e.g. Primary, Preparatory, Secondary).
+/// Education type managed by SuperAdmin (e.g. National, International, Azhar).
 /// </summary>
 public class EducationType : BaseEntity
 {
@@ -15,7 +15,7 @@ public class EducationType : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public ICollection<EducationYear> Years { get; set; } = [];
+    public ICollection<EducationStage> Stages { get; set; } = [];
 
     public ICollection<Lesson> Lessons { get; set; } = [];
 }

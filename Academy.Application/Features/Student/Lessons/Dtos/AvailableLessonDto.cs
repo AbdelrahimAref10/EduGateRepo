@@ -14,6 +14,10 @@ public sealed class AvailableLessonDto
 
     public required string EducationTypeName { get; init; }
 
+    public required int EducationStageId { get; init; }
+
+    public required string EducationStageName { get; init; }
+
     public required int EducationYearId { get; init; }
 
     public required string EducationYearName { get; init; }

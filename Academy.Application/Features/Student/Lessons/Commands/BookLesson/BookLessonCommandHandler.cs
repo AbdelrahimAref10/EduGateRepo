@@ -30,6 +30,7 @@ public sealed class BookLessonCommandHandler(
 
         var lesson = await dbContext.Lessons
             .Include(x => x.EducationType)
+            .Include(x => x.EducationStage)
             .Include(x => x.EducationYear)
             .Include(x => x.Teacher)
             .FirstOrDefaultAsync(x => x.Id == request.LessonId && x.IsActive, cancellationToken);
@@ -87,6 +88,10 @@ public sealed class BookLessonCommandHandler(
             EducationTypeName = LocalizedNames.Pick(
                 lesson.EducationType.NameAr,
                 lesson.EducationType.NameEn,
+                language),
+            EducationStageName = LocalizedNames.Pick(
+                lesson.EducationStage.NameAr,
+                lesson.EducationStage.NameEn,
                 language),
             EducationYearName = LocalizedNames.Pick(
                 lesson.EducationYear.NameAr,

@@ -6,6 +6,8 @@ import {
   AreaDto,
   BillingType,
   CreateLessonRequest,
+  EducationStageDto,
+  EducationSubjectDto,
   EducationTypeDto,
   EducationTypesClient,
   EducationYearDto,
@@ -14,7 +16,6 @@ import {
   UpdateLessonRequest,
 } from '../../../core/api/academy-api.generated';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
-import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
@@ -28,13 +29,14 @@ export class TeacherLessonsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly lessonsApi = inject(LessonsClient);
   private readonly educationApi = inject(EducationTypesClient);
-  private readonly i18n = inject(TranslationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly BillingType = BillingType;
   readonly loading = signal(false);
   readonly loadingTypes = signal(false);
+  readonly loadingStages = signal(false);
   readonly loadingYears = signal(false);
+  readonly loadingSubjects = signal(false);
   readonly loadingAreas = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<number | null>(null);
@@ -43,7 +45,9 @@ export class TeacherLessonsComponent implements OnInit {
 
   readonly lessons = signal<LessonDto[]>([]);
   readonly educationTypes = signal<EducationTypeDto[]>([]);
+  readonly educationStages = signal<EducationStageDto[]>([]);
   readonly educationYears = signal<EducationYearDto[]>([]);
+  readonly educationSubjects = signal<EducationSubjectDto[]>([]);
   readonly cityAreas = signal<AreaDto[]>([]);
   readonly selectedTypeId = signal<number | null>(null);
   readonly editingLessonId = signal<number | null>(null);
@@ -55,8 +59,9 @@ export class TeacherLessonsComponent implements OnInit {
   });
 
   readonly form = this.fb.nonNullable.group({
-    subject: ['', [Validators.required, Validators.maxLength(200)]],
+    educationStageId: [0, [Validators.required, Validators.min(1)]],
     educationYearId: [0, [Validators.required, Validators.min(1)]],
+    educationSubjectId: [0, [Validators.required, Validators.min(1)]],
     areaId: [0, [Validators.required, Validators.min(1)]],
     billingType: [BillingType.PerSession as BillingType, [Validators.required]],
     sessionPrice: [null as number | null],
@@ -86,7 +91,7 @@ export class TeacherLessonsComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to load lessons.');
+        this.error.set(this.apiError(err, 'Failed to load lessons.'));
       },
     });
   }
@@ -96,18 +101,34 @@ export class TeacherLessonsComponent implements OnInit {
     this.success.set(null);
     this.error.set(null);
     this.cancelEdit();
-    this.form.controls.educationYearId.setValue(0);
-    this.educationYears.set([]);
-    this.loadEducationYears(typeId);
+    this.resetCurriculum();
+    this.loadStages(typeId);
   }
 
   selectedTypeName(): string {
-    const type = this.educationTypes().find((item) => item.id === this.selectedTypeId());
-    return type ? type.name : '';
+    return this.educationTypes().find((item) => item.id === this.selectedTypeId())?.name ?? '';
   }
 
   lessonsCountForType(typeId: number): number {
     return this.lessons().filter((lesson) => lesson.educationTypeId === typeId).length;
+  }
+
+  onStagePicked(): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.form.controls.educationStageId.value;
+    this.form.patchValue({ educationYearId: 0, educationSubjectId: 0 });
+    this.educationYears.set([]);
+    this.educationSubjects.set([]);
+    if (typeId && stageId) this.loadYears(typeId, stageId);
+  }
+
+  onYearPicked(): void {
+    const typeId = this.selectedTypeId();
+    const stageId = this.form.controls.educationStageId.value;
+    const yearId = this.form.controls.educationYearId.value;
+    this.form.patchValue({ educationSubjectId: 0 });
+    this.educationSubjects.set([]);
+    if (typeId && stageId && yearId) this.loadSubjects(typeId, stageId, yearId);
   }
 
   startEdit(lesson: LessonDto): void {
@@ -117,28 +138,33 @@ export class TeacherLessonsComponent implements OnInit {
     this.success.set(null);
     this.editingLessonId.set(lesson.id);
     this.selectedTypeId.set(lesson.educationTypeId);
-    this.loadEducationYears(lesson.educationTypeId);
 
     const billingType =
       lesson.billingType === 'Monthly' ? BillingType.Monthly : BillingType.PerSession;
 
     this.form.setValue({
-      subject: lesson.subject,
+      educationStageId: lesson.educationStageId,
       educationYearId: lesson.educationYearId,
+      educationSubjectId: lesson.educationSubjectId,
       areaId: lesson.areaId,
       billingType,
       sessionPrice: lesson.sessionPrice ?? null,
       monthlyPrice: lesson.monthlyPrice ?? null,
       startDate: this.toDateInput(lesson.startDate),
     });
+
+    this.loadStages(lesson.educationTypeId);
+    this.loadYears(lesson.educationTypeId, lesson.educationStageId);
+    this.loadSubjects(lesson.educationTypeId, lesson.educationStageId, lesson.educationYearId);
   }
 
   cancelEdit(): void {
     this.editingLessonId.set(null);
     const keptAreaId = this.form.controls.areaId.value || 0;
     this.form.reset({
-      subject: '',
+      educationStageId: 0,
       educationYearId: 0,
+      educationSubjectId: 0,
       areaId: keptAreaId,
       billingType: BillingType.PerSession,
       sessionPrice: null,
@@ -175,72 +201,68 @@ export class TeacherLessonsComponent implements OnInit {
       return;
     }
 
-    const editingId = this.editingLessonId();
-    this.saving.set(true);
-
-    if (editingId) {
-      const request = new UpdateLessonRequest({
-        subject: value.subject.trim(),
-        educationTypeId: typeId,
-        educationYearId: value.educationYearId,
-        areaId: value.areaId,
-        billingType,
-        sessionPrice: billingType === BillingType.PerSession ? value.sessionPrice! : undefined,
-        monthlyPrice: billingType === BillingType.Monthly ? value.monthlyPrice! : undefined,
-        startDate: new Date(value.startDate),
-      });
-
-      this.lessonsApi.updateLesson(editingId, request).subscribe({
-        next: (updated) => {
-          this.saving.set(false);
-          this.success.set('updated');
-          this.lessons.update((items) => items.map((item) => (item.id === updated.id ? updated : item)));
-          this.cancelEdit();
-        },
-        error: (err) => {
-          this.saving.set(false);
-          this.error.set(err?.result?.detail || err?.message || 'Failed to update lesson.');
-        },
-      });
-      return;
-    }
-
-    const request = new CreateLessonRequest({
-      subject: value.subject.trim(),
+    const payload = {
       educationTypeId: typeId,
+      educationStageId: value.educationStageId,
       educationYearId: value.educationYearId,
+      educationSubjectId: value.educationSubjectId,
       areaId: value.areaId,
       billingType,
       sessionPrice: billingType === BillingType.PerSession ? value.sessionPrice! : undefined,
       monthlyPrice: billingType === BillingType.Monthly ? value.monthlyPrice! : undefined,
       startDate: new Date(value.startDate),
-    });
+    };
 
-    this.lessonsApi.createLesson(request).subscribe({
-      next: (created) => {
-        this.saving.set(false);
-        this.success.set('created');
-        const keptAreaId = value.areaId;
-        this.form.reset({
-          subject: '',
-          educationYearId: 0,
-          areaId: keptAreaId,
-          billingType: BillingType.PerSession,
-          sessionPrice: null,
-          monthlyPrice: null,
-          startDate: '',
-        });
-        this.lessons.update((items) => [created, ...items]);
-      },
-      error: (err) => {
-        this.saving.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to create lesson.');
-      },
+    const editingId = this.editingLessonId();
+    this.saving.set(true);
+
+    if (editingId) {
+      this.lessonsApi.updateLesson(editingId, new UpdateLessonRequest(payload)).subscribe({
+        next: () => this.afterSave('updated', value.areaId),
+        error: (err) => this.failSave(err, 'Failed to update lesson.'),
+      });
+      return;
+    }
+
+    this.lessonsApi.createLesson(new CreateLessonRequest(payload)).subscribe({
+      next: () => this.afterSave('created', value.areaId),
+      error: (err) => this.failSave(err, 'Failed to create lesson.'),
     });
   }
 
   deleteLesson(lesson: LessonDto): void {
     void this.runDeleteLesson(lesson);
+  }
+
+  billingLabel(value?: string): string {
+    if (value === 'Monthly') return 'lessons.monthly';
+    return 'lessons.perSession';
+  }
+
+  private afterSave(successKey: 'created' | 'updated', keptAreaId: number): void {
+    this.saving.set(false);
+    this.success.set(successKey);
+    this.editingLessonId.set(null);
+    this.form.reset({
+      educationStageId: 0,
+      educationYearId: 0,
+      educationSubjectId: 0,
+      areaId: keptAreaId,
+      billingType: BillingType.PerSession,
+      sessionPrice: null,
+      monthlyPrice: null,
+      startDate: '',
+    });
+    this.educationYears.set([]);
+    this.educationSubjects.set([]);
+    const typeId = this.selectedTypeId();
+    if (typeId) this.loadStages(typeId);
+    this.loadLessons();
+  }
+
+  private failSave(err: unknown, fallback: string): void {
+    this.saving.set(false);
+    this.error.set(this.apiError(err, fallback));
   }
 
   private async runDeleteLesson(lesson: LessonDto): Promise<void> {
@@ -259,23 +281,25 @@ export class TeacherLessonsComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.success.set('deleted');
-        this.lessons.update((items) => items.filter((item) => item.id !== lesson.id));
         if (this.editingLessonId() === lesson.id) this.cancelEdit();
+        this.loadLessons();
       },
       error: (err) => {
         this.deletingId.set(null);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to delete lesson.');
+        this.error.set(this.apiError(err, 'Failed to delete lesson.'));
       },
     });
   }
 
-  billingLabel(value?: string): string {
-    if (value === 'Monthly') return 'lessons.monthly';
-    return 'lessons.perSession';
-  }
-
-  label(ar?: string, en?: string): string {
-    return this.i18n.language() === 'ar' ? ar || en || '' : en || ar || '';
+  private resetCurriculum(): void {
+    this.form.patchValue({
+      educationStageId: 0,
+      educationYearId: 0,
+      educationSubjectId: 0,
+    });
+    this.educationStages.set([]);
+    this.educationYears.set([]);
+    this.educationSubjects.set([]);
   }
 
   private toDateInput(value: Date): string {
@@ -293,21 +317,49 @@ export class TeacherLessonsComponent implements OnInit {
       },
       error: (err) => {
         this.loadingTypes.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to load education types.');
+        this.error.set(this.apiError(err, 'Failed to load education types.'));
       },
     });
   }
 
-  private loadEducationYears(typeId: number): void {
+  private loadStages(typeId: number): void {
+    this.loadingStages.set(true);
+    this.educationApi.getStages(typeId, true).subscribe({
+      next: (items) => {
+        this.educationStages.set(items ?? []);
+        this.loadingStages.set(false);
+      },
+      error: (err) => {
+        this.loadingStages.set(false);
+        this.error.set(this.apiError(err, 'Failed to load education stages.'));
+      },
+    });
+  }
+
+  private loadYears(typeId: number, stageId: number): void {
     this.loadingYears.set(true);
-    this.educationApi.getYears(typeId, true).subscribe({
+    this.educationApi.getYears(typeId, stageId, true).subscribe({
       next: (items) => {
         this.educationYears.set(items ?? []);
         this.loadingYears.set(false);
       },
       error: (err) => {
         this.loadingYears.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to load education years.');
+        this.error.set(this.apiError(err, 'Failed to load education years.'));
+      },
+    });
+  }
+
+  private loadSubjects(typeId: number, stageId: number, yearId: number): void {
+    this.loadingSubjects.set(true);
+    this.educationApi.getSubjects(typeId, stageId, yearId, true).subscribe({
+      next: (items) => {
+        this.educationSubjects.set(items ?? []);
+        this.loadingSubjects.set(false);
+      },
+      error: (err) => {
+        this.loadingSubjects.set(false);
+        this.error.set(this.apiError(err, 'Failed to load subjects.'));
       },
     });
   }
@@ -321,8 +373,12 @@ export class TeacherLessonsComponent implements OnInit {
       },
       error: (err) => {
         this.loadingAreas.set(false);
-        this.error.set(err?.result?.detail || err?.message || 'Failed to load areas for your city.');
+        this.error.set(this.apiError(err, 'Failed to load areas for your city.'));
       },
     });
+  }
+
+  private apiError(err: any, fallback: string): string {
+    return err?.result?.detail || err?.message || fallback;
   }
 }

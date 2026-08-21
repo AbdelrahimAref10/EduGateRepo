@@ -26,12 +26,12 @@ public sealed class EducationYearConfiguration : IEntityTypeConfiguration<Educat
         builder.Property(x => x.IsActive)
             .IsRequired();
 
-        builder.HasOne(x => x.EducationType)
+        builder.HasOne(x => x.EducationStage)
             .WithMany(x => x.Years)
-            .HasForeignKey(x => x.EducationTypeId)
+            .HasForeignKey(x => x.EducationStageId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(x => new { x.EducationTypeId, x.SortOrder });
-        builder.HasIndex(x => new { x.EducationTypeId, x.NameEn });
+        builder.HasIndex(x => new { x.EducationStageId, x.SortOrder });
+        builder.HasIndex(x => new { x.EducationStageId, x.NameEn });
     }
 }

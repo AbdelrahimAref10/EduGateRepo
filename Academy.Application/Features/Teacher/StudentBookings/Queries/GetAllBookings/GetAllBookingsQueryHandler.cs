@@ -40,6 +40,9 @@ public sealed class GetAllBookingsQueryHandler(
                 EducationTypeName = language == AppLanguage.Arabic
                     ? x.Lesson.EducationType.NameAr
                     : x.Lesson.EducationType.NameEn,
+                EducationStageName = language == AppLanguage.Arabic
+                    ? x.Lesson.EducationStage.NameAr
+                    : x.Lesson.EducationStage.NameEn,
                 EducationYearName = language == AppLanguage.Arabic
                     ? x.Lesson.EducationYear.NameAr
                     : x.Lesson.EducationYear.NameEn,

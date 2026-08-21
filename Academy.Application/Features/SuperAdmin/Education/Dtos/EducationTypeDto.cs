@@ -14,5 +14,5 @@ public sealed class EducationTypeDto
 
     public required bool IsActive { get; init; }
 
-    public required int YearsCount { get; init; }
+    public required int StagesCount { get; init; }
 }

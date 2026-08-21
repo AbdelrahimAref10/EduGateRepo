@@ -8,9 +8,10 @@ namespace Academy.Application.Features.Teacher.Lessons.Commands.UpdateLesson;
 public sealed record UpdateLessonCommand(
     int UserId,
     int LessonId,
-    string Subject,
     int EducationTypeId,
+    int EducationStageId,
     int EducationYearId,
+    int EducationSubjectId,
     BillingType BillingType,
     decimal? SessionPrice,
     decimal? MonthlyPrice,

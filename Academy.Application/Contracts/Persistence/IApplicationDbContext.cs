@@ -23,7 +23,11 @@ public interface IApplicationDbContext
 
     DbSet<EducationType> EducationTypes { get; }
 
+    DbSet<EducationStage> EducationStages { get; }
+
     DbSet<EducationYear> EducationYears { get; }
+
+    DbSet<EducationSubject> EducationSubjects { get; }
 
     DbSet<Lesson> Lessons { get; }
 

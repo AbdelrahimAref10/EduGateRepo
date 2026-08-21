@@ -16,6 +16,8 @@ public sealed class BookingDto
 
     public required string EducationTypeName { get; init; }
 
+    public required string EducationStageName { get; init; }
+
     public required string EducationYearName { get; init; }
 
     public required DateOnly StartDate { get; init; }

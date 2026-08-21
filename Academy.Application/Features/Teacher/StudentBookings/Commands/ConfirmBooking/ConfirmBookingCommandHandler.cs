@@ -32,6 +32,8 @@ public sealed class ConfirmBookingCommandHandler(
             .Include(x => x.Lesson)
                 .ThenInclude(x => x.EducationType)
             .Include(x => x.Lesson)
+                .ThenInclude(x => x.EducationStage)
+            .Include(x => x.Lesson)
                 .ThenInclude(x => x.EducationYear)
             .Include(x => x.Student)
                 .ThenInclude(x => x.User)
@@ -83,6 +85,10 @@ public sealed class ConfirmBookingCommandHandler(
             EducationTypeName = LocalizedNames.Pick(
                 booking.Lesson.EducationType.NameAr,
                 booking.Lesson.EducationType.NameEn,
+                language),
+            EducationStageName = LocalizedNames.Pick(
+                booking.Lesson.EducationStage.NameAr,
+                booking.Lesson.EducationStage.NameEn,
                 language),
             EducationYearName = LocalizedNames.Pick(
                 booking.Lesson.EducationYear.NameAr,

@@ -32,11 +32,18 @@ public sealed class GetMyLessonsQueryHandler(
             {
                 Id = x.Id,
                 TeacherId = x.TeacherId,
-                Subject = x.Subject,
+                Subject = language == AppLanguage.Arabic
+                    ? x.EducationSubject.NameAr
+                    : x.EducationSubject.NameEn,
+                EducationSubjectId = x.EducationSubjectId,
                 EducationTypeId = x.EducationTypeId,
                 EducationTypeName = language == AppLanguage.Arabic
                     ? x.EducationType.NameAr
                     : x.EducationType.NameEn,
+                EducationStageId = x.EducationStageId,
+                EducationStageName = language == AppLanguage.Arabic
+                    ? x.EducationStage.NameAr
+                    : x.EducationStage.NameEn,
                 EducationYearId = x.EducationYearId,
                 EducationYearName = language == AppLanguage.Arabic
                     ? x.EducationYear.NameAr

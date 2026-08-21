@@ -182,10 +182,8 @@ export class AdminCountriesComponent implements OnInit {
         this.savingCountry.set(false);
         this.success.set('countryCreated');
         this.countryForm.reset({ nameAr: '', nameEn: '', code: '' });
-        this.countries.update((items) =>
-          [...items, created].sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
-        this.selectCountry(created.id);
+        this.loadCountries();
+        if (created.id) this.selectCountry(created.id);
       },
       error: (err) => {
         this.savingCountry.set(false);
@@ -215,15 +213,11 @@ export class AdminCountriesComponent implements OnInit {
 
     this.savingCountry.set(true);
     this.countriesApi.updateCountry(countryId, request).subscribe({
-      next: (updated) => {
+      next: () => {
         this.savingCountry.set(false);
         this.success.set('countryUpdated');
         this.cancelEditCountry();
-        this.countries.update((items) =>
-          items
-            .map((item) => (item.id === updated.id ? updated : item))
-            .sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
+        this.loadCountries();
       },
       error: (err) => {
         this.savingCountry.set(false);
@@ -243,9 +237,9 @@ export class AdminCountriesComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.success.set('countryDeleted');
-        this.countries.update((items) => items.filter((item) => item.id !== country.id));
         if (this.selectedCountryId() === country.id) this.clearFromCountry();
         if (this.editingCountryId() === country.id) this.cancelEditCountry();
+        this.loadCountries();
       },
       error: (err) => {
         this.deletingId.set(null);
@@ -301,11 +295,9 @@ export class AdminCountriesComponent implements OnInit {
         this.savingGovernorate.set(false);
         this.success.set('governorateCreated');
         this.governorateForm.reset({ nameAr: '', nameEn: '' });
-        this.governorates.update((items) =>
-          [...items, created].sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
-        this.bumpCountryCount(countryId, 1);
-        this.selectGovernorate(created.id);
+        this.loadCountries();
+        this.loadGovernorates(countryId);
+        if (created.id) this.selectGovernorate(created.id);
       },
       error: (err) => {
         this.savingGovernorate.set(false);
@@ -335,15 +327,11 @@ export class AdminCountriesComponent implements OnInit {
 
     this.savingGovernorate.set(true);
     this.countriesApi.updateGovernorate(countryId, governorateId, request).subscribe({
-      next: (updated) => {
+      next: () => {
         this.savingGovernorate.set(false);
         this.success.set('governorateUpdated');
         this.cancelEditGovernorate();
-        this.governorates.update((items) =>
-          items
-            .map((item) => (item.id === updated.id ? updated : item))
-            .sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
+        this.loadGovernorates(countryId);
       },
       error: (err) => {
         this.savingGovernorate.set(false);
@@ -365,8 +353,6 @@ export class AdminCountriesComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.success.set('governorateDeleted');
-        this.governorates.update((items) => items.filter((item) => item.id !== gov.id));
-        this.bumpCountryCount(countryId, -1);
         if (this.selectedGovernorateId() === gov.id) {
           this.selectedGovernorateId.set(null);
           this.selectedCityId.set(null);
@@ -374,6 +360,8 @@ export class AdminCountriesComponent implements OnInit {
           this.areas.set([]);
         }
         if (this.editingGovernorateId() === gov.id) this.cancelEditGovernorate();
+        this.loadCountries();
+        this.loadGovernorates(countryId);
       },
       error: (err) => {
         this.deletingId.set(null);
@@ -429,11 +417,10 @@ export class AdminCountriesComponent implements OnInit {
         this.savingCity.set(false);
         this.success.set('cityCreated');
         this.cityForm.reset({ nameAr: '', nameEn: '' });
-        this.cities.update((items) =>
-          [...items, created].sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
-        this.bumpGovernorateCount(governorateId, 1);
-        this.selectCity(created.id);
+        const countryId = this.selectedCountryId();
+        if (countryId) this.loadGovernorates(countryId);
+        this.loadCities(governorateId);
+        if (created.id) this.selectCity(created.id);
       },
       error: (err) => {
         this.savingCity.set(false);
@@ -463,15 +450,11 @@ export class AdminCountriesComponent implements OnInit {
 
     this.savingCity.set(true);
     this.governoratesApi.updateCity(governorateId, cityId, request).subscribe({
-      next: (updated) => {
+      next: () => {
         this.savingCity.set(false);
         this.success.set('cityUpdated');
         this.cancelEditCity();
-        this.cities.update((items) =>
-          items
-            .map((item) => (item.id === updated.id ? updated : item))
-            .sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
+        this.loadCities(governorateId);
       },
       error: (err) => {
         this.savingCity.set(false);
@@ -493,13 +476,14 @@ export class AdminCountriesComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.success.set('cityDeleted');
-        this.cities.update((items) => items.filter((item) => item.id !== city.id));
-        this.bumpGovernorateCount(governorateId, -1);
         if (this.selectedCityId() === city.id) {
           this.selectedCityId.set(null);
           this.areas.set([]);
         }
         if (this.editingCityId() === city.id) this.cancelEditCity();
+        const countryId = this.selectedCountryId();
+        if (countryId) this.loadGovernorates(countryId);
+        this.loadCities(governorateId);
       },
       error: (err) => {
         this.deletingId.set(null);
@@ -551,14 +535,13 @@ export class AdminCountriesComponent implements OnInit {
 
     this.savingArea.set(true);
     this.citiesApi.createArea(cityId, request).subscribe({
-      next: (created) => {
+      next: () => {
         this.savingArea.set(false);
         this.success.set('areaCreated');
         this.areaForm.reset({ nameAr: '', nameEn: '' });
-        this.areas.update((items) =>
-          [...items, created].sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
-        this.bumpCityCount(cityId, 1);
+        const governorateId = this.selectedGovernorateId();
+        if (governorateId) this.loadCities(governorateId);
+        this.loadAreas(cityId);
       },
       error: (err) => {
         this.savingArea.set(false);
@@ -588,15 +571,11 @@ export class AdminCountriesComponent implements OnInit {
 
     this.savingArea.set(true);
     this.citiesApi.updateArea(cityId, areaId, request).subscribe({
-      next: (updated) => {
+      next: () => {
         this.savingArea.set(false);
         this.success.set('areaUpdated');
         this.cancelEditArea();
-        this.areas.update((items) =>
-          items
-            .map((item) => (item.id === updated.id ? updated : item))
-            .sort((a, b) => (a.nameEn ?? '').localeCompare(b.nameEn ?? '')),
-        );
+        this.loadAreas(cityId);
       },
       error: (err) => {
         this.savingArea.set(false);
@@ -618,9 +597,10 @@ export class AdminCountriesComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.success.set('areaDeleted');
-        this.areas.update((items) => items.filter((item) => item.id !== area.id));
-        this.bumpCityCount(cityId, -1);
         if (this.editingAreaId() === area.id) this.cancelEditArea();
+        const governorateId = this.selectedGovernorateId();
+        if (governorateId) this.loadCities(governorateId);
+        this.loadAreas(cityId);
       },
       error: (err) => {
         this.deletingId.set(null);
@@ -697,42 +677,6 @@ export class AdminCountriesComponent implements OnInit {
     this.governorates.set([]);
     this.cities.set([]);
     this.areas.set([]);
-  }
-
-  private bumpCountryCount(countryId: number, delta: number): void {
-    this.countries.update((items) =>
-      items.map((item) =>
-        item.id === countryId
-          ? Object.assign(new CountryDto(), item, {
-              governoratesCount: Math.max(0, (item.governoratesCount ?? 0) + delta),
-            })
-          : item,
-      ),
-    );
-  }
-
-  private bumpGovernorateCount(governorateId: number, delta: number): void {
-    this.governorates.update((items) =>
-      items.map((item) =>
-        item.id === governorateId
-          ? Object.assign(new GovernorateDto(), item, {
-              citiesCount: Math.max(0, (item.citiesCount ?? 0) + delta),
-            })
-          : item,
-      ),
-    );
-  }
-
-  private bumpCityCount(cityId: number, delta: number): void {
-    this.cities.update((items) =>
-      items.map((item) =>
-        item.id === cityId
-          ? Object.assign(new CityDto(), item, {
-              areasCount: Math.max(0, (item.areasCount ?? 0) + delta),
-            })
-          : item,
-      ),
-    );
   }
 
   private apiError(err: any, fallback: string): string {

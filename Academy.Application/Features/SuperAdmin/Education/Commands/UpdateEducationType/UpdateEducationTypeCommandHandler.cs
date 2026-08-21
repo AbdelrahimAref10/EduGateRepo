@@ -1,4 +1,3 @@
-using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
@@ -38,18 +37,10 @@ public sealed class UpdateEducationTypeCommandHandler(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var yearsCount = await dbContext.EducationYears
+        var stagesCount = await dbContext.EducationStages
             .CountAsync(x => x.EducationTypeId == entity.Id, cancellationToken);
 
-        return Result<EducationTypeDto>.Success(new EducationTypeDto
-        {
-            Id = entity.Id,
-            Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, requestLanguage.Current),
-            NameAr = entity.NameAr,
-            NameEn = entity.NameEn,
-            SortOrder = entity.SortOrder,
-            IsActive = entity.IsActive,
-            YearsCount = yearsCount
-        });
+        return Result<EducationTypeDto>.Success(
+            EducationMappings.ToTypeDto(entity, requestLanguage.Current, stagesCount));
     }
 }

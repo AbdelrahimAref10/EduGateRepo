@@ -1,4 +1,3 @@
-using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
@@ -19,8 +18,12 @@ public sealed class UpdateEducationYearCommandHandler(
     {
         var entity = await dbContext.EducationYears
             .AsTracking()
+            .Include(x => x.EducationStage)
+                .ThenInclude(x => x.EducationType)
             .FirstOrDefaultAsync(
-                x => x.Id == request.YearId && x.EducationTypeId == request.EducationTypeId,
+                x => x.Id == request.YearId
+                    && x.EducationStageId == request.EducationStageId
+                    && x.EducationStage.EducationTypeId == request.EducationTypeId,
                 cancellationToken);
 
         if (entity is null)
@@ -31,12 +34,12 @@ public sealed class UpdateEducationYearCommandHandler(
         var nameTaken = await dbContext.EducationYears
             .AnyAsync(
                 x => x.Id != request.YearId
-                    && x.EducationTypeId == request.EducationTypeId
+                    && x.EducationStageId == request.EducationStageId
                     && x.NameEn == nameEn,
                 cancellationToken);
 
         if (nameTaken)
-            return Result<EducationYearDto>.Conflict("Education year already exists for this type.");
+            return Result<EducationYearDto>.Conflict("Education year already exists for this stage.");
 
         entity.NameAr = request.NameAr.Trim();
         entity.NameEn = nameEn;
@@ -44,15 +47,10 @@ public sealed class UpdateEducationYearCommandHandler(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Result<EducationYearDto>.Success(new EducationYearDto
-        {
-            Id = entity.Id,
-            EducationTypeId = entity.EducationTypeId,
-            Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, requestLanguage.Current),
-            NameAr = entity.NameAr,
-            NameEn = entity.NameEn,
-            SortOrder = entity.SortOrder,
-            IsActive = entity.IsActive
-        });
+        var subjectsCount = await dbContext.EducationSubjects
+            .CountAsync(x => x.EducationYearId == entity.Id, cancellationToken);
+
+        return Result<EducationYearDto>.Success(
+            EducationMappings.ToYearDto(entity, requestLanguage.Current, subjectsCount));
     }
 }

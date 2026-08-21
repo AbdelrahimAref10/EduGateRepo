@@ -57,15 +57,27 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             .HasForeignKey(x => x.EducationTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(x => x.EducationStage)
+            .WithMany(x => x.Lessons)
+            .HasForeignKey(x => x.EducationStageId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(x => x.EducationYear)
             .WithMany(x => x.Lessons)
             .HasForeignKey(x => x.EducationYearId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.EducationSubject)
+            .WithMany(x => x.Lessons)
+            .HasForeignKey(x => x.EducationSubjectId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.TeacherId);
         builder.HasIndex(x => x.CountryId);
         builder.HasIndex(x => x.AreaId);
         builder.HasIndex(x => x.EducationTypeId);
+        builder.HasIndex(x => x.EducationStageId);
         builder.HasIndex(x => x.EducationYearId);
+        builder.HasIndex(x => x.EducationSubjectId);
     }
 }

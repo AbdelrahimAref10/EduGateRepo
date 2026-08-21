@@ -40,7 +40,11 @@ public sealed class AcademyDbContext
 
     public DbSet<EducationType> EducationTypes => Set<EducationType>();
 
+    public DbSet<EducationStage> EducationStages => Set<EducationStage>();
+
     public DbSet<EducationYear> EducationYears => Set<EducationYear>();
+
+    public DbSet<EducationSubject> EducationSubjects => Set<EducationSubject>();
 
     public DbSet<Lesson> Lessons => Set<Lesson>();
 

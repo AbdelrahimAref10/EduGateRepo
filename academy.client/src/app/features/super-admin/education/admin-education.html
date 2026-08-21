@@ -8,37 +8,13 @@
   @if (error()) {
     <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">{{ error() }}</div>
   }
-  @if (success() === 'typeCreated') {
+  @if (success(); as key) {
     <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'education.typeCreated' | t }}
-    </div>
-  }
-  @if (success() === 'typeUpdated') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'education.typeUpdated' | t }}
-    </div>
-  }
-  @if (success() === 'yearCreated') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'education.yearCreated' | t }}
-    </div>
-  }
-  @if (success() === 'yearUpdated') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'education.yearUpdated' | t }}
-    </div>
-  }
-  @if (success() === 'typeDeleted') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'education.typeDeleted' | t }}
-    </div>
-  }
-  @if (success() === 'yearDeleted') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'education.yearDeleted' | t }}
+      {{ ('education.' + key) | t }}
     </div>
   }
 
+  <!-- Types -->
   <section class="card overflow-hidden">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
       <div>
@@ -57,11 +33,11 @@
       <form class="grid gap-3 md:grid-cols-4" [formGroup]="typeForm" (ngSubmit)="saveType()">
         <label>
           <span class="label-text">{{ 'education.nameAr' | t }}</span>
-          <input class="field" type="text" formControlName="nameAr" placeholder="ابتدائي" />
+          <input class="field" type="text" formControlName="nameAr" placeholder="حكومي" />
         </label>
         <label>
           <span class="label-text">{{ 'education.nameEn' | t }}</span>
-          <input class="field" type="text" formControlName="nameEn" placeholder="Primary" />
+          <input class="field" type="text" formControlName="nameEn" placeholder="Public" />
         </label>
         <label>
           <span class="label-text">{{ 'education.sortOrder' | t }}</span>
@@ -98,7 +74,7 @@
                 <th class="px-3 py-3 text-center">{{ 'education.nameAr' | t }}</th>
                 <th class="px-3 py-3 text-center">{{ 'education.nameEn' | t }}</th>
                 <th class="px-3 py-3 text-center">{{ 'education.sortOrder' | t }}</th>
-                <th class="px-3 py-3 text-center">{{ 'education.yearsCount' | t }}</th>
+                <th class="px-3 py-3 text-center">{{ 'education.stagesCount' | t }}</th>
                 <th class="px-3 py-3 text-center">{{ 'education.action' | t }}</th>
               </tr>
             </thead>
@@ -114,7 +90,7 @@
                   <td class="px-3 py-3 text-center">{{ type.sortOrder }}</td>
                   <td class="px-3 py-3 text-center">
                     <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
-                      {{ type.yearsCount ?? 0 }}
+                      {{ type.stagesCount ?? 0 }}
                     </span>
                   </td>
                   <td class="px-3 py-3 text-center">
@@ -129,7 +105,7 @@
                         "
                         (click)="selectType(type.id)"
                       >
-                        {{ selectedTypeId() === type.id ? ('education.selected' | t) : ('education.manageYears' | t) }}
+                        {{ selectedTypeId() === type.id ? ('education.selected' | t) : ('education.manageStages' | t) }}
                       </button>
                       <button
                         type="button"
@@ -157,12 +133,13 @@
     </div>
   </section>
 
+  <!-- Stages -->
   <section class="card overflow-hidden">
     <div class="border-b border-line px-5 py-4">
-      <h3 class="section-title">{{ 'education.years' | t }}</h3>
+      <h3 class="section-title">{{ 'education.stages' | t }}</h3>
       @if (selectedTypeId()) {
         <p class="mt-1 text-sm text-muted">
-          {{ 'education.yearsForType' | t }}:
+          {{ 'education.stagesForType' | t }}:
           <strong class="text-primary-700">{{ selectedTypeName() }}</strong>
         </p>
       } @else {
@@ -172,6 +149,131 @@
 
     @if (!selectedTypeId()) {
       <div class="p-8 text-center text-sm text-muted">{{ 'education.selectTypeHint' | t }}</div>
+    } @else {
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ (editingStageId() ? 'education.editStageTitle' : 'education.addStageTitle') | t }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-4" [formGroup]="stageForm" (ngSubmit)="saveStage()">
+          <label>
+            <span class="label-text">{{ 'education.nameAr' | t }}</span>
+            <input class="field" type="text" formControlName="nameAr" placeholder="ابتدائي" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'education.nameEn' | t }}</span>
+            <input class="field" type="text" formControlName="nameEn" placeholder="Primary" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'education.sortOrder' | t }}</span>
+            <input class="field" type="number" min="0" formControlName="sortOrder" />
+          </label>
+          <div class="flex items-end gap-2">
+            @if (editingStageId()) {
+              <button type="button" class="btn-ghost w-full" (click)="cancelEditStage()" [disabled]="savingStage()">
+                {{ 'education.cancel' | t }}
+              </button>
+            }
+            <button type="submit" class="btn-primary w-full" [disabled]="savingStage()">
+              {{
+                savingStage()
+                  ? ('lessons.saving' | t)
+                  : (editingStageId() ? 'education.updateStage' : 'education.addStage') | t
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5">
+        @if (loadingStages()) {
+          <p class="text-center text-sm text-muted">{{ 'education.loadingStages' | t }}</p>
+        } @else if (stages().length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'education.emptyStages' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3 text-center">#</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.nameAr' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.nameEn' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.sortOrder' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.yearsCount' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.action' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (stage of stages(); track stage.id) {
+                  <tr
+                    class="border-b border-line/70 transition"
+                    [class]="selectedStageId() === stage.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                  >
+                    <td class="px-3 py-3 text-center text-muted">#{{ stage.id }}</td>
+                    <td class="px-3 py-3 text-center font-semibold">{{ stage.nameAr }}</td>
+                    <td class="px-3 py-3 text-center">{{ stage.nameEn }}</td>
+                    <td class="px-3 py-3 text-center">{{ stage.sortOrder }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                        {{ stage.yearsCount ?? 0 }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                          [class]="
+                            selectedStageId() === stage.id
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-body text-primary-700 hover:bg-primary-100'
+                          "
+                          (click)="selectStage(stage.id)"
+                        >
+                          {{ selectedStageId() === stage.id ? ('education.selected' | t) : ('education.manageYears' | t) }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                          (click)="startEditStage(stage)"
+                        >
+                          {{ 'education.edit' | t }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                          (click)="deleteStage(stage)"
+                          [disabled]="deletingId() === 'stage-' + stage.id"
+                        >
+                          {{ 'education.delete' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Years -->
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'education.years' | t }}</h3>
+      @if (selectedStageId()) {
+        <p class="mt-1 text-sm text-muted">
+          {{ 'education.yearsForStage' | t }}:
+          <strong class="text-primary-700">{{ selectedStageName() }}</strong>
+        </p>
+      } @else {
+        <p class="mt-1 text-sm text-muted">{{ 'education.selectStage' | t }}</p>
+      }
+    </div>
+
+    @if (!selectedStageId()) {
+      <div class="p-8 text-center text-sm text-muted">{{ 'education.selectStageHint' | t }}</div>
     } @else {
       <div class="border-b border-line bg-body/50 px-5 py-4">
         <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
@@ -221,18 +323,39 @@
                   <th class="px-3 py-3 text-center">{{ 'education.nameAr' | t }}</th>
                   <th class="px-3 py-3 text-center">{{ 'education.nameEn' | t }}</th>
                   <th class="px-3 py-3 text-center">{{ 'education.sortOrder' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.subjectsCount' | t }}</th>
                   <th class="px-3 py-3 text-center">{{ 'education.action' | t }}</th>
                 </tr>
               </thead>
               <tbody>
                 @for (year of years(); track year.id) {
-                  <tr class="border-b border-line/70 hover:bg-body/70">
+                  <tr
+                    class="border-b border-line/70 transition"
+                    [class]="selectedYearId() === year.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                  >
                     <td class="px-3 py-3 text-center text-muted">#{{ year.id }}</td>
                     <td class="px-3 py-3 text-center font-semibold">{{ year.nameAr }}</td>
                     <td class="px-3 py-3 text-center">{{ year.nameEn }}</td>
                     <td class="px-3 py-3 text-center">{{ year.sortOrder }}</td>
                     <td class="px-3 py-3 text-center">
+                      <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                        {{ year.subjectsCount ?? 0 }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-3 text-center">
                       <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                          [class]="
+                            selectedYearId() === year.id
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-body text-primary-700 hover:bg-primary-100'
+                          "
+                          (click)="selectYear(year.id)"
+                        >
+                          {{ selectedYearId() === year.id ? ('education.selected' | t) : ('education.manageSubjects' | t) }}
+                        </button>
                         <button
                           type="button"
                           class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
@@ -245,6 +368,110 @@
                           class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
                           (click)="deleteYear(year)"
                           [disabled]="deletingId() === 'year-' + year.id"
+                        >
+                          {{ 'education.delete' | t }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Subjects -->
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'education.subjects' | t }}</h3>
+      @if (selectedYearId()) {
+        <p class="mt-1 text-sm text-muted">
+          {{ 'education.subjectsForYear' | t }}:
+          <strong class="text-primary-700">{{ selectedYearName() }}</strong>
+        </p>
+      } @else {
+        <p class="mt-1 text-sm text-muted">{{ 'education.selectYear' | t }}</p>
+      }
+    </div>
+
+    @if (!selectedYearId()) {
+      <div class="p-8 text-center text-sm text-muted">{{ 'education.selectYearHint' | t }}</div>
+    } @else {
+      <div class="border-b border-line bg-body/50 px-5 py-4">
+        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+          {{ (editingSubjectId() ? 'education.editSubjectTitle' : 'education.addSubjectTitle') | t }}
+        </p>
+        <form class="grid gap-3 md:grid-cols-4" [formGroup]="subjectForm" (ngSubmit)="saveSubject()">
+          <label>
+            <span class="label-text">{{ 'education.nameAr' | t }}</span>
+            <input class="field" type="text" formControlName="nameAr" placeholder="رياضيات" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'education.nameEn' | t }}</span>
+            <input class="field" type="text" formControlName="nameEn" placeholder="Math" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'education.sortOrder' | t }}</span>
+            <input class="field" type="number" min="0" formControlName="sortOrder" />
+          </label>
+          <div class="flex items-end gap-2">
+            @if (editingSubjectId()) {
+              <button type="button" class="btn-ghost w-full" (click)="cancelEditSubject()" [disabled]="savingSubject()">
+                {{ 'education.cancel' | t }}
+              </button>
+            }
+            <button type="submit" class="btn-primary w-full" [disabled]="savingSubject()">
+              {{
+                savingSubject()
+                  ? ('lessons.saving' | t)
+                  : (editingSubjectId() ? 'education.updateSubject' : 'education.addSubject') | t
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5">
+        @if (loadingSubjects()) {
+          <p class="text-center text-sm text-muted">{{ 'education.loadingSubjects' | t }}</p>
+        } @else if (subjects().length === 0) {
+          <p class="text-center text-sm text-muted">{{ 'education.emptySubjects' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3 text-center">#</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.nameAr' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.nameEn' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.sortOrder' | t }}</th>
+                  <th class="px-3 py-3 text-center">{{ 'education.action' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (subject of subjects(); track subject.id) {
+                  <tr class="border-b border-line/70 hover:bg-body/70">
+                    <td class="px-3 py-3 text-center text-muted">#{{ subject.id }}</td>
+                    <td class="px-3 py-3 text-center font-semibold">{{ subject.nameAr }}</td>
+                    <td class="px-3 py-3 text-center">{{ subject.nameEn }}</td>
+                    <td class="px-3 py-3 text-center">{{ subject.sortOrder }}</td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                          (click)="startEditSubject(subject)"
+                        >
+                          {{ 'education.edit' | t }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                          (click)="deleteSubject(subject)"
+                          [disabled]="deletingId() === 'subject-' + subject.id"
                         >
                           {{ 'education.delete' | t }}
                         </button>
