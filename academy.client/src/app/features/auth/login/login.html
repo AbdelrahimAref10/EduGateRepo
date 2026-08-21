@@ -1,52 +1,87 @@
-<section class="auth-page">
-  <div class="auth-lang">
+<section class="grid min-h-screen bg-body font-display text-ink lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
+  <div class="fixed end-4 top-4 z-40">
     <app-language-switcher />
   </div>
 
-  <aside class="auth-panel" aria-hidden="true">
-    <div class="auth-panel-top">
-      <div class="auth-brand-mark">
-        <span class="auth-brand-mark__glyph">A</span>
-        <span class="auth-brand-mark__name">{{ 'common.brand' | t }}</span>
-      </div>
+  <aside
+    class="relative hidden min-h-screen animate-auth-brand overflow-hidden bg-gradient-to-br from-navy-900 via-navy-700 to-primary-700 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:max-h-screen lg:flex-col lg:justify-between lg:p-10 xl:p-12"
+    aria-hidden="true"
+  >
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-size-[56px_56px] mask-[linear-gradient(180deg,rgba(0,0,0,0.55),transparent_88%)]"></div>
+    <div class="pointer-events-none absolute -end-28 -bottom-24 size-[22rem] rounded-full border border-primary-300/25"></div>
+    <div class="pointer-events-none absolute start-[-4rem] top-[18%] size-56 rounded-full border border-white/10"></div>
+
+    <div class="relative z-10">
+      <img
+        src="assets/images/Logo.png"
+        alt="eduGate"
+        class="block w-full max-w-[200px] rounded-xl bg-white object-contain p-3 shadow-lg shadow-black/20"
+      />
     </div>
 
-    <div class="auth-panel-bottom">
-      <h1 class="auth-panel-title">{{ 'auth.loginVisualTitle' | t }}</h1>
-      <p class="auth-panel-lead">{{ 'auth.loginVisualLead' | t }}</p>
-      <div class="auth-panel-meta">
-        <div>
-          <strong>{{ 'auth.metaTeachers' | t }}</strong>
-          {{ 'auth.metaTeachersHint' | t }}
-        </div>
-        <div>
-          <strong>{{ 'auth.metaStudents' | t }}</strong>
-          {{ 'auth.metaStudentsHint' | t }}
-        </div>
-        <div>
-          <strong>{{ 'auth.metaParents' | t }}</strong>
-          {{ 'auth.metaParentsHint' | t }}
-        </div>
-      </div>
+    <div class="relative z-10 mt-auto max-w-md pt-12">
+      <p class="mb-3 text-[0.72rem] font-bold tracking-[0.18em] text-primary-300 uppercase">
+        {{ 'common.brand' | t }}
+      </p>
+      <h1 class="text-[clamp(2.15rem,3.6vw,3.15rem)] leading-[1.08] font-extrabold tracking-tight text-white">
+        {{ 'auth.loginVisualTitle' | t }}
+      </h1>
+      <p class="mt-4 max-w-[34ch] text-[1.05rem] leading-relaxed text-white/75">
+        {{ 'auth.loginVisualLead' | t }}
+      </p>
+      <ul class="mt-9 grid gap-3.5">
+        <li class="grid grid-cols-[auto_1fr] items-start gap-3.5">
+          <span class="mt-1.5 size-2.5 rounded-full bg-primary-300 shadow-[0_0_0_4px_rgba(116,207,222,0.25)]"></span>
+          <div>
+            <strong class="block text-[0.92rem] font-bold text-white">{{ 'auth.metaTeachers' | t }}</strong>
+            <span class="mt-0.5 block text-[0.82rem] leading-snug text-white/60">{{ 'auth.metaTeachersHint' | t }}</span>
+          </div>
+        </li>
+        <li class="grid grid-cols-[auto_1fr] items-start gap-3.5">
+          <span class="mt-1.5 size-2.5 rounded-full bg-primary-300 shadow-[0_0_0_4px_rgba(116,207,222,0.25)]"></span>
+          <div>
+            <strong class="block text-[0.92rem] font-bold text-white">{{ 'auth.metaStudents' | t }}</strong>
+            <span class="mt-0.5 block text-[0.82rem] leading-snug text-white/60">{{ 'auth.metaStudentsHint' | t }}</span>
+          </div>
+        </li>
+        <li class="grid grid-cols-[auto_1fr] items-start gap-3.5">
+          <span class="mt-1.5 size-2.5 rounded-full bg-primary-300 shadow-[0_0_0_4px_rgba(116,207,222,0.25)]"></span>
+          <div>
+            <strong class="block text-[0.92rem] font-bold text-white">{{ 'auth.metaParents' | t }}</strong>
+            <span class="mt-0.5 block text-[0.82rem] leading-snug text-white/60">{{ 'auth.metaParentsHint' | t }}</span>
+          </div>
+        </li>
+      </ul>
     </div>
+
+    <p class="relative z-10 mt-10 border-t border-white/10 pt-5 text-[0.8rem] tracking-wide text-white/55">
+      تعلم بلا حدود · Learn Without Limits
+    </p>
   </aside>
 
-  <main class="auth-main">
-    <div class="auth-form-shell">
-      <div class="auth-mobile-brand">
-        <span class="auth-mobile-brand__glyph">A</span>
-        <span class="auth-mobile-brand__name">{{ 'common.brand' | t }}</span>
+  <main
+    class="relative flex min-h-screen items-center justify-center bg-gradient-to-b from-surface to-body px-5 pt-20 pb-11 lg:px-14 lg:py-12"
+  >
+    <div class="w-full max-w-[26.5rem] animate-auth-rise">
+      <div class="mb-7 flex justify-center lg:hidden">
+        <img src="assets/images/Logo.png" alt="eduGate" class="w-full max-w-[160px] object-contain" />
       </div>
 
-      <header>
-        <p class="auth-kicker">{{ 'auth.welcomeBack' | t }}</p>
-        <h2 class="auth-title">{{ 'auth.signIn' | t }}</h2>
-        <p class="auth-sub">{{ 'auth.signInSub' | t }}</p>
+      <header class="mb-7">
+        <p class="text-[0.72rem] font-bold tracking-[0.16em] text-primary-500 uppercase">
+          {{ 'auth.welcomeBack' | t }}
+        </p>
+        <h2 class="mt-1.5 text-[clamp(1.7rem,2.4vw,2.15rem)] leading-tight font-extrabold tracking-tight text-navy-700">
+          {{ 'auth.signIn' | t }}
+        </h2>
+        <p class="mt-2 text-[0.95rem] leading-relaxed text-muted">{{ 'auth.signInSub' | t }}</p>
       </header>
 
-      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
         @if (error()) {
-          <div class="auth-alert" role="alert">{{ error() }}</div>
+          <div class="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm font-semibold text-danger" role="alert">
+            {{ error() }}
+          </div>
         }
 
         <label class="auth-label">
@@ -56,21 +91,21 @@
 
         <label class="auth-label">
           <span>{{ 'auth.password' | t }}</span>
-          <input
-            class="auth-input"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-          />
+          <input class="auth-input" type="password" formControlName="password" autocomplete="current-password" />
         </label>
 
         <button class="auth-submit" type="submit" [disabled]="loading()">
           {{ loading() ? ('auth.signingIn' | t) : ('auth.enter' | t) }}
         </button>
 
-        <p class="auth-footer">
+        <p class="text-center text-[0.9rem] text-muted">
           {{ 'auth.newHere' | t }}
-          <a routerLink="/register">{{ 'auth.createAccount' | t }}</a>
+          <a
+            routerLink="/register"
+            class="font-bold text-navy-700 underline decoration-primary-500/60 underline-offset-4 hover:text-primary-600"
+          >
+            {{ 'auth.createAccount' | t }}
+          </a>
         </p>
       </form>
     </div>

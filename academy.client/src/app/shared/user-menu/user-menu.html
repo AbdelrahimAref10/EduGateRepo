@@ -1,25 +1,25 @@
 <div class="relative" [class]="open() ? 'relative z-[20000]' : 'relative'">
   <button
     type="button"
-    class="flex items-center gap-2 rounded-full bg-white/15 py-1 pe-3 ps-1 text-white transition hover:bg-white/25"
+    class="flex items-center gap-2.5 rounded-lg py-1 pe-1.5 ps-1 transition hover:bg-body"
     (click)="toggle($event)"
     [attr.aria-expanded]="open()"
   >
-    <span class="grid size-8 place-items-center rounded-full bg-white text-xs font-bold text-primary-700">
-      {{ initials() }}
+    <span class="hidden min-w-0 text-end sm:block">
+      <strong class="block max-w-[9.5rem] truncate text-[13px] font-bold text-ink">{{ fullName() }}</strong>
     </span>
-    <span class="hidden min-w-0 text-start sm:block">
-      <strong class="block max-w-28 truncate text-xs font-bold uppercase tracking-wide">{{ fullName() }}</strong>
+    <span class="grid size-9 place-items-center rounded-lg bg-navy-700 text-[11px] font-bold text-primary-200">
+      {{ initials() }}
     </span>
   </button>
 
   <div
-    class="absolute end-0 top-[calc(100%+0.55rem)] w-60 rounded-2xl border border-line bg-surface p-2 shadow-dropdown transition duration-200"
+    class="absolute end-0 top-[calc(100%+0.55rem)] w-60 rounded-xl border border-line bg-surface p-2 shadow-dropdown transition duration-200"
     [class]="open() ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-2 scale-95 opacity-0'"
     [attr.aria-hidden]="!open()"
   >
     <div class="mb-2 flex items-center gap-3 border-b border-line px-2 pb-3 pt-1">
-      <span class="grid size-10 place-items-center rounded-full bg-primary-600 text-sm font-bold text-white">
+      <span class="grid size-10 place-items-center rounded-lg bg-navy-700 text-sm font-bold text-primary-200">
         {{ initials() }}
       </span>
       <div class="min-w-0">
@@ -30,14 +30,14 @@
 
     <a
       routerLink="profile"
-      class="block rounded-xl px-3 py-2.5 text-sm font-semibold text-ink transition hover:bg-body"
+      class="block rounded-lg px-3 py-2.5 text-sm font-semibold text-ink transition hover:bg-body"
       (click)="open.set(false)"
     >
       {{ 'common.profile' | t }}
     </a>
     <button
       type="button"
-      class="block w-full rounded-xl px-3 py-2.5 text-start text-sm font-semibold text-danger transition hover:bg-rose-50"
+      class="block w-full rounded-lg px-3 py-2.5 text-start text-sm font-semibold text-danger transition hover:bg-rose-50"
       (click)="logout($event)"
     >
       {{ 'common.logout' | t }}

@@ -1,28 +1,24 @@
 <div class="min-h-screen bg-body">
-  <!-- Top navbar -->
-  <header class="fixed inset-x-0 top-0 z-50 flex h-16 items-center gap-4 bg-primary-600 px-4 text-white shadow-md lg:px-6">
-    <div class="flex min-w-0 items-center gap-3">
-      <div class="flex size-9 items-center justify-center rounded-lg bg-white/15">
-        <span class="text-lg font-extrabold tracking-tight">A</span>
-      </div>
-      <div class="min-w-0">
-        <p class="truncate text-base font-bold tracking-tight">{{ 'common.brand' | t }}</p>
-        <p class="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
-          {{ roleKey() | t }}
-        </p>
-      </div>
-    </div>
+  <header
+    class="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between gap-4 border-b border-line bg-surface px-4 lg:px-6"
+  >
+    <a [routerLink]="homeLink()" class="flex min-w-0 items-center gap-3.5">
+      <img
+        src="assets/images/Logo2.png"
+        alt="eduGate"
+        class="block h-[2.35rem] w-auto max-w-[168px] object-contain object-start"
+      />
+      <span class="hidden h-6 w-px bg-line sm:block" aria-hidden="true"></span>
+      <span
+        class="hidden items-center rounded-md border border-primary-200 bg-primary-50 px-2.5 py-1 text-[0.7rem] font-bold tracking-wide text-primary-700 whitespace-nowrap sm:inline-flex"
+      >
+        {{ roleKey() | t }}
+      </span>
+    </a>
 
-    <div class="mx-auto hidden w-full max-w-md items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm text-white/80 md:flex">
-      <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none">
-        <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" />
-        <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-      </svg>
-      <span class="truncate">{{ 'shell.searchHint' | t }}</span>
-    </div>
-
-    <div class="ms-auto flex items-center gap-2">
-      <app-language-switcher tone="on-primary" />
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <span class="hidden h-6 w-px bg-line md:block" aria-hidden="true"></span>
+      <app-language-switcher />
       <app-notifications-menu />
       <app-user-menu />
     </div>
@@ -154,8 +150,8 @@
       </a>
     </nav>
 
-    <div class="mt-6 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-4 text-white shadow-card">
-      <p class="text-sm font-bold">{{ 'shell.promoTitle' | t }}</p>
+    <div class="mt-6 rounded-2xl bg-gradient-to-br from-navy-700 via-navy-800 to-primary-700 p-4 text-white shadow-card">
+      <p class="text-sm font-bold text-primary-200">{{ 'shell.promoTitle' | t }}</p>
       <p class="mt-1 text-xs leading-relaxed text-white/80">{{ 'shell.promoBody' | t }}</p>
     </div>
   </aside>

@@ -1,16 +1,29 @@
 @if (isOpen()) {
   @if (state(); as dialog) {
-    <div class="confirm-backdrop" (click)="onBackdrop($event)" role="presentation">
+    <div
+      class="fixed inset-0 z-[30000] grid place-items-center bg-navy-900/50 p-4 backdrop-blur-sm animate-fade-in"
+      (click)="onBackdrop($event)"
+      role="presentation"
+    >
       <div
-        class="confirm-panel"
+        class="w-[min(420px,100%)] rounded-2xl border border-line bg-surface p-5 text-center shadow-dropdown animate-fade-up"
         role="dialog"
         aria-modal="true"
         [attr.aria-labelledby]="'confirm-title'"
         (click)="$event.stopPropagation()"
       >
-        <div class="confirm-icon" [attr.data-tone]="dialog.tone">
+        <div
+          class="mx-auto grid size-12 place-items-center rounded-full"
+          [class]="
+            dialog.tone === 'danger'
+              ? 'bg-red-50 text-danger'
+              : dialog.tone === 'warning'
+                ? 'bg-orange-50 text-warning'
+                : 'bg-primary-50 text-primary-600'
+          "
+        >
           @if (dialog.tone === 'danger') {
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M12 8v5.5M12 16.5h.01M4.8 19.5h14.4c1.3 0 2.1-1.4 1.5-2.5L13.5 4.6c-.6-1.1-2.4-1.1-3 0L3.3 17c-.6 1.1.2 2.5 1.5 2.5Z"
                 stroke="currentColor"
@@ -20,31 +33,43 @@
               />
             </svg>
           } @else if (dialog.tone === 'warning') {
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.8" />
               <path d="M12 8v5M12 15.8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
           } @else {
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.8" />
-              <path d="m8.8 12.2 2.2 2.2 4.2-4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              <path
+                d="m8.8 12.2 2.2 2.2 4.2-4.4"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
           }
         </div>
 
-        <h2 id="confirm-title" class="confirm-title">{{ dialog.titleKey | t }}</h2>
-        <p class="confirm-message">{{ dialog.messageKey | t }}</p>
+        <h2 id="confirm-title" class="mt-3.5 text-[1.1rem] font-extrabold tracking-tight text-ink">
+          {{ dialog.titleKey | t }}
+        </h2>
+        <p class="mt-2 text-[0.92rem] leading-relaxed font-semibold text-muted">{{ dialog.messageKey | t }}</p>
 
-        <div class="confirm-actions">
-          <button type="button" class="confirm-btn confirm-btn-ghost" (click)="onCancel($event)">
+        <div class="mt-5 flex flex-wrap justify-center gap-2">
+          <button type="button" class="btn-ghost min-w-[7.5rem]" (click)="onCancel($event)">
             {{ dialog.cancelKey | t }}
           </button>
           <button
             type="button"
-            class="confirm-btn"
-            [class.confirm-btn-primary]="dialog.tone === 'primary'"
-            [class.confirm-btn-danger]="dialog.tone === 'danger'"
-            [class.confirm-btn-warning]="dialog.tone === 'warning'"
+            class="min-w-[7.5rem] rounded-lg px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-px"
+            [class]="
+              dialog.tone === 'danger'
+                ? 'bg-danger hover:bg-red-600'
+                : dialog.tone === 'warning'
+                  ? 'bg-warning hover:bg-amber-600'
+                  : 'bg-primary-500 hover:bg-primary-600'
+            "
             (click)="onConfirm($event)"
           >
             {{ dialog.confirmKey | t }}

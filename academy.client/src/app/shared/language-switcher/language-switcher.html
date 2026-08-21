@@ -1,21 +1,43 @@
 <div class="relative" [class]="open() ? 'relative z-[20000]' : 'relative'">
   <button
     type="button"
-    class="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold tracking-wide transition"
+    class="inline-flex size-9 items-center justify-center rounded-lg transition"
     [class]="
       tone === 'on-primary'
-        ? 'bg-white/15 text-white hover:bg-white/25'
-        : 'border border-line bg-surface text-ink shadow-card hover:bg-body'
+        ? 'text-white hover:bg-white/15'
+        : 'text-ink hover:bg-body'
     "
     (click)="toggle($event)"
     [attr.aria-expanded]="open()"
+    [attr.aria-label]="'common.language' | t"
   >
-    <span class="text-sm">{{ current().flag }}</span>
-    <span>{{ current().code.toUpperCase() }}</span>
+    @if (current().code === 'ar') {
+      <span class="inline-flex h-[0.9rem] w-[1.35rem] shrink-0 overflow-hidden rounded-sm ring-1 ring-navy-700/15" aria-hidden="true">
+        <svg class="size-full" viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg">
+          <rect width="24" height="5.33" y="0" fill="#CE1126" />
+          <rect width="24" height="5.34" y="5.33" fill="#FFFFFF" />
+          <rect width="24" height="5.33" y="10.67" fill="#000000" />
+          <path
+            fill="#C09300"
+            d="M12 6.15c-1.15.55-1.9 1.55-1.9 2.75 0 1.35.95 2.35 1.9 2.75.95-.4 1.9-1.4 1.9-2.75 0-1.2-.75-2.2-1.9-2.75zm0 1.05c.55.35.95.95.95 1.7s-.4 1.35-.95 1.7c-.55-.35-.95-.95-.95-1.7s.4-1.35.95-1.7z"
+          />
+        </svg>
+      </span>
+    } @else {
+      <span class="inline-flex h-[0.9rem] w-[1.35rem] shrink-0 overflow-hidden rounded-sm ring-1 ring-navy-700/15" aria-hidden="true">
+        <svg class="size-full" viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg">
+          <rect width="24" height="16" fill="#012169" />
+          <path d="M0 0l24 16M24 0L0 16" stroke="#FFF" stroke-width="3.2" />
+          <path d="M0 0l24 16M24 0L0 16" stroke="#C8102E" stroke-width="2" />
+          <path d="M12 0v16M0 8h24" stroke="#FFF" stroke-width="5.2" />
+          <path d="M12 0v16M0 8h24" stroke="#C8102E" stroke-width="3.1" />
+        </svg>
+      </span>
+    }
   </button>
 
   <div
-    class="absolute end-0 top-[calc(100%+0.55rem)] w-56 rounded-2xl border border-line bg-surface p-2 shadow-dropdown transition duration-200"
+    class="absolute end-0 top-[calc(100%+0.55rem)] w-56 rounded-xl border border-line bg-surface p-2 shadow-dropdown transition duration-200"
     [class]="open() ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-2 scale-95 opacity-0'"
     role="listbox"
     [attr.aria-hidden]="!open()"
@@ -26,12 +48,34 @@
     @for (lang of languages; track lang.code) {
       <button
         type="button"
-        class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-start transition hover:bg-body"
+        class="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-start transition hover:bg-body"
         [class.bg-primary-50]="lang.code === current().code"
         role="option"
         (click)="select(lang.code, $event)"
       >
-        <span class="text-base">{{ lang.flag }}</span>
+        @if (lang.code === 'ar') {
+          <span class="inline-flex h-[1.05rem] w-[1.55rem] shrink-0 overflow-hidden rounded-sm ring-1 ring-navy-700/15" aria-hidden="true">
+            <svg class="size-full" viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="5.33" y="0" fill="#CE1126" />
+              <rect width="24" height="5.34" y="5.33" fill="#FFFFFF" />
+              <rect width="24" height="5.33" y="10.67" fill="#000000" />
+              <path
+                fill="#C09300"
+                d="M12 6.15c-1.15.55-1.9 1.55-1.9 2.75 0 1.35.95 2.35 1.9 2.75.95-.4 1.9-1.4 1.9-2.75 0-1.2-.75-2.2-1.9-2.75zm0 1.05c.55.35.95.95.95 1.7s-.4 1.35-.95 1.7c-.55-.35-.95-.95-.95-1.7s.4-1.35.95-1.7z"
+              />
+            </svg>
+          </span>
+        } @else {
+          <span class="inline-flex h-[1.05rem] w-[1.55rem] shrink-0 overflow-hidden rounded-sm ring-1 ring-navy-700/15" aria-hidden="true">
+            <svg class="size-full" viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="16" fill="#012169" />
+              <path d="M0 0l24 16M24 0L0 16" stroke="#FFF" stroke-width="3.2" />
+              <path d="M0 0l24 16M24 0L0 16" stroke="#C8102E" stroke-width="2" />
+              <path d="M12 0v16M0 8h24" stroke="#FFF" stroke-width="5.2" />
+              <path d="M12 0v16M0 8h24" stroke="#C8102E" stroke-width="3.1" />
+            </svg>
+          </span>
+        }
         <span class="min-w-0">
           <strong class="block text-sm text-ink">{{ lang.nativeLabel }}</strong>
           <small class="block text-xs text-muted">{{ lang.label }}</small>

@@ -1,70 +1,104 @@
-<section class="auth-page">
-  <div class="auth-lang">
+<section class="grid min-h-screen bg-body font-display text-ink lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
+  <div class="fixed end-4 top-4 z-40">
     <app-language-switcher />
   </div>
 
-  <aside class="auth-panel" aria-hidden="true">
-    <div class="auth-panel-top">
-      <div class="auth-brand-mark">
-        <span class="auth-brand-mark__glyph">A</span>
-        <span class="auth-brand-mark__name">{{ 'common.brand' | t }}</span>
-      </div>
+  <aside
+    class="relative hidden min-h-screen animate-auth-brand overflow-hidden bg-gradient-to-br from-navy-900 via-navy-700 to-primary-700 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:max-h-screen lg:flex-col lg:justify-between lg:p-10 xl:p-12"
+    aria-hidden="true"
+  >
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-size-[56px_56px] mask-[linear-gradient(180deg,rgba(0,0,0,0.55),transparent_88%)]"></div>
+    <div class="pointer-events-none absolute -end-28 -bottom-24 size-[22rem] rounded-full border border-primary-300/25"></div>
+
+    <div class="relative z-10">
+      <img
+        src="assets/images/Logo.png"
+        alt="eduGate"
+        class="block w-full max-w-[200px] rounded-xl bg-white object-contain p-3 shadow-lg shadow-black/20"
+      />
     </div>
 
-    <div class="auth-panel-bottom">
-      <h1 class="auth-panel-title">{{ 'auth.registerVisualTitle' | t }}</h1>
-      <p class="auth-panel-lead">{{ 'auth.registerVisualLead' | t }}</p>
-      <div class="auth-panel-meta">
-        <div>
-          <strong>{{ 'auth.metaSecure' | t }}</strong>
-          {{ 'auth.metaSecureHint' | t }}
-        </div>
-        <div>
-          <strong>{{ 'auth.metaRoles' | t }}</strong>
-          {{ 'auth.metaRolesHint' | t }}
-        </div>
-      </div>
+    <div class="relative z-10 mt-auto max-w-md pt-12">
+      <p class="mb-3 text-[0.72rem] font-bold tracking-[0.18em] text-primary-300 uppercase">
+        {{ 'common.brand' | t }}
+      </p>
+      <h1 class="text-[clamp(2.15rem,3.6vw,3.15rem)] leading-[1.08] font-extrabold tracking-tight text-white">
+        {{ 'auth.registerVisualTitle' | t }}
+      </h1>
+      <p class="mt-4 max-w-[34ch] text-[1.05rem] leading-relaxed text-white/75">
+        {{ 'auth.registerVisualLead' | t }}
+      </p>
+      <ul class="mt-9 grid gap-3.5">
+        <li class="grid grid-cols-[auto_1fr] items-start gap-3.5">
+          <span class="mt-1.5 size-2.5 rounded-full bg-primary-300 shadow-[0_0_0_4px_rgba(116,207,222,0.25)]"></span>
+          <div>
+            <strong class="block text-[0.92rem] font-bold text-white">{{ 'auth.metaSecure' | t }}</strong>
+            <span class="mt-0.5 block text-[0.82rem] leading-snug text-white/60">{{ 'auth.metaSecureHint' | t }}</span>
+          </div>
+        </li>
+        <li class="grid grid-cols-[auto_1fr] items-start gap-3.5">
+          <span class="mt-1.5 size-2.5 rounded-full bg-primary-300 shadow-[0_0_0_4px_rgba(116,207,222,0.25)]"></span>
+          <div>
+            <strong class="block text-[0.92rem] font-bold text-white">{{ 'auth.metaRoles' | t }}</strong>
+            <span class="mt-0.5 block text-[0.82rem] leading-snug text-white/60">{{ 'auth.metaRolesHint' | t }}</span>
+          </div>
+        </li>
+      </ul>
     </div>
+
+    <p class="relative z-10 mt-10 border-t border-white/10 pt-5 text-[0.8rem] tracking-wide text-white/55">
+      تعلم بلا حدود · Learn Without Limits
+    </p>
   </aside>
 
-  <main class="auth-main auth-main--scroll">
-    <div class="auth-form-shell auth-form-shell--wide">
-      <div class="auth-mobile-brand">
-        <span class="auth-mobile-brand__glyph">A</span>
-        <span class="auth-mobile-brand__name">{{ 'common.brand' | t }}</span>
+  <main
+    class="relative flex min-h-screen items-start justify-center overflow-y-auto bg-gradient-to-b from-surface to-body px-5 pt-20 pb-11 lg:items-start lg:px-14 lg:py-14"
+  >
+    <div class="w-full max-w-xl animate-auth-rise">
+      <div class="mb-7 flex justify-center lg:hidden">
+        <img src="assets/images/Logo.png" alt="eduGate" class="w-full max-w-[160px] object-contain" />
       </div>
 
-      <header>
-        <p class="auth-kicker">{{ 'auth.join' | t }}</p>
-        <h2 class="auth-title">{{ 'auth.createTitle' | t }}</h2>
-        <p class="auth-sub">{{ 'auth.createSub' | t }}</p>
+      <header class="mb-7">
+        <p class="text-[0.72rem] font-bold tracking-[0.16em] text-primary-500 uppercase">{{ 'auth.join' | t }}</p>
+        <h2 class="mt-1.5 text-[clamp(1.7rem,2.4vw,2.15rem)] leading-tight font-extrabold tracking-tight text-navy-700">
+          {{ 'auth.createTitle' | t }}
+        </h2>
+        <p class="mt-2 text-[0.95rem] leading-relaxed text-muted">{{ 'auth.createSub' | t }}</p>
       </header>
 
-      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
         @if (error()) {
-          <div class="auth-alert" role="alert">{{ error() }}</div>
+          <div class="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm font-semibold text-danger" role="alert">
+            {{ error() }}
+          </div>
         }
 
-        <div class="auth-section">
-          <p class="auth-section-title">{{ 'auth.sectionRole' | t }}</p>
-          <div class="auth-roles">
+        <div class="grid gap-3.5">
+          <p class="text-[0.7rem] font-bold tracking-[0.14em] text-muted uppercase">{{ 'auth.sectionRole' | t }}</p>
+          <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             @for (role of roles; track role.value) {
               <button
                 type="button"
                 class="auth-role"
-                [class.is-active]="form.controls.role.value === role.value"
+                [class.auth-role-active]="form.controls.role.value === role.value"
                 (click)="selectRole(role.value)"
               >
-                <strong class="auth-role__label">{{ role.labelKey | t }}</strong>
-                <span class="auth-role__hint">{{ role.hintKey | t }}</span>
+                <strong class="block text-[0.85rem] font-bold">{{ role.labelKey | t }}</strong>
+                <span
+                  class="mt-1 block text-[0.7rem] leading-snug"
+                  [class]="form.controls.role.value === role.value ? 'text-white/70' : 'text-muted'"
+                >
+                  {{ role.hintKey | t }}
+                </span>
               </button>
             }
           </div>
         </div>
 
-        <div class="auth-section">
-          <p class="auth-section-title">{{ 'auth.sectionProfile' | t }}</p>
-          <div class="auth-grid-2">
+        <div class="grid gap-3.5 border-t border-line pt-4">
+          <p class="text-[0.7rem] font-bold tracking-[0.14em] text-muted uppercase">{{ 'auth.sectionProfile' | t }}</p>
+          <div class="grid gap-3.5 sm:grid-cols-2">
             <label class="auth-label">
               <span>{{ 'auth.firstName' | t }}</span>
               <input class="auth-input" type="text" formControlName="firstName" autocomplete="given-name" />
@@ -74,24 +108,22 @@
               <input class="auth-input" type="text" formControlName="lastName" autocomplete="family-name" />
             </label>
           </div>
-
           <label class="auth-label">
             <span>{{ 'auth.email' | t }}</span>
             <input class="auth-input" type="email" formControlName="email" autocomplete="email" />
           </label>
-
           <label class="auth-label">
-            <span>{{ 'auth.phone' | t }} <em>({{ 'auth.optional' | t }})</em></span>
+            <span>{{ 'auth.phone' | t }} <em class="font-medium not-italic text-muted">({{ 'auth.optional' | t }})</em></span>
             <input class="auth-input" type="tel" formControlName="phoneNumber" autocomplete="tel" />
           </label>
         </div>
 
-        <div class="auth-section">
-          <p class="auth-section-title">{{ 'auth.sectionLocation' | t }}</p>
-          <div class="auth-grid-2">
+        <div class="grid gap-3.5 border-t border-line pt-4">
+          <p class="text-[0.7rem] font-bold tracking-[0.14em] text-muted uppercase">{{ 'auth.sectionLocation' | t }}</p>
+          <div class="grid gap-3.5 sm:grid-cols-2">
             <label class="auth-label">
               <span>{{ 'auth.country' | t }}</span>
-              <select class="auth-select" formControlName="countryId">
+              <select class="auth-input" formControlName="countryId">
                 <option [ngValue]="null" disabled>
                   {{ loadingCountries() ? ('auth.loadingCountries' | t) : ('auth.selectCountry' | t) }}
                 </option>
@@ -102,7 +134,7 @@
             </label>
             <label class="auth-label">
               <span>{{ 'auth.governorate' | t }}</span>
-              <select class="auth-select" formControlName="governorateId">
+              <select class="auth-input" formControlName="governorateId">
                 <option [ngValue]="null" disabled>
                   {{
                     !form.controls.countryId.value
@@ -121,7 +153,7 @@
             </label>
             <label class="auth-label">
               <span>{{ 'auth.city' | t }}</span>
-              <select class="auth-select" formControlName="cityId">
+              <select class="auth-input" formControlName="cityId">
                 <option [ngValue]="null" disabled>
                   {{
                     !form.controls.governorateId.value
@@ -140,7 +172,7 @@
             </label>
             <label class="auth-label">
               <span>{{ 'auth.area' | t }}</span>
-              <select class="auth-select" formControlName="areaId">
+              <select class="auth-input" formControlName="areaId">
                 <option [ngValue]="null" disabled>
                   {{
                     !form.controls.cityId.value
@@ -160,21 +192,16 @@
           </div>
         </div>
 
-        <div class="auth-section">
-          <p class="auth-section-title">{{ 'auth.sectionSecurity' | t }}</p>
-          <div class="auth-grid-2">
+        <div class="grid gap-3.5 border-t border-line pt-4">
+          <p class="text-[0.7rem] font-bold tracking-[0.14em] text-muted uppercase">{{ 'auth.sectionSecurity' | t }}</p>
+          <div class="grid gap-3.5 sm:grid-cols-2">
             <label class="auth-label">
               <span>{{ 'auth.password' | t }}</span>
               <input class="auth-input" type="password" formControlName="password" autocomplete="new-password" />
             </label>
             <label class="auth-label">
               <span>{{ 'auth.confirm' | t }}</span>
-              <input
-                class="auth-input"
-                type="password"
-                formControlName="confirmPassword"
-                autocomplete="new-password"
-              />
+              <input class="auth-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
             </label>
           </div>
         </div>
@@ -183,9 +210,14 @@
           {{ loading() ? ('auth.creating' | t) : ('auth.start' | t) }}
         </button>
 
-        <p class="auth-footer">
+        <p class="text-center text-[0.9rem] text-muted">
           {{ 'auth.haveAccount' | t }}
-          <a routerLink="/login">{{ 'auth.signIn' | t }}</a>
+          <a
+            routerLink="/login"
+            class="font-bold text-navy-700 underline decoration-primary-500/60 underline-offset-4 hover:text-primary-600"
+          >
+            {{ 'auth.signIn' | t }}
+          </a>
         </p>
       </form>
     </div>

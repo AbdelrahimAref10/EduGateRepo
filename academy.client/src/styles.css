@@ -1,35 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
+/*
+  Brand tokens — change primary-* (teal) or navy-* here once;
+  every bg-primary-*, text-navy-*, btn-primary, etc. updates automatically.
+*/
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 
-  --color-primary-50: #f3f0ff;
-  --color-primary-100: #ebe4ff;
-  --color-primary-200: #d9ccff;
-  --color-primary-300: #bea6ff;
-  --color-primary-400: #9f75ff;
-  --color-primary-500: #8352f5;
-  --color-primary-600: #6f42e8;
-  --color-primary-700: #5b2fd1;
-  --color-primary-800: #4c28ab;
-  --color-primary-900: #40248c;
+  /* Primary = logo teal */
+  --color-primary-50: #eef9fb;
+  --color-primary-100: #d5f1f6;
+  --color-primary-200: #aee3ec;
+  --color-primary-300: #74cfde;
+  --color-primary-400: #38b6cb;
+  --color-primary-500: #00a5b9;
+  --color-primary-600: #008ca0;
+  --color-primary-700: #007084;
+  --color-primary-800: #065a6b;
+  --color-primary-900: #084a58;
 
-  --color-body: #f5f6fa;
+  /* Navy from logo */
+  --color-navy-50: #e8eef6;
+  --color-navy-100: #c5d4e8;
+  --color-navy-200: #9bb4d4;
+  --color-navy-500: #1a4a7a;
+  --color-navy-600: #0a3a66;
+  --color-navy-700: #002d5b;
+  --color-navy-800: #002147;
+  --color-navy-900: #00152e;
+
+  --color-body: #f3f6f9;
   --color-surface: #ffffff;
-  --color-ink: #2a3142;
-  --color-muted: #8a93a6;
-  --color-line: #e9ecf2;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-info: #3b82f6;
+  --color-ink: #002d5b;
+  --color-muted: #5a6b80;
+  --color-line: #e1e8ef;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #00a5b9;
 
-  --shadow-card: 0 2px 12px rgba(42, 49, 66, 0.06);
-  --shadow-dropdown: 0 12px 32px rgba(42, 49, 66, 0.12);
+  --shadow-card: 0 2px 14px rgba(0, 45, 91, 0.06);
+  --shadow-dropdown: 0 14px 36px rgba(0, 45, 91, 0.12);
 
   --animate-fade-up: fade-up 0.45s ease-out both;
   --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-auth-rise: auth-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-auth-brand: auth-brand-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes fade-up {
@@ -49,6 +67,28 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-brand-in {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -84,7 +124,7 @@
 }
 
 @utility btn-primary {
-  @apply inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex items-center justify-center rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 @utility btn-ghost {
@@ -105,4 +145,29 @@
 
 @utility section-title {
   @apply text-base font-bold uppercase tracking-wide text-ink;
+}
+
+/* Auth form controls — colors come from @theme tokens above */
+@utility auth-input {
+  @apply w-full rounded-xl border border-line bg-white px-4 py-3.5 text-[0.95rem] text-ink outline-none transition hover:border-navy-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100;
+}
+
+@utility auth-label {
+  @apply grid gap-1.5 text-sm font-bold text-ink;
+}
+
+@utility auth-submit {
+  @apply mt-1 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 px-4 py-3.5 text-[0.98rem] font-bold text-white shadow-lg shadow-primary-500/30 transition hover:brightness-105 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:hover:translate-y-0;
+}
+
+@utility auth-role {
+  @apply rounded-xl border border-line bg-white p-3.5 text-start transition hover:border-primary-300 hover:-translate-y-px;
+}
+
+@utility auth-role-active {
+  @apply border-transparent bg-gradient-to-br from-navy-700 to-navy-800 text-white shadow-lg shadow-navy-700/20;
+}
+
+@utility room-hero {
+  @apply bg-gradient-to-br from-navy-700 via-navy-600 to-primary-500;
 }

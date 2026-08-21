@@ -2,12 +2,6 @@
   display: block;
 }
 
-.room-hero {
-  background:
-    radial-gradient(ellipse 80% 70% at 100% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
-    linear-gradient(135deg, #6f42e8 0%, #4c28ab 100%);
-}
-
 .room-tab {
   position: relative;
 }
@@ -19,7 +13,10 @@
   bottom: -0.55rem;
   height: 0.2rem;
   border-radius: 999px;
-  background: #6f42e8;
+}
+
+.room-tab.is-active::after {
+  background: var(--color-primary-500);
 }
 
 .room-post {
@@ -30,8 +27,8 @@
 }
 
 .room-post:hover {
-  border-color: #bea6ff;
-  box-shadow: 0 2px 12px rgba(42, 49, 66, 0.06);
+  border-color: var(--color-primary-200);
+  box-shadow: var(--shadow-card);
   transform: translateY(-1px);
 }
 
@@ -43,7 +40,7 @@
 
 .room-class-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(42, 49, 66, 0.1);
+  box-shadow: var(--shadow-dropdown);
 }
 
 @media (max-width: 1279px) {
