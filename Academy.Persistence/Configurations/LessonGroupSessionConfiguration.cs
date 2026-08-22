@@ -37,5 +37,12 @@ public sealed class LessonGroupSessionConfiguration : IEntityTypeConfiguration<L
         builder.HasIndex(x => x.LessonGroupId);
         builder.HasIndex(x => new { x.LessonGroupId, x.SessionDate, x.StartTime })
             .IsUnique();
+
+        builder.Property(x => x.RatingAverage)
+            .HasPrecision(4, 2)
+            .IsRequired();
+
+        builder.Property(x => x.RatingCount)
+            .IsRequired();
     }
 }

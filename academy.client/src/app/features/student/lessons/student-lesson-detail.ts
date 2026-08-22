@@ -1,11 +1,14 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import {
   LessonsClient,
   StudentLessonDetailDto,
   StudentLessonSessionDto,
+  StudentReviewsClient,
   StudentTeacherReviewsClient,
+  TargetReviewDto,
   TeacherReviewDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
@@ -23,6 +26,7 @@ export class StudentLessonDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly lessonsApi = inject(LessonsClient);
   private readonly reviewsApi = inject(StudentTeacherReviewsClient);
+  private readonly lessonReviewsApi = inject(StudentReviewsClient);
 
   readonly lessonId = signal(0);
   readonly loading = signal(false);
@@ -30,6 +34,8 @@ export class StudentLessonDetailComponent implements OnInit {
   readonly detail = signal<StudentLessonDetailDto | null>(null);
   readonly canReview = signal(false);
   readonly myReview = signal<TeacherReviewDto | null>(null);
+  readonly canReviewLesson = signal(false);
+  readonly myLessonReview = signal<TargetReviewDto | null>(null);
 
   ngOnInit(): void {
     this.lessonId.set(Number(this.route.snapshot.paramMap.get('lessonId')));
@@ -50,7 +56,7 @@ export class StudentLessonDetailComponent implements OnInit {
       next: (data) => {
         this.detail.set(data);
         this.loading.set(false);
-        this.loadReview(data.teacherId, data.bookingStatus);
+        this.loadReviews(id, data.teacherId, data.bookingStatus);
       },
       error: (err) => {
         this.loading.set(false);
@@ -81,20 +87,28 @@ export class StudentLessonDetailComponent implements OnInit {
     return value.length >= 5 ? value.slice(0, 5) : value;
   }
 
-  private loadReview(teacherId?: number, bookingStatus?: string): void {
-    if (!teacherId || bookingStatus !== 'Confirmed') {
+  private loadReviews(lessonId: number, teacherId?: number, bookingStatus?: string): void {
+    if (bookingStatus !== 'Confirmed' || !teacherId) {
       this.canReview.set(false);
       this.myReview.set(null);
+      this.canReviewLesson.set(false);
+      this.myLessonReview.set(null);
       return;
     }
 
-    this.reviewsApi.getMine(teacherId).subscribe({
-      next: (data) => {
-        this.canReview.set(!!data.canReview);
-        this.myReview.set(data.review ?? null);
+    forkJoin({
+      teacher: this.reviewsApi.getMine(teacherId),
+      lesson: this.lessonReviewsApi.getMyLessonReview(lessonId),
+    }).subscribe({
+      next: ({ teacher, lesson }) => {
+        this.canReview.set(!!teacher.canReview);
+        this.myReview.set(teacher.review ?? null);
+        this.canReviewLesson.set(!!lesson.canReview);
+        this.myLessonReview.set(lesson.review ?? null);
       },
       error: () => {
-        this.canReview.set(bookingStatus === 'Confirmed');
+        this.canReview.set(true);
+        this.canReviewLesson.set(true);
       },
     });
   }

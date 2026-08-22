@@ -73,6 +73,26 @@
     "joinCtaTitle": "Ready to book a lesson?",
     "joinCtaBody": "Create a student account to book. Teachers publish their profiles here — not on the homepage."
   },
+  "reviews": {
+    "nav": "My reviews",
+    "title": "My reviews",
+    "subtitle": "Student ratings for you, your lessons, and your sessions — in one place.",
+    "all": "All",
+    "teacher": "Teacher",
+    "lesson": "Lesson",
+    "session": "Session",
+    "empty": "No reviews yet.",
+    "emptyHint": "Reviews appear here after a confirmed booking or a started session.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "openTarget": "Open",
+    "writeLesson": "Rate this lesson",
+    "editLesson": "Edit lesson review",
+    "lessonHint": "You can rate a lesson after your booking is confirmed. One review per lesson.",
+    "writeSession": "Rate this session",
+    "editSession": "Edit session review",
+    "sessionHint": "You can rate a session after it starts. One review per session."
+  },
   "landing": {
     "start": "Get started",
     "browseMarketplace": "Explore the teacher marketplace",

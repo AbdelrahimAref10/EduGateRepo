@@ -25,6 +25,7 @@ import { StudentTeacherComponent } from './features/student/discover/student-tea
 import { PublicTeacherComponent } from './features/marketplace/public-teacher';
 import { PublicLessonRedirectComponent } from './features/marketplace/public-lesson-redirect';
 import { TeacherBookingsComponent } from './features/teacher/bookings/teacher-bookings';
+import { TeacherReviewsComponent } from './features/teacher/reviews/teacher-reviews';
 import { TeacherClassroomComponent } from './features/teacher/classroom/teacher-classroom';
 import { TeacherGroupManageComponent } from './features/teacher/lessons/teacher-group-manage';
 import { TeacherLessonManageComponent } from './features/teacher/lessons/teacher-lesson-manage';
@@ -83,6 +84,7 @@ const routes: Routes = [
       { path: 'lessons/:lessonId/groups/:groupId', component: TeacherGroupManageComponent },
       { path: 'classroom/:sessionId', component: TeacherClassroomComponent },
       { path: 'bookings', component: TeacherBookingsComponent },
+      { path: 'reviews', component: TeacherReviewsComponent },
       { path: 'profile', component: EditProfileComponent },
     ],
   },

@@ -4,5 +4,6 @@ public enum NotificationEntityType
 {
     Lesson = 1,
     Booking = 2,
-    Teacher = 3
+    Teacher = 3,
+    Session = 4
 }

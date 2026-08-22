@@ -236,6 +236,18 @@
         </section>
       </div>
     </div>
+
+    @if (canReviewSession()) {
+      <app-teacher-review-form
+        kind="session"
+        [targetId]="sessionId()"
+        [review]="mySessionReview()"
+        titleKey="reviews.writeSession"
+        editTitleKey="reviews.editSession"
+        hintKey="reviews.sessionHint"
+        (saved)="onSessionReviewSaved($any($event))"
+      />
+    }
   }
 
   <app-student-exam-workspace

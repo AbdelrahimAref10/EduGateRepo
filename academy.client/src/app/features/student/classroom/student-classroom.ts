@@ -6,9 +6,12 @@ import {
   ClassroomMaterialDto,
   StudentClassroomDto,
   StudentExamDto,
+  StudentReviewsClient,
+  TargetReviewDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
+import { TeacherReviewFormComponent } from '../../marketplace/teacher-review-form';
 import { StudentExamWorkspaceComponent } from './student-exam-workspace';
 
 type ClassroomTab = 'stream' | 'people';
@@ -16,13 +19,14 @@ type ClassroomTab = 'stream' | 'people';
 @Component({
   selector: 'app-student-classroom',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent, UserAvatarComponent],
+  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent, UserAvatarComponent, TeacherReviewFormComponent],
   templateUrl: './student-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom.css'],
 })
 export class StudentClassroomComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly classroomApi = inject(ClassroomClient);
+  private readonly reviewsApi = inject(StudentReviewsClient);
 
   readonly sessionId = signal(0);
   readonly loading = signal(false);
@@ -34,6 +38,8 @@ export class StudentClassroomComponent implements OnInit {
   readonly classroom = signal<StudentClassroomDto | null>(null);
   readonly exam = signal<StudentExamDto | null>(null);
   readonly loadingExam = signal(false);
+  readonly canReviewSession = signal(false);
+  readonly mySessionReview = signal<TargetReviewDto | null>(null);
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
@@ -55,6 +61,7 @@ export class StudentClassroomComponent implements OnInit {
         this.classroom.set(data);
         this.loading.set(false);
         this.loadExam();
+        this.loadSessionReview(id);
       },
       error: (err) => {
         this.loading.set(false);
@@ -168,6 +175,22 @@ export class StudentClassroomComponent implements OnInit {
         this.error.set(err?.result?.detail || err?.message || 'Failed to download file.');
       },
     });
+  }
+
+  loadSessionReview(sessionId = this.sessionId()): void {
+    if (!sessionId) return;
+    this.reviewsApi.getMySessionReview(sessionId).subscribe({
+      next: (data) => {
+        this.canReviewSession.set(!!data.canReview);
+        this.mySessionReview.set(data.review ?? null);
+      },
+      error: () => this.canReviewSession.set(false),
+    });
+  }
+
+  onSessionReviewSaved(review: TargetReviewDto): void {
+    this.mySessionReview.set(review);
+    this.canReviewSession.set(true);
   }
 
   private saveBlob(blob: Blob, fileName: string): void {

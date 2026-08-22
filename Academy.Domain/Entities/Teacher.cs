@@ -19,4 +19,8 @@ public class Teacher : BaseEntity
     public ICollection<LessonBooking> Bookings { get; set; } = [];
 
     public ICollection<TeacherReview> Reviews { get; set; } = [];
+
+    public ICollection<LessonReview> LessonReviews { get; set; } = [];
+
+    public ICollection<SessionReview> SessionReviews { get; set; } = [];
 }

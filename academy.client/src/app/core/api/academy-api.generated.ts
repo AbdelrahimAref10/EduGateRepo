@@ -3692,6 +3692,147 @@ export class TeacherDashboardClient implements ITeacherDashboardClient {
     }
 }
 
+export interface ITeacherReviewsClient {
+    getSummary(): Observable<TeacherReviewSummaryDto>;
+    getInbox(kind: ReviewInboxKind | undefined, skip: number | undefined, take: number | undefined): Observable<TeacherReviewInboxDto>;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class TeacherReviewsClient implements ITeacherReviewsClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getSummary(): Observable<TeacherReviewSummaryDto> {
+        let url_ = this.baseUrl + "/api/teacher/reviews/summary";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetSummary(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetSummary(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TeacherReviewSummaryDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TeacherReviewSummaryDto>;
+        }));
+    }
+
+    protected processGetSummary(response: HttpResponseBase): Observable<TeacherReviewSummaryDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TeacherReviewSummaryDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getInbox(kind: ReviewInboxKind | undefined, skip: number | undefined, take: number | undefined): Observable<TeacherReviewInboxDto> {
+        let url_ = this.baseUrl + "/api/teacher/reviews?";
+        if (kind === null)
+            throw new globalThis.Error("The parameter 'kind' cannot be null.");
+        else if (kind !== undefined)
+            url_ += "kind=" + encodeURIComponent("" + kind) + "&";
+        if (skip === null)
+            throw new globalThis.Error("The parameter 'skip' cannot be null.");
+        else if (skip !== undefined)
+            url_ += "skip=" + encodeURIComponent("" + skip) + "&";
+        if (take === null)
+            throw new globalThis.Error("The parameter 'take' cannot be null.");
+        else if (take !== undefined)
+            url_ += "take=" + encodeURIComponent("" + take) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetInbox(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetInbox(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TeacherReviewInboxDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TeacherReviewInboxDto>;
+        }));
+    }
+
+    protected processGetInbox(response: HttpResponseBase): Observable<TeacherReviewInboxDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TeacherReviewInboxDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
 export interface ICountriesClient {
     getCountries(activeOnly: boolean | undefined): Observable<CountryDto[]>;
     createCountry(request: CreateCountryRequest): Observable<CountryDto>;
@@ -6127,6 +6268,281 @@ export class StudentDashboardClient implements IStudentDashboardClient {
                 fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
             }
             return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+export interface IStudentReviewsClient {
+    getMyLessonReview(lessonId: number): Observable<MyTargetReviewDto>;
+    upsertLessonReview(lessonId: number, request: UpsertReviewRequest): Observable<TargetReviewDto>;
+    getMySessionReview(sessionId: number): Observable<MyTargetReviewDto>;
+    upsertSessionReview(sessionId: number, request: UpsertReviewRequest): Observable<TargetReviewDto>;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class StudentReviewsClient implements IStudentReviewsClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getMyLessonReview(lessonId: number): Observable<MyTargetReviewDto> {
+        let url_ = this.baseUrl + "/api/student/lessons/{lessonId}/reviews/mine";
+        if (lessonId === undefined || lessonId === null)
+            throw new globalThis.Error("The parameter 'lessonId' must be defined.");
+        url_ = url_.replace("{lessonId}", encodeURIComponent("" + lessonId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetMyLessonReview(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetMyLessonReview(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<MyTargetReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<MyTargetReviewDto>;
+        }));
+    }
+
+    protected processGetMyLessonReview(response: HttpResponseBase): Observable<MyTargetReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = MyTargetReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    upsertLessonReview(lessonId: number, request: UpsertReviewRequest): Observable<TargetReviewDto> {
+        let url_ = this.baseUrl + "/api/student/lessons/{lessonId}/reviews";
+        if (lessonId === undefined || lessonId === null)
+            throw new globalThis.Error("The parameter 'lessonId' must be defined.");
+        url_ = url_.replace("{lessonId}", encodeURIComponent("" + lessonId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpsertLessonReview(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpsertLessonReview(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TargetReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TargetReviewDto>;
+        }));
+    }
+
+    protected processUpsertLessonReview(response: HttpResponseBase): Observable<TargetReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TargetReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getMySessionReview(sessionId: number): Observable<MyTargetReviewDto> {
+        let url_ = this.baseUrl + "/api/student/sessions/{sessionId}/reviews/mine";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetMySessionReview(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetMySessionReview(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<MyTargetReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<MyTargetReviewDto>;
+        }));
+    }
+
+    protected processGetMySessionReview(response: HttpResponseBase): Observable<MyTargetReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = MyTargetReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    upsertSessionReview(sessionId: number, request: UpsertReviewRequest): Observable<TargetReviewDto> {
+        let url_ = this.baseUrl + "/api/student/sessions/{sessionId}/reviews";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpsertSessionReview(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpsertSessionReview(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TargetReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TargetReviewDto>;
+        }));
+    }
+
+    protected processUpsertSessionReview(response: HttpResponseBase): Observable<TargetReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TargetReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9498,6 +9914,262 @@ export interface ITeacherBookingDto {
     reviewedAtUtc?: Date | undefined;
 }
 
+export class TeacherReviewSummaryDto implements ITeacherReviewSummaryDto {
+    all!: ReviewStatDto;
+    teacher!: ReviewStatDto;
+    lessons!: ReviewStatDto;
+    sessions!: ReviewStatDto;
+
+    constructor(data?: ITeacherReviewSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.all = new ReviewStatDto();
+            this.teacher = new ReviewStatDto();
+            this.lessons = new ReviewStatDto();
+            this.sessions = new ReviewStatDto();
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.all = _data["all"] ? ReviewStatDto.fromJS(_data["all"]) : new ReviewStatDto();
+            this.teacher = _data["teacher"] ? ReviewStatDto.fromJS(_data["teacher"]) : new ReviewStatDto();
+            this.lessons = _data["lessons"] ? ReviewStatDto.fromJS(_data["lessons"]) : new ReviewStatDto();
+            this.sessions = _data["sessions"] ? ReviewStatDto.fromJS(_data["sessions"]) : new ReviewStatDto();
+        }
+    }
+
+    static fromJS(data: any): TeacherReviewSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeacherReviewSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["all"] = this.all ? this.all.toJSON() : undefined as any;
+        data["teacher"] = this.teacher ? this.teacher.toJSON() : undefined as any;
+        data["lessons"] = this.lessons ? this.lessons.toJSON() : undefined as any;
+        data["sessions"] = this.sessions ? this.sessions.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface ITeacherReviewSummaryDto {
+    all: ReviewStatDto;
+    teacher: ReviewStatDto;
+    lessons: ReviewStatDto;
+    sessions: ReviewStatDto;
+}
+
+export class ReviewStatDto implements IReviewStatDto {
+    count!: number;
+    average!: number;
+    stars!: number;
+
+    constructor(data?: IReviewStatDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.count = _data["count"];
+            this.average = _data["average"];
+            this.stars = _data["stars"];
+        }
+    }
+
+    static fromJS(data: any): ReviewStatDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReviewStatDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["count"] = this.count;
+        data["average"] = this.average;
+        data["stars"] = this.stars;
+        return data;
+    }
+}
+
+export interface IReviewStatDto {
+    count: number;
+    average: number;
+    stars: number;
+}
+
+export class TeacherReviewInboxDto implements ITeacherReviewInboxDto {
+    total!: number;
+    items!: TeacherReviewInboxItemDto[];
+
+    constructor(data?: ITeacherReviewInboxDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.items = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.total = _data["total"];
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(TeacherReviewInboxItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TeacherReviewInboxDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeacherReviewInboxDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["total"] = this.total;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ITeacherReviewInboxDto {
+    total: number;
+    items: TeacherReviewInboxItemDto[];
+}
+
+export class TeacherReviewInboxItemDto implements ITeacherReviewInboxItemDto {
+    id?: number;
+    kind?: number;
+    rating?: number;
+    comment?: string | undefined;
+    studentName?: string;
+    studentPhotoUrl?: string | undefined;
+    studentCode?: string | undefined;
+    subject?: string | undefined;
+    groupName?: string | undefined;
+    sessionDate?: Date | undefined;
+    startTime?: string | undefined;
+    topic?: string | undefined;
+    lessonId?: number | undefined;
+    lessonGroupId?: number | undefined;
+    sessionId?: number | undefined;
+    createdAtUtc?: Date;
+    updatedAtUtc?: Date | undefined;
+
+    constructor(data?: ITeacherReviewInboxItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.kind = _data["kind"];
+            this.rating = _data["rating"];
+            this.comment = _data["comment"];
+            this.studentName = _data["studentName"];
+            this.studentPhotoUrl = _data["studentPhotoUrl"];
+            this.studentCode = _data["studentCode"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.startTime = _data["startTime"];
+            this.topic = _data["topic"];
+            this.lessonId = _data["lessonId"];
+            this.lessonGroupId = _data["lessonGroupId"];
+            this.sessionId = _data["sessionId"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            this.updatedAtUtc = _data["updatedAtUtc"] ? new Date(_data["updatedAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): TeacherReviewInboxItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeacherReviewInboxItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["kind"] = this.kind;
+        data["rating"] = this.rating;
+        data["comment"] = this.comment;
+        data["studentName"] = this.studentName;
+        data["studentPhotoUrl"] = this.studentPhotoUrl;
+        data["studentCode"] = this.studentCode;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["startTime"] = this.startTime;
+        data["topic"] = this.topic;
+        data["lessonId"] = this.lessonId;
+        data["lessonGroupId"] = this.lessonGroupId;
+        data["sessionId"] = this.sessionId;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        data["updatedAtUtc"] = this.updatedAtUtc ? this.updatedAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface ITeacherReviewInboxItemDto {
+    id?: number;
+    kind?: number;
+    rating?: number;
+    comment?: string | undefined;
+    studentName?: string;
+    studentPhotoUrl?: string | undefined;
+    studentCode?: string | undefined;
+    subject?: string | undefined;
+    groupName?: string | undefined;
+    sessionDate?: Date | undefined;
+    startTime?: string | undefined;
+    topic?: string | undefined;
+    lessonId?: number | undefined;
+    lessonGroupId?: number | undefined;
+    sessionId?: number | undefined;
+    createdAtUtc?: Date;
+    updatedAtUtc?: Date | undefined;
+}
+
+export enum ReviewInboxKind {
+    All = 0,
+    Teacher = 1,
+    Lesson = 2,
+    Session = 3,
+}
+
 export class CountryDto implements ICountryDto {
     id!: number;
     name!: string;
@@ -11543,6 +12215,146 @@ export interface IBookingDto {
     educationYearName: string;
     startDate: Date;
     createdAtUtc: Date;
+}
+
+export class MyTargetReviewDto implements IMyTargetReviewDto {
+    canReview!: boolean;
+    review?: TargetReviewDto | undefined;
+
+    constructor(data?: IMyTargetReviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.canReview = _data["canReview"];
+            this.review = _data["review"] ? TargetReviewDto.fromJS(_data["review"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): MyTargetReviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MyTargetReviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["canReview"] = this.canReview;
+        data["review"] = this.review ? this.review.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface IMyTargetReviewDto {
+    canReview: boolean;
+    review?: TargetReviewDto | undefined;
+}
+
+export class TargetReviewDto implements ITargetReviewDto {
+    id!: number;
+    targetId!: number;
+    studentId!: number;
+    rating!: number;
+    comment?: string | undefined;
+    createdAtUtc!: Date;
+    updatedAtUtc?: Date | undefined;
+
+    constructor(data?: ITargetReviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.targetId = _data["targetId"];
+            this.studentId = _data["studentId"];
+            this.rating = _data["rating"];
+            this.comment = _data["comment"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            this.updatedAtUtc = _data["updatedAtUtc"] ? new Date(_data["updatedAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): TargetReviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TargetReviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["targetId"] = this.targetId;
+        data["studentId"] = this.studentId;
+        data["rating"] = this.rating;
+        data["comment"] = this.comment;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        data["updatedAtUtc"] = this.updatedAtUtc ? this.updatedAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface ITargetReviewDto {
+    id: number;
+    targetId: number;
+    studentId: number;
+    rating: number;
+    comment?: string | undefined;
+    createdAtUtc: Date;
+    updatedAtUtc?: Date | undefined;
+}
+
+export class UpsertReviewRequest implements IUpsertReviewRequest {
+    rating?: number;
+    comment?: string | undefined;
+
+    constructor(data?: IUpsertReviewRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.rating = _data["rating"];
+            this.comment = _data["comment"];
+        }
+    }
+
+    static fromJS(data: any): UpsertReviewRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertReviewRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["rating"] = this.rating;
+        data["comment"] = this.comment;
+        return data;
+    }
+}
+
+export interface IUpsertReviewRequest {
+    rating?: number;
+    comment?: string | undefined;
 }
 
 export class MyTeacherReviewDto implements IMyTeacherReviewDto {

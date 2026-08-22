@@ -105,5 +105,17 @@
     @if (canReview() && d.teacherId) {
       <app-teacher-review-form [teacherId]="d.teacherId" [review]="myReview()" (saved)="load()" />
     }
+
+    @if (canReviewLesson()) {
+      <app-teacher-review-form
+        kind="lesson"
+        [targetId]="d.lessonId"
+        [review]="myLessonReview()"
+        titleKey="reviews.writeLesson"
+        editTitleKey="reviews.editLesson"
+        hintKey="reviews.lessonHint"
+        (saved)="load()"
+      />
+    }
   }
 </section>

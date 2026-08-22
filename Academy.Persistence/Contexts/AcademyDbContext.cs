@@ -78,6 +78,10 @@ public sealed class AcademyDbContext
 
     public DbSet<TeacherReview> TeacherReviews => Set<TeacherReview>();
 
+    public DbSet<LessonReview> LessonReviews => Set<LessonReview>();
+
+    public DbSet<SessionReview> SessionReviews => Set<SessionReview>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

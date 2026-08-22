@@ -25,4 +25,8 @@ public class Student : BaseEntity
     public ICollection<ExamAttempt> ExamAttempts { get; set; } = [];
 
     public ICollection<TeacherReview> Reviews { get; set; } = [];
+
+    public ICollection<LessonReview> LessonReviews { get; set; } = [];
+
+    public ICollection<SessionReview> SessionReviews { get; set; } = [];
 }

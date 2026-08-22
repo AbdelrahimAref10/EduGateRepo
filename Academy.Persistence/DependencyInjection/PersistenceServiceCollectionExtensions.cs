@@ -1,6 +1,7 @@
 using Academy.Application.Contracts.Persistence;
 using Academy.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,7 @@ public static class PersistenceServiceCollectionExtensions
         {
             options.UseSqlServer(connectionString);
             options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
 
         services.AddScoped<IApplicationDbContext>(provider =>

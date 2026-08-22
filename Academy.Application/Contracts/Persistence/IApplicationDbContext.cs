@@ -61,5 +61,9 @@ public interface IApplicationDbContext
 
     DbSet<TeacherReview> TeacherReviews { get; }
 
+    DbSet<LessonReview> LessonReviews { get; }
+
+    DbSet<SessionReview> SessionReviews { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
