@@ -86,6 +86,13 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<Academy.Application.Contracts.Storage.IClassroomFileStorage, Storage.ClassroomFileStorage>();
 
+        services.Configure<Ai.AiOptions>(configuration.GetSection(Ai.AiOptions.SectionName));
+        services.AddHttpClient<Academy.Application.Contracts.Ai.IAiExamGenerator, Ai.GeminiExamGenerator>(client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(3);
+        });
+        services.AddScoped<Academy.Application.Contracts.Ai.IClassroomExamMaterialReader, Ai.ClassroomExamMaterialReader>();
+
         return services;
     }
 }

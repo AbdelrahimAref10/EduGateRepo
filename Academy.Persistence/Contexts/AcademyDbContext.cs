@@ -62,6 +62,16 @@ public sealed class AcademyDbContext
 
     public DbSet<LessonSessionMaterial> LessonSessionMaterials => Set<LessonSessionMaterial>();
 
+    public DbSet<Exam> Exams => Set<Exam>();
+
+    public DbSet<ExamQuestion> ExamQuestions => Set<ExamQuestion>();
+
+    public DbSet<ExamQuestionOption> ExamQuestionOptions => Set<ExamQuestionOption>();
+
+    public DbSet<ExamAttempt> ExamAttempts => Set<ExamAttempt>();
+
+    public DbSet<ExamAttemptAnswer> ExamAttemptAnswers => Set<ExamAttemptAnswer>();
+
     public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<NotificationDetail> NotificationDetails => Set<NotificationDetail>();

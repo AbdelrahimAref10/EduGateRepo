@@ -30,4 +30,6 @@ public class LessonGroupSession : BaseEntity
     public ICollection<LessonSessionStudentDetail> StudentDetails { get; set; } = [];
 
     public ICollection<LessonSessionMaterial> Materials { get; set; } = [];
+
+    public Exam? Exam { get; set; }
 }

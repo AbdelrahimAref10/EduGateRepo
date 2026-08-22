@@ -218,14 +218,36 @@ export class TeacherLessonsComponent implements OnInit {
 
     if (editingId) {
       this.lessonsApi.updateLesson(editingId, new UpdateLessonRequest(payload)).subscribe({
-        next: () => this.afterSave('updated', value.areaId),
+        next: (updated) => {
+          this.saving.set(false);
+          this.success.set('updated');
+          this.lessons.update((items) => items.map((item) => (item.id === updated.id ? updated : item)));
+          this.cancelEdit();
+        },
         error: (err) => this.failSave(err, 'Failed to update lesson.'),
       });
       return;
     }
 
     this.lessonsApi.createLesson(new CreateLessonRequest(payload)).subscribe({
-      next: () => this.afterSave('created', value.areaId),
+      next: (created) => {
+        this.saving.set(false);
+        this.success.set('created');
+        const keptAreaId = value.areaId;
+        this.form.reset({
+          educationStageId: 0,
+          educationYearId: 0,
+          educationSubjectId: 0,
+          areaId: keptAreaId,
+          billingType: BillingType.PerSession,
+          sessionPrice: null,
+          monthlyPrice: null,
+          startDate: '',
+        });
+        this.educationYears.set([]);
+        this.educationSubjects.set([]);
+        this.lessons.update((items) => [created, ...items]);
+      },
       error: (err) => this.failSave(err, 'Failed to create lesson.'),
     });
   }
@@ -237,27 +259,6 @@ export class TeacherLessonsComponent implements OnInit {
   billingLabel(value?: string): string {
     if (value === 'Monthly') return 'lessons.monthly';
     return 'lessons.perSession';
-  }
-
-  private afterSave(successKey: 'created' | 'updated', keptAreaId: number): void {
-    this.saving.set(false);
-    this.success.set(successKey);
-    this.editingLessonId.set(null);
-    this.form.reset({
-      educationStageId: 0,
-      educationYearId: 0,
-      educationSubjectId: 0,
-      areaId: keptAreaId,
-      billingType: BillingType.PerSession,
-      sessionPrice: null,
-      monthlyPrice: null,
-      startDate: '',
-    });
-    this.educationYears.set([]);
-    this.educationSubjects.set([]);
-    const typeId = this.selectedTypeId();
-    if (typeId) this.loadStages(typeId);
-    this.loadLessons();
   }
 
   private failSave(err: unknown, fallback: string): void {
@@ -281,8 +282,8 @@ export class TeacherLessonsComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.success.set('deleted');
+        this.lessons.update((items) => items.filter((item) => item.id !== lesson.id));
         if (this.editingLessonId() === lesson.id) this.cancelEdit();
-        this.loadLessons();
       },
       error: (err) => {
         this.deletingId.set(null);

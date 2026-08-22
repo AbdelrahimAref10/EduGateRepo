@@ -9,13 +9,10 @@
 .room-tab.is-active::after {
   content: '';
   position: absolute;
-  inset-inline: 0.5rem;
-  bottom: -0.55rem;
-  height: 0.2rem;
+  inset-inline: 0.75rem;
+  bottom: -1px;
+  height: 0.18rem;
   border-radius: 999px;
-}
-
-.room-tab.is-active::after {
   background: var(--color-primary-500);
 }
 
@@ -32,19 +29,179 @@
   transform: translateY(-1px);
 }
 
-.room-class-card {
+.room-panel-hidden {
+  display: none !important;
+}
+
+.exam-launch {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary-500) 22%, var(--color-line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-primary-50) 88%, white), white 58%),
+    var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.exam-launch-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary-700);
+}
+
+.exam-stage {
+  position: fixed;
+  top: 4rem;
+  right: 0;
+  bottom: 4rem;
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f4f7fb;
+}
+
+@media (min-width: 1024px) {
+  .exam-stage {
+    inset-inline-start: 16rem;
+    bottom: 0;
+  }
+}
+
+.exam-stage-bar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.9rem 1.1rem;
+  color: white;
+  background: linear-gradient(135deg, var(--color-navy-800), var(--color-navy-600) 58%, var(--color-primary-600));
+  box-shadow: 0 10px 28px rgba(0, 21, 46, 0.22);
+}
+
+.exam-stage-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1.1rem 1.1rem 3.5rem;
+  overscroll-behavior: contain;
+}
+
+.exam-board {
+  width: 100%;
+}
+
+.exam-timer {
+  min-width: 5.5rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.exam-timer.is-low {
+  background: #dc2626;
+}
+
+.exam-choice {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--color-line);
+  background: white;
+  padding: 0.9rem 1rem;
+  text-align: start;
   transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
 }
 
-.room-class-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-dropdown);
+.exam-choice:hover {
+  border-color: var(--color-primary-300);
 }
 
-@media (max-width: 1279px) {
-  .room-panel-hidden {
-    display: none !important;
+.exam-choice.is-selected {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 18%, transparent);
+}
+
+.review-option {
+  border: 1px solid var(--color-line);
+  background: white;
+  padding: 0.85rem 1rem;
+}
+
+.review-option.is-correct {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.review-option.is-wrong {
+  border-color: #fca5a5;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+.review-option.is-answer {
+  border-color: #86efac;
+  background: #ecfdf5;
+  color: #166534;
+  box-shadow: inset 3px 0 0 #16a34a;
+}
+
+.review-badge {
+  display: inline-flex;
+  margin-top: 0.35rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.review-badge.is-correct,
+.review-badge.is-answer {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.review-badge.is-wrong {
+  background: #fee2e2;
+  color: #9f1239;
+}
+
+.review-q {
+  border: 1px solid var(--color-line);
+  background: white;
+}
+
+.review-q.is-correct {
+  border-color: #86efac;
+}
+
+.review-q.is-wrong,
+.review-q.is-skipped {
+  border-color: #fca5a5;
+}
+
+@media (max-width: 720px) {
+  .exam-launch {
+    grid-template-columns: 1fr;
   }
 }

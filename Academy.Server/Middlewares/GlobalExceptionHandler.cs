@@ -34,7 +34,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         {
             Status = statusCode,
             Title = title,
-            Detail = GetDetail(exception, statusCode),
+            Detail = GetDetail(exception, statusCode, errors),
             Instance = httpContext.Request.Path,
             Type = $"https://httpstatuses.com/{statusCode}"
         };
@@ -50,8 +50,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         return true;
     }
 
-    private string? GetDetail(Exception exception, int statusCode)
+    private string? GetDetail(Exception exception, int statusCode, IDictionary<string, string[]>? errors)
     {
+        if (exception is ValidationException && errors is { Count: > 0 })
+            return errors.SelectMany(e => e.Value).FirstOrDefault(m => !string.IsNullOrWhiteSpace(m))
+                   ?? exception.Message;
+
         if (statusCode >= StatusCodes.Status500InternalServerError && !_environment.IsDevelopment())
             return null;
 

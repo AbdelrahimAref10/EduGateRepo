@@ -1,8 +1,12 @@
 using System.Security.Claims;
+using Academy.Application.Features.Student.Classroom.Commands.StartStudentSessionExam;
+using Academy.Application.Features.Student.Classroom.Commands.SubmitStudentSessionExam;
 using Academy.Application.Features.Student.Classroom.Dtos;
 using Academy.Application.Features.Student.Classroom.Queries.GetMyStudentClassrooms;
+using Academy.Application.Features.Student.Classroom.Queries.GetMyStudentExams;
 using Academy.Application.Features.Student.Classroom.Queries.GetStudentClassroom;
 using Academy.Application.Features.Student.Classroom.Queries.GetStudentClassroomMaterialFile;
+using Academy.Application.Features.Student.Classroom.Queries.GetStudentSessionExam;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
 using MediatR;
@@ -27,6 +31,19 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
             return Unauthorized();
 
         var result = await sender.Send(new GetMyStudentClassroomsQuery(userId.Value), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("exams")]
+    [ProducesResponseType(typeof(IReadOnlyList<StudentExamListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyExams(CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(new GetMyStudentExamsQuery(userId.Value), cancellationToken);
         return result.ToActionResult();
     }
 
@@ -69,6 +86,65 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
 
         var file = result.Value!;
         return File(file.Stream, file.ContentType, file.FileName);
+    }
+
+    [HttpGet("sessions/{sessionId:int}/exam")]
+    [ProducesResponseType(typeof(StudentExamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetExam(int sessionId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetStudentSessionExamQuery(userId.Value, sessionId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("sessions/{sessionId:int}/exam/start")]
+    [ProducesResponseType(typeof(StudentExamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> StartExam(int sessionId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new StartStudentSessionExamCommand(userId.Value, sessionId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("sessions/{sessionId:int}/exam/answer")]
+    [ProducesResponseType(typeof(StudentExamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AnswerExamQuestion(
+        int sessionId,
+        [FromBody] AnswerStudentExamQuestionRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new SubmitStudentSessionExamCommand(
+                userId.Value,
+                sessionId,
+                request?.OptionId),
+            cancellationToken);
+
+        return result.ToActionResult();
     }
 
     private int? GetUserId()

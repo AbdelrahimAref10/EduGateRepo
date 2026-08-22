@@ -1,6 +1,9 @@
 using System.Security.Claims;
+using Academy.Application.Contracts.Ai;
 using Academy.Application.Features.Teacher.Classroom.Commands.CreateClassroomMaterial;
 using Academy.Application.Features.Teacher.Classroom.Commands.DeleteClassroomMaterial;
+using Academy.Application.Features.Teacher.Classroom.Commands.GenerateSessionExam;
+using Academy.Application.Features.Teacher.Classroom.Commands.PublishSessionExam;
 using Academy.Application.Features.Teacher.Classroom.Commands.UpdateClassroomInfo;
 using Academy.Application.Features.Teacher.Classroom.Commands.UpdateClassroomMaterial;
 using Academy.Application.Features.Teacher.Classroom.Commands.UpdateStudentSessionDetail;
@@ -8,6 +11,9 @@ using Academy.Application.Features.Teacher.Classroom.Commands.UploadClassroomMat
 using Academy.Application.Features.Teacher.Classroom.Dtos;
 using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherClassroom;
 using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherClassroomMaterialFile;
+using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherSessionExam;
+using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherSessionExamResults;
+using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherStudentExamReview;
 using Academy.Domain.Common;
 using Academy.Domain.Enums;
 using Academy.Server.Extensions;
@@ -235,6 +241,124 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
 
         var file = result.Value!;
         return File(file.Stream, file.ContentType, file.FileName);
+    }
+
+    [HttpGet("sessions/{sessionId:int}/exam")]
+    [ProducesResponseType(typeof(TeacherExamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetExam(int sessionId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherSessionExamQuery(userId.Value, sessionId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("sessions/{sessionId:int}/exam")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(80_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 80_000_000)]
+    [ProducesResponseType(typeof(TeacherExamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GenerateExam(
+        int sessionId,
+        [FromForm] string? questionCount,
+        [FromForm(Name = "files")] IFormFileCollection? files,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        if (!int.TryParse(questionCount, out var parsedCount) || parsedCount <= 0)
+            parsedCount = 10;
+
+        var uploads = new List<ExamUploadedFile>();
+        foreach (var file in files ?? Enumerable.Empty<IFormFile>())
+        {
+            if (file.Length <= 0)
+                continue;
+
+            await using var stream = file.OpenReadStream();
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, cancellationToken);
+            uploads.Add(new ExamUploadedFile
+            {
+                FileName = file.FileName,
+                ContentType = file.ContentType ?? "application/octet-stream",
+                Content = buffer.ToArray()
+            });
+        }
+
+        var result = await sender.Send(
+            new GenerateSessionExamCommand(
+                userId.Value,
+                sessionId,
+                parsedCount,
+                uploads),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("sessions/{sessionId:int}/exam/publish")]
+    [ProducesResponseType(typeof(TeacherExamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PublishExam(int sessionId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new PublishSessionExamCommand(userId.Value, sessionId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpGet("sessions/{sessionId:int}/exam/results")]
+    [ProducesResponseType(typeof(TeacherExamResultsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetExamResults(int sessionId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherSessionExamResultsQuery(userId.Value, sessionId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpGet("sessions/{sessionId:int}/exam/results/{studentId:int}")]
+    [HttpGet("sessions/{sessionId:int}/exam/students/{studentId:int}")]
+    [ProducesResponseType(typeof(TeacherStudentExamReviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStudentExamReview(
+        int sessionId,
+        int studentId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherStudentExamReviewQuery(userId.Value, sessionId, studentId),
+            cancellationToken);
+
+        return result.ToActionResult();
     }
 
     private int? GetUserId()

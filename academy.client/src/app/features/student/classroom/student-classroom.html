@@ -39,6 +39,37 @@
       </div>
     </header>
 
+    <article class="exam-launch rounded-2xl">
+      <div class="min-w-0">
+        <p class="exam-launch-kicker">{{ 'classroom.exam' | t }}</p>
+        @if (exam(); as currentExam) {
+          <h3 class="mt-1 text-lg font-extrabold tracking-tight text-ink">{{ currentExam.title }}</h3>
+          <p class="mt-1 text-sm text-muted">
+            @if (currentExam.hasSubmitted) {
+              {{ 'classroom.examYourScore' | t }}
+              {{ currentExam.score }} / {{ currentExam.maxScore }}
+              ({{ currentExam.percentage }}%)
+            } @else if (currentExam.hasStarted) {
+              {{ 'classroom.examInProgress' | t }}
+              · {{ 'classroom.examQuestionOf' | t }}
+              {{ currentExam.currentQuestionNumber }} / {{ currentExam.questionCount }}
+            } @else {
+              {{ currentExam.questionCount }} {{ 'classroom.examQuestionCount' | t }}
+              · {{ 'classroom.studentExamCardHint' | t }}
+            }
+          </p>
+        } @else {
+          <h3 class="mt-1 text-lg font-extrabold tracking-tight text-ink">{{ 'classroom.examWaiting' | t }}</h3>
+          <p class="mt-1 text-sm text-muted">{{ 'classroom.studentExamCardHint' | t }}</p>
+        }
+      </div>
+      @if (exam()) {
+        <button type="button" class="btn-primary" (click)="openExamWorkspace()">
+          {{ examActionLabel() | t }}
+        </button>
+      }
+    </article>
+
     <div class="flex gap-1 border-b border-line">
       <button
         type="button"
@@ -48,7 +79,7 @@
         [class.text-muted]="tab() !== 'stream'"
         (click)="setTab('stream')"
       >
-        {{ 'classroom.stream' | t }}
+        {{ 'classroom.sessionTab' | t }}
       </button>
       <button
         type="button"
@@ -58,11 +89,11 @@
         [class.text-muted]="tab() !== 'people'"
         (click)="setTab('people')"
       >
-        {{ 'classroom.people' | t }}
+        {{ 'classroom.studentsTab' | t }}
       </button>
     </div>
 
-    <div class="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+    <div class="grid gap-5">
       <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'stream'">
         <section class="card overflow-hidden">
           <div class="border-b border-line px-5 py-4">
@@ -204,4 +235,10 @@
       </div>
     </div>
   }
+
+  <app-student-exam-workspace
+    [sessionId]="examWorkspaceOpen() ? sessionId() : null"
+    (closed)="closeExamWorkspace()"
+    (completed)="loadExam()"
+  />
 </section>

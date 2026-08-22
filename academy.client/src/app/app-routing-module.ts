@@ -11,6 +11,7 @@ import { TeacherDashboardComponent } from './features/dashboards/teacher-dashboa
 import { ShellLayoutComponent } from './features/layouts/shell-layout/shell-layout';
 import { EditProfileComponent } from './features/profile/edit-profile/edit-profile';
 import { StudentClassroomComponent } from './features/student/classroom/student-classroom';
+import { StudentExamsComponent } from './features/student/classroom/student-exams';
 import { StudentLessonDetailComponent } from './features/student/lessons/student-lesson-detail';
 import { StudentLessonsComponent } from './features/student/lessons/student-lessons';
 import { StudentMyLessonsComponent } from './features/student/lessons/student-my-lessons';
@@ -83,6 +84,7 @@ const routes: Routes = [
       { path: 'lessons', component: StudentMyLessonsComponent },
       { path: 'lessons/:lessonId', component: StudentLessonDetailComponent },
       { path: 'book', component: StudentLessonsComponent },
+      { path: 'exams', component: StudentExamsComponent },
       { path: 'classroom/:sessionId', component: StudentClassroomComponent },
       { path: 'profile', component: EditProfileComponent },
     ],

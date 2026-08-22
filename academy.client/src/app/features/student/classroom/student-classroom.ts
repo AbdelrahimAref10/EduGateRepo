@@ -5,15 +5,17 @@ import {
   ClassroomClient,
   ClassroomMaterialDto,
   StudentClassroomDto,
+  StudentExamDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { StudentExamWorkspaceComponent } from './student-exam-workspace';
 
 type ClassroomTab = 'stream' | 'people';
 
 @Component({
   selector: 'app-student-classroom',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink],
+  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent],
   templateUrl: './student-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom.css'],
 })
@@ -26,8 +28,11 @@ export class StudentClassroomComponent implements OnInit {
   readonly downloadingMaterialId = signal<number | null>(null);
   readonly openingMaterialId = signal<number | null>(null);
   readonly tab = signal<ClassroomTab>('stream');
+  readonly examWorkspaceOpen = signal(false);
   readonly error = signal<string | null>(null);
   readonly classroom = signal<StudentClassroomDto | null>(null);
+  readonly exam = signal<StudentExamDto | null>(null);
+  readonly loadingExam = signal(false);
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
@@ -48,6 +53,7 @@ export class StudentClassroomComponent implements OnInit {
       next: (data) => {
         this.classroom.set(data);
         this.loading.set(false);
+        this.loadExam();
       },
       error: (err) => {
         this.loading.set(false);
@@ -58,6 +64,40 @@ export class StudentClassroomComponent implements OnInit {
 
   setTab(tab: ClassroomTab): void {
     this.tab.set(tab);
+  }
+
+  openExamWorkspace(): void {
+    this.examWorkspaceOpen.set(true);
+  }
+
+  closeExamWorkspace(): void {
+    this.examWorkspaceOpen.set(false);
+    this.loadExam();
+  }
+
+  loadExam(): void {
+    const id = this.sessionId();
+    if (!id) return;
+
+    this.loadingExam.set(true);
+    this.classroomApi.getExam2(id).subscribe({
+      next: (data) => {
+        this.exam.set(data?.id ? data : null);
+        this.loadingExam.set(false);
+      },
+      error: (err) => {
+        this.loadingExam.set(false);
+        this.error.set(err?.result?.detail || err?.message || 'Failed to load exam.');
+      },
+    });
+  }
+
+  examActionLabel(): string {
+    const exam = this.exam();
+    if (!exam) return 'classroom.openExam';
+    if (exam.hasSubmitted) return 'classroom.viewResults';
+    if (exam.hasStarted) return 'classroom.continueExam';
+    return 'classroom.openExam';
   }
 
   initials(name?: string | null): string {

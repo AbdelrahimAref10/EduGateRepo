@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -7,16 +7,20 @@ import {
   ClassroomMaterialDto,
   ClassroomStudentDetailDto,
   TeacherClassroomDto,
+  TeacherExamDto,
   UpdateClassroomInfoRequest,
   UpdateClassroomMaterialRequest,
   UpdateStudentSessionDetailRequest,
 } from '../../../core/api/academy-api.generated';
-import { ClassroomUploadService } from '../../../core/api/classroom-upload.service';
+import { ClassroomUploadService, TeacherExamResults, TeacherExamReviewOption, TeacherExamReviewQuestion, TeacherStudentExamReview } from '../../../core/api/classroom-upload.service';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 type ClassroomTab = 'stream' | 'people';
+type ExamWorkspaceTab = 'questions' | 'results' | 'review';
+type ReviewTone = 'correct' | 'wrong' | 'answer' | 'idle';
+type QuestionOutcome = 'correct' | 'wrong' | 'skipped';
 
 interface StudentDraft {
   isPresent: boolean;
@@ -25,6 +29,7 @@ interface StudentDraft {
 }
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+const EXAM_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.webp'];
 
 @Component({
   selector: 'app-teacher-classroom',
@@ -33,7 +38,7 @@ const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
   templateUrl: './teacher-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './teacher-classroom.css'],
 })
-export class TeacherClassroomComponent implements OnInit {
+export class TeacherClassroomComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly classroomApi = inject(ClassroomClient);
@@ -56,8 +61,22 @@ export class TeacherClassroomComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly classroom = signal<TeacherClassroomDto | null>(null);
+  readonly exam = signal<TeacherExamDto | null>(null);
+  readonly examResults = signal<TeacherExamResults | null>(null);
+  readonly generatingExam = signal(false);
+  readonly examModalOpen = signal(false);
+  readonly examWorkspaceOpen = signal(false);
+  readonly examWorkspaceTab = signal<ExamWorkspaceTab>('questions');
+  readonly studentReview = signal<TeacherStudentExamReview | null>(null);
+  readonly loadingStudentReview = signal(false);
+  readonly examFiles = signal<File[]>([]);
+  readonly loadingExam = signal(false);
   readonly studentDrafts = signal<Record<number, StudentDraft>>({});
   readonly selectedFile = signal<File | null>(null);
+
+  readonly examForm = this.fb.nonNullable.group({
+    questionCount: [10, [Validators.required, Validators.min(5), Validators.max(20)]],
+  });
 
   readonly infoForm = this.fb.nonNullable.group({
     topic: [''],
@@ -75,6 +94,23 @@ export class TeacherClassroomComponent implements OnInit {
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
     this.loadClassroom();
+  }
+
+  ngOnDestroy(): void {
+    this.unlockPage();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.examModalOpen()) {
+      this.closeExamModal();
+      return;
+    }
+    if (this.examWorkspaceTab() === 'review') {
+      this.closeStudentReview();
+      return;
+    }
+    if (this.examWorkspaceOpen()) this.closeExamWorkspace();
   }
 
   loadClassroom(): void {
@@ -104,6 +140,7 @@ export class TeacherClassroomComponent implements OnInit {
         }
         this.studentDrafts.set(drafts);
         this.loading.set(false);
+        this.loadExam();
       },
       error: (err) => {
         this.loading.set(false);
@@ -114,6 +151,176 @@ export class TeacherClassroomComponent implements OnInit {
 
   setTab(tab: ClassroomTab): void {
     this.tab.set(tab);
+  }
+
+  openExamWorkspace(): void {
+    this.examWorkspaceOpen.set(true);
+    this.examWorkspaceTab.set(this.exam() ? 'questions' : 'questions');
+    this.lockPage();
+    this.loadExam();
+    if (this.exam()) this.loadExamResults();
+  }
+
+  closeExamWorkspace(): void {
+    if (this.generatingExam()) return;
+    this.examWorkspaceOpen.set(false);
+    this.studentReview.set(null);
+    this.unlockPage();
+  }
+
+  setExamWorkspaceTab(tab: ExamWorkspaceTab): void {
+    this.examWorkspaceTab.set(tab);
+    this.studentReview.set(null);
+    if (tab === 'results') this.loadExamResults();
+  }
+
+  openStudentReview(studentId: number): void {
+    this.error.set(null);
+    const cached = this.examResults()?.students?.find((row) => row.studentId === studentId);
+    if (cached?.hasSubmitted && cached.questions?.length) {
+      this.studentReview.set({
+        ...cached,
+        title: this.examResults()?.title || this.exam()?.title || '',
+      });
+      this.examWorkspaceTab.set('review');
+      return;
+    }
+
+    this.loadingStudentReview.set(true);
+    this.uploadApi.getStudentExamReview(this.sessionId(), studentId).subscribe({
+      next: (data) => {
+        this.studentReview.set(data);
+        this.examWorkspaceTab.set('review');
+        this.loadingStudentReview.set(false);
+      },
+      error: (err) => {
+        this.loadingStudentReview.set(false);
+        this.error.set(this.httpErrorMessage(err, 'Failed to load student exam.'));
+      },
+    });
+  }
+
+  closeStudentReview(): void {
+    this.studentReview.set(null);
+    this.examWorkspaceTab.set('results');
+  }
+
+  reviewQuestionOutcome(question: TeacherExamReviewQuestion): QuestionOutcome {
+    if (question.selectedOptionId == null) return 'skipped';
+    const picked = question.options?.find((option) => option.id === question.selectedOptionId);
+    return picked?.isCorrect === true ? 'correct' : 'wrong';
+  }
+
+  reviewOptionTone(question: TeacherExamReviewQuestion, option: TeacherExamReviewOption): ReviewTone {
+    const selected = question.selectedOptionId === option.id;
+    const correct = option.isCorrect === true;
+    if (correct && selected) return 'correct';
+    if (correct && !selected) return 'answer';
+    if (!correct && selected) return 'wrong';
+    return 'idle';
+  }
+
+  reviewCorrectCount(): number {
+    return (this.studentReview()?.questions ?? []).filter(
+      (question) => this.reviewQuestionOutcome(question) === 'correct',
+    ).length;
+  }
+
+  reviewWrongCount(): number {
+    return (this.studentReview()?.questions ?? []).filter(
+      (question) => this.reviewQuestionOutcome(question) !== 'correct',
+    ).length;
+  }
+
+  loadExam(): void {
+    const id = this.sessionId();
+    if (!id) return;
+
+    this.loadingExam.set(true);
+    this.classroomApi.getExam(id).subscribe({
+      next: (data) => {
+        this.exam.set(data?.id ? data : null);
+        this.loadingExam.set(false);
+        if (data?.id && data.status === 2) this.loadExamResults();
+      },
+      error: (err) => {
+        this.loadingExam.set(false);
+        this.error.set(err?.result?.detail || err?.message || 'Failed to load exam.');
+      },
+    });
+  }
+
+  loadExamResults(): void {
+    const id = this.sessionId();
+    if (!id) return;
+
+    this.uploadApi.getExamResults(id).subscribe({
+      next: (data) => this.examResults.set(data),
+      error: () => this.examResults.set(null),
+    });
+  }
+
+  openExamModal(): void {
+    this.error.set(null);
+    this.examForm.reset({ questionCount: 10 });
+    this.examFiles.set([]);
+    this.examModalOpen.set(true);
+  }
+
+  closeExamModal(): void {
+    if (this.generatingExam()) return;
+    this.examModalOpen.set(false);
+    this.examFiles.set([]);
+  }
+
+  onExamFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const added = Array.from(input.files ?? []);
+    const valid: File[] = [];
+    for (const file of added) {
+      const lower = file.name.toLowerCase();
+      if (!EXAM_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+        this.error.set(this.i18n.t('classroom.examFileInvalid'));
+        continue;
+      }
+      valid.push(file);
+    }
+    this.examFiles.update((current) => [...current, ...valid].slice(0, 10));
+    input.value = '';
+  }
+
+  removeExamFile(index: number): void {
+    this.examFiles.update((current) => current.filter((_, i) => i !== index));
+  }
+
+  generateExam(): void {
+    const files = this.examFiles();
+    if (!files.length) {
+      this.error.set(this.i18n.t('classroom.examNoFiles'));
+      return;
+    }
+
+    this.error.set(null);
+    this.success.set(null);
+    this.generatingExam.set(true);
+
+    this.uploadApi.generateExam(this.sessionId(), this.examForm.controls.questionCount.value, files).subscribe({
+      next: (data) => {
+        this.exam.set(data);
+        this.generatingExam.set(false);
+        this.examModalOpen.set(false);
+        this.examFiles.set([]);
+        this.success.set('examGenerated');
+        this.examWorkspaceOpen.set(true);
+        this.examWorkspaceTab.set('questions');
+        this.lockPage();
+        this.loadExamResults();
+      },
+      error: (err) => {
+        this.generatingExam.set(false);
+        this.error.set(this.httpErrorMessage(err, 'Failed to generate exam.'));
+      },
+    });
   }
 
   initials(name?: string | null): string {
@@ -396,6 +603,32 @@ export class TeacherClassroomComponent implements OnInit {
   private resetMaterialForm(): void {
     this.materialForm.reset({ description: '' });
     this.selectedFile.set(null);
+  }
+
+  private lockPage(): void {
+    document.body.style.overflow = 'hidden';
+  }
+
+  private unlockPage(): void {
+    document.body.style.overflow = '';
+  }
+
+  private httpErrorMessage(err: unknown, fallback: string): string {
+    const body = (err as { error?: unknown; result?: unknown })?.error
+      ?? (err as { result?: unknown })?.result;
+    if (typeof body === 'string' && body.trim()) return body;
+    if (body && typeof body === 'object') {
+      const problem = body as { detail?: string; errors?: Record<string, string[] | string> };
+      const errors = problem.errors;
+      if (errors) {
+        const first = Object.values(errors)
+          .flatMap((value) => (Array.isArray(value) ? value : [value]))
+          .find((item) => !!item);
+        if (first) return String(first);
+      }
+      if (problem.detail) return problem.detail;
+    }
+    return (err as { message?: string })?.message || fallback;
   }
 
   private saveBlob(blob: Blob, fileName: string): void {
