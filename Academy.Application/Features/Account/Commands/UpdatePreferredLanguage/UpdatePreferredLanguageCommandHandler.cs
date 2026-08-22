@@ -1,3 +1,4 @@
+using Academy.Application.Common.Identity;
 using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
 using Academy.Application.Common.Images;
@@ -42,12 +43,14 @@ public sealed class UpdatePreferredLanguageCommandHandler(
         requestLanguage.Set(language);
 
         var roles = await userManager.GetRolesAsync(user);
+        var permissions = await UserPermissionHelper.GetPermissionsAsync(userManager, user);
         var tokens = tokenService.GenerateTokens(new TokenUserInfo
         {
             UserId = user.Id,
             Email = user.Email!,
             FullName = user.FullName,
             Roles = roles.ToList(),
+            Permissions = permissions,
             LanguageId = user.PreferredLanguage
         });
 
@@ -80,6 +83,7 @@ public sealed class UpdatePreferredLanguageCommandHandler(
             Email = user.Email!,
             FullName = user.FullName,
             Roles = roles.ToList(),
+            Permissions = permissions,
             LanguageId = (int)user.PreferredLanguage,
             StudentCode = studentCode,
             AreaId = user.AreaId,

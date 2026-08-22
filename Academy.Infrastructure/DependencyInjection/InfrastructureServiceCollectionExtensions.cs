@@ -1,4 +1,5 @@
 using Academy.Application.Contracts.Identity;
+using Academy.Domain.Common;
 using Academy.Domain.Entities;
 using Academy.Infrastructure.Authentication;
 using Academy.Persistence.Contexts;
@@ -82,7 +83,12 @@ public static class InfrastructureServiceCollectionExtensions
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AppPolicies.ManageUsers, policy =>
+                policy.RequireRole(AppRoles.SuperAdmin)
+                    .RequireClaim(AppPermissions.ClaimType, AppPermissions.ManageUsers));
+        });
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<Academy.Application.Contracts.Storage.IClassroomFileStorage, Storage.ClassroomFileStorage>();
 

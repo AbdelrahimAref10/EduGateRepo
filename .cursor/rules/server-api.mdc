@@ -1,0 +1,44 @@
+---
+description: ASP.NET controllers, auth, SignalR, and Result mapping
+globs: Academy.Server/**/*.cs
+alwaysApply: false
+---
+
+# Server API conventions
+
+## Controllers
+
+- `[ApiController]`, role `[Authorize(Roles = AppRoles.X)]`, route `api/{role}/{resource}`.
+- Primary-constructor inject `ISender` only when possible.
+- Resolve user id from claims; return `Unauthorized()` if missing.
+- Map with `result.ToActionResult()` (`ResultExtensions`).
+- Add `[ProducesResponseType]` for success and common error shapes.
+
+```csharp
+[ApiController]
+[Authorize(Roles = AppRoles.Teacher)]
+[Route("api/teacher/lessons")]
+public sealed class LessonsController(ISender sender) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> GetMyLessons(CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var result = await sender.Send(new GetMyLessonsQuery(userId.Value), ct);
+        return result.ToActionResult();
+    }
+}
+```
+
+## Do not
+
+- Put business logic or EF queries in controllers.
+- Bypass MediatR for feature work.
+- Hand-edit generated OpenAPI client; change the API and rebuild so NSwag runs.
+
+## Realtime / cross-cutting
+
+- Notifications push via SignalR (`NotificationsHub`, `/hubs/notifications`).
+- Prefer `GlobalExceptionHandler` + ProblemDetails for unexpected errors.
+- Language comes from `RequestLanguageMiddleware` — preserve that pipeline.

@@ -12,6 +12,7 @@ export class TokenStorageService {
       const parsed = JSON.parse(raw) as AuthSession;
       return {
         ...parsed,
+        permissions: parsed.permissions ?? [],
         languageId: parsed.languageId || AppLanguageId.Arabic,
       };
     } catch {
@@ -31,6 +32,7 @@ export class TokenStorageService {
       fullName: response.fullName,
       roles: (response.roles ?? []).filter((role): role is AppRoleName =>
         ['SuperAdmin', 'Teacher', 'Student', 'Parent'].includes(role)),
+      permissions: response.permissions ?? [],
       languageId: response.languageId || AppLanguageId.Arabic,
       photoUrl: response.photoUrl ?? null,
     };

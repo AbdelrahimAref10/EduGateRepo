@@ -6,7 +6,9 @@ public enum NotificationType
     LessonBookingConfirmed = 2,
     LessonBookingRejected = 3,
     StudentAddedToLesson = 4,
-    TeacherReviewReceived = 5,
-    LessonReviewReceived = 6,
-    SessionReviewReceived = 7
+    LessonStarted = 5,
+    LessonGroupEnded = 6
+    TeacherReviewReceived = 7,
+    LessonReviewReceived = 8,
+    SessionReviewReceived = 9
 }

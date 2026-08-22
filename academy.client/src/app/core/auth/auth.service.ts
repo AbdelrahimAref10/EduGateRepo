@@ -11,6 +11,7 @@ import {
   AppRoleName,
   AuthResponse,
   AuthSession,
+  MANAGE_USERS_PERMISSION,
   ROLE_HOME,
 } from './auth.models';
 import { isSafeReturnUrl } from './return-url';
@@ -49,10 +50,19 @@ export class AuthService {
   readonly session = this.sessionSignal.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionSignal()?.accessToken);
   readonly roles = computed(() => this.sessionSignal()?.roles ?? []);
+  readonly permissions = computed(() => this.sessionSignal()?.permissions ?? []);
   readonly fullName = computed(() => this.sessionSignal()?.fullName ?? '');
   readonly languageId = computed(() => this.sessionSignal()?.languageId ?? 1);
   readonly primaryRole = computed<AppRoleName | null>(() => this.roles()[0] ?? null);
+
+  readonly canManageUsers = computed(
+    () =>
+      this.hasAnyRole(['SuperAdmin']) &&
+      this.permissions().includes(MANAGE_USERS_PERMISSION),
+  );
+
   readonly photoUrl = computed(() => this.sessionSignal()?.photoUrl ?? null);
+
 
   login(payload: LoginPayload, returnUrl?: string | null): Observable<AuthSession> {
     return this.http.post<AuthResponse>('/api/auth/login', payload).pipe(
@@ -99,6 +109,7 @@ export class AuthService {
         email: dto.email,
         fullName: dto.fullName,
         roles: dto.roles ?? [],
+        permissions: dto.permissions ?? [],
         languageId: dto.languageId,
         studentCode: dto.studentCode,
         areaId: dto.areaId,
@@ -125,6 +136,10 @@ export class AuthService {
   hasAnyRole(required: AppRoleName[]): boolean {
     const current = this.roles();
     return required.some((role) => current.includes(role));
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.permissions().includes(permission);
   }
 
   homeForCurrentUser(): string {

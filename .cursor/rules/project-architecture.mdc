@@ -1,0 +1,35 @@
+---
+description: EduGate/Academy stack, layers, and dependency rules
+alwaysApply: true
+---
+
+# Project architecture
+
+ASP.NET Core **.NET 10** API + **Angular 22** SPA (`academy.client`), Clean Architecture.
+
+## Layers (dependencies flow inward)
+
+| Project | Role |
+|---------|------|
+| `Academy.Domain` | Entities, enums, value objects — no infra deps |
+| `Academy.Application` | MediatR features, DTOs, contracts, FluentValidation |
+| `Academy.Persistence` | EF Core + SQL Server, migrations, seed |
+| `Academy.Infrastructure` | Identity, JWT, DI registration |
+| `Academy.Server` | Controllers, hubs, middleware, SPA host |
+| `academy.client` | Angular UI; uses NSwag-generated API client |
+
+## Hard rules
+
+- Controllers stay thin: authorize → map request → `ISender.Send` → `result.ToActionResult()`.
+- Business logic lives in Application handlers, not controllers or Angular.
+- Do not reference Persistence/Infrastructure types from Domain.
+- Prefer existing patterns (Result, roles, feature folders) over new abstractions.
+- After API contract changes, rebuild Server so NSwag regenerates `academy-api.generated.ts`.
+---
+
+# Stack reminders
+
+- Auth: ASP.NET Identity + JWT Bearer; role routes (`Teacher`, `Student`, etc.).
+- Realtime: SignalR hub `/hubs/notifications`.
+- Localization: `RequestLanguageMiddleware` + `IRequestLanguage`.
+- API docs: NSwag OpenAPI + Scalar (dev).

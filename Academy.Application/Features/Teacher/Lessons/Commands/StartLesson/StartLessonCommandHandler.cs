@@ -1,5 +1,6 @@
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Domain.Enums;
@@ -10,7 +11,8 @@ namespace Academy.Application.Features.Teacher.Lessons.Commands.StartLesson;
 
 public sealed class StartLessonCommandHandler(
     IApplicationDbContext dbContext,
-    IRequestLanguage requestLanguage)
+    IRequestLanguage requestLanguage,
+    INotificationService notificationService)
     : IRequestHandler<StartLessonCommand, Result<LessonDto>>
 {
     public async Task<Result<LessonDto>> Handle(
@@ -18,6 +20,7 @@ public sealed class StartLessonCommandHandler(
         CancellationToken cancellationToken)
     {
         var teacher = await dbContext.Teachers
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
 
         if (teacher is null)
@@ -44,10 +47,33 @@ public sealed class StartLessonCommandHandler(
         if (!lesson.IsActive)
             return Result<LessonDto>.Failure("Cannot start an inactive lesson.");
 
+        var justStarted = false;
         if (!lesson.StartedAtUtc.HasValue)
         {
             lesson.StartedAtUtc = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
+            justStarted = true;
+        }
+
+        if (justStarted)
+        {
+            var teacherName = teacher.User.FullName;
+            var subject = lesson.Subject;
+            await notificationService.CreateAsync(
+                new NotificationCreateRequest
+                {
+                    RecipientUserIds = [],
+                    UserTargetId = teacher.UserId,
+                    Type = NotificationType.LessonStarted,
+                    EntityType = NotificationEntityType.Lesson,
+                    EntityId = lesson.Id,
+                    TitleAr = "بدء درس",
+                    TitleEn = "Lesson started",
+                    BodyAr = $"بدأ المعلم {teacherName} درس «{subject}».",
+                    BodyEn = $"Teacher {teacherName} started the lesson '{subject}'.",
+                    IncludeSuperAdmins = true
+                },
+                cancellationToken);
         }
 
         var hasStartedGroup = lesson.Groups.Any(g => g.StartedAtUtc.HasValue);

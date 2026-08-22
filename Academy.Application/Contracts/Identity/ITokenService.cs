@@ -12,6 +12,8 @@ public sealed class TokenUserInfo
 
     public required IReadOnlyList<string> Roles { get; init; }
 
+    public IReadOnlyList<string> Permissions { get; init; } = [];
+
     public AppLanguage LanguageId { get; init; } = AppLanguage.Arabic;
 }
 

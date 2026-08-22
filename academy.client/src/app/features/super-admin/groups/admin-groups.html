@@ -1,0 +1,137 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleAdmin' | t }}</p>
+      <h2 class="page-title mt-1">{{ 'adminGroups.title' | t }}</h2>
+      <p class="mt-1 text-sm text-muted">{{ 'adminGroups.subtitle' | t }}</p>
+    </div>
+    <button type="button" class="btn-ghost" (click)="load()" [disabled]="loading()">
+      {{ 'lessons.refresh' | t }}
+    </button>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  <section class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4">
+      <h3 class="section-title">{{ 'adminGroups.list' | t }}</h3>
+      <p class="mt-1 text-sm text-muted">{{ 'adminGroups.listHint' | t }}</p>
+    </div>
+
+    <div class="p-5">
+      @if (loading()) {
+        <p class="text-center text-sm text-muted">{{ 'adminGroups.loading' | t }}</p>
+      } @else if (groups().length === 0) {
+        <p class="text-center text-sm text-muted">{{ 'adminGroups.empty' | t }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-center text-sm">
+            <thead>
+              <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                <th class="px-3 py-3">#</th>
+                <th class="px-3 py-3">{{ 'adminGroups.group' | t }}</th>
+                <th class="px-3 py-3">{{ 'adminGroups.lesson' | t }}</th>
+                <th class="px-3 py-3">{{ 'adminGroups.teacher' | t }}</th>
+                <th class="px-3 py-3">{{ 'adminGroups.location' | t }}</th>
+                <th class="px-3 py-3">{{ 'adminGroups.status' | t }}</th>
+                <th class="px-3 py-3">{{ 'adminGroups.members' | t }}</th>
+                <th class="px-3 py-3">{{ 'lessons.action' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (group of groups(); track group.id) {
+                <tr
+                  class="border-b border-line/70 transition"
+                  [class]="selectedGroupId() === group.id ? 'bg-primary-50' : 'hover:bg-body/70'"
+                >
+                  <td class="px-3 py-3 text-muted">#{{ group.id }}</td>
+                  <td class="px-3 py-3 font-semibold text-ink">{{ group.name }}</td>
+                  <td class="px-3 py-3">{{ group.lessonSubject }}</td>
+                  <td class="px-3 py-3">{{ group.teacherName }}</td>
+                  <td class="px-3 py-3 text-xs text-muted">{{ group.cityName }} / {{ group.areaName }}</td>
+                  <td class="px-3 py-3">
+                    @if (group.hasEnded) {
+                      <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        {{ 'adminGroups.ended' | t }}
+                      </span>
+                    } @else if (group.hasStarted) {
+                      <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                        {{ 'adminGroups.started' | t }}
+                      </span>
+                    } @else {
+                      <span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
+                        {{ 'adminGroups.notStarted' | t }}
+                      </span>
+                    }
+                  </td>
+                  <td class="px-3 py-3">
+                    <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                      {{ group.membersCount }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3">
+                    <button
+                      type="button"
+                      class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
+                      [class]="
+                        selectedGroupId() === group.id
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-body text-primary-700 hover:bg-primary-100'
+                      "
+                      (click)="selectGroup(group.id)"
+                    >
+                      {{
+                        selectedGroupId() === group.id
+                          ? ('adminGroups.hideMembers' | t)
+                          : ('adminGroups.showMembers' | t)
+                      }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (selectedGroup(); as group) {
+    <section class="card overflow-hidden">
+      <div class="border-b border-line px-5 py-4">
+        <h3 class="section-title">{{ 'adminGroups.membersFor' | t }} — {{ group.name }}</h3>
+        <p class="mt-1 text-sm text-muted">
+          {{ group.teacherName }} · {{ group.lessonSubject }}
+        </p>
+      </div>
+      <div class="p-5">
+        @if (!group.members?.length) {
+          <p class="text-center text-sm text-muted">{{ 'adminGroups.noMembers' | t }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-center text-sm">
+              <thead>
+                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                  <th class="px-3 py-3">{{ 'adminGroups.student' | t }}</th>
+                  <th class="px-3 py-3">{{ 'adminGroups.code' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (member of group.members; track member.id) {
+                  <tr class="border-b border-line/70">
+                    <td class="px-3 py-3 font-semibold text-ink">{{ member.studentName }}</td>
+                    <td class="px-3 py-3 text-muted">{{ member.studentCode || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</section>

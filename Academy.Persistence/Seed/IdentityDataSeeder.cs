@@ -36,6 +36,8 @@ public static class IdentityDataSeeder
             if (!await userManager.IsInRoleAsync(existing, AppRoles.SuperAdmin))
                 await userManager.AddToRoleAsync(existing, AppRoles.SuperAdmin);
 
+            await EnsureManageUsersPermissionAsync(userManager, existing);
+
             var hasProfile = await db.SuperAdmins.AnyAsync(x => x.UserId == existing.Id);
             if (!hasProfile)
             {
@@ -86,6 +88,30 @@ public static class IdentityDataSeeder
         });
         await db.SaveChangesAsync();
 
+        await EnsureManageUsersPermissionAsync(userManager, user);
+
         logger.LogInformation("SuperAdmin seeded successfully ({Email}).", email);
+    }
+
+    private static async Task EnsureManageUsersPermissionAsync(
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser user)
+    {
+        var claims = await userManager.GetClaimsAsync(user);
+        var hasPermission = claims.Any(c =>
+            c.Type == AppPermissions.ClaimType && c.Value == AppPermissions.ManageUsers);
+
+        if (hasPermission)
+            return;
+
+        var result = await userManager.AddClaimAsync(
+            user,
+            new System.Security.Claims.Claim(AppPermissions.ClaimType, AppPermissions.ManageUsers));
+
+        if (!result.Succeeded)
+        {
+            var error = string.Join("; ", result.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Failed to grant ManageUsers permission: {error}");
+        }
     }
 }

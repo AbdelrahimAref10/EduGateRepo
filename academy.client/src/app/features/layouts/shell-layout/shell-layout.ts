@@ -58,4 +58,5 @@ export class ShellLayoutComponent implements OnInit {
   readonly accent = computed(() => this.routeData().accent);
   readonly homeLink = computed(() => this.routeData().homeLink);
   readonly fullName = this.auth.fullName;
+  readonly canManageUsers = this.auth.canManageUsers;
 }

@@ -1,3 +1,4 @@
+using Academy.Application.Common.Identity;
 using Academy.Application.Common.Models;
 using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Identity;
@@ -37,12 +38,14 @@ public sealed class RefreshTokenCommandHandler(
         storedToken.RevokedAtUtc = DateTime.UtcNow;
 
         var roles = await userManager.GetRolesAsync(user);
+        var permissions = await UserPermissionHelper.GetPermissionsAsync(userManager, user);
         var tokens = tokenService.GenerateTokens(new TokenUserInfo
         {
             UserId = user.Id,
             Email = user.Email!,
             FullName = user.FullName,
             Roles = roles.ToList(),
+            Permissions = permissions,
             LanguageId = user.PreferredLanguage
         });
 
@@ -75,6 +78,7 @@ public sealed class RefreshTokenCommandHandler(
             Email = user.Email!,
             FullName = user.FullName,
             Roles = roles.ToList(),
+            Permissions = permissions,
             LanguageId = (int)user.PreferredLanguage,
             StudentCode = studentCode,
             AreaId = user.AreaId,

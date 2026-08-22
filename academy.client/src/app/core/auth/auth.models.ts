@@ -1,5 +1,7 @@
 export type AppRoleName = 'SuperAdmin' | 'Teacher' | 'Student' | 'Parent';
 
+export const MANAGE_USERS_PERMISSION = 'ManageUsers';
+
 export interface AuthSession {
   accessToken: string;
   refreshToken: string;
@@ -9,6 +11,7 @@ export interface AuthSession {
   email: string;
   fullName: string;
   roles: AppRoleName[];
+  permissions: string[];
   languageId: number;
   photoUrl?: string | null;
 }
@@ -22,6 +25,7 @@ export interface AuthResponse {
   email: string;
   fullName: string;
   roles: string[];
+  permissions?: string[];
   languageId: number;
   studentCode?: string | null;
   areaId?: number | null;

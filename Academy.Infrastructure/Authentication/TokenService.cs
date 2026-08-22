@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Academy.Application.Common.Localization;
 using Academy.Application.Contracts.Identity;
+using Academy.Domain.Common;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -30,6 +31,8 @@ public sealed class TokenService(IOptions<JwtSettings> jwtOptions) : ITokenServi
         };
 
         claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(user.Permissions.Select(permission =>
+            new Claim(AppPermissions.ClaimType, permission)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
