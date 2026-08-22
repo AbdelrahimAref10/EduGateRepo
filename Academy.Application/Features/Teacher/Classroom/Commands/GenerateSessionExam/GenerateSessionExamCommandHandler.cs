@@ -69,7 +69,11 @@ public sealed class GenerateSessionExamCommandHandler(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        var exam = ExamMappings.ToExamEntity(request.SessionId, request.UserId, generated.Value!);
+        var exam = ExamMappings.ToExamEntity(
+            request.SessionId,
+            request.UserId,
+            generated.Value!,
+            request.MinutesPerQuestion * 60);
         dbContext.Exams.Add(exam);
         await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -56,6 +56,6 @@ public sealed class EndLessonGroupCommandHandler(
         }
 
         return Result<LessonGroupDto>.Success(
-            LessonMappings.ToGroupDto(group, requestLanguage.Current, includeSessions: true));
+            LessonMappings.ToGroupDto(group, requestLanguage.Current));
     }
 }

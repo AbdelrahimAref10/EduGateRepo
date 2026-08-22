@@ -59,6 +59,8 @@
               {{ currentExam.currentQuestionNumber }} / {{ currentExam.questionCount }}
             } @else {
               {{ currentExam.questionCount }} {{ 'classroom.examQuestionCount' | t }}
+              · {{ examMinutes(currentExam.secondsPerQuestion) }}
+              {{ 'classroom.examMinutesEach' | t }}
               · {{ 'classroom.studentExamCardHint' | t }}
             }
           </p>

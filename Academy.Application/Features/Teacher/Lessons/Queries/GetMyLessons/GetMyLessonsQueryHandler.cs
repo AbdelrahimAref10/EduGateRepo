@@ -26,6 +26,7 @@ public sealed class GetMyLessonsQueryHandler(
         var language = requestLanguage.Current;
 
         var lessons = await dbContext.Lessons
+            .AsNoTracking()
             .Where(x => x.TeacherId == teacher.Id)
             .OrderByDescending(x => x.CreatedAtUtc)
             .Select(x => new LessonDto

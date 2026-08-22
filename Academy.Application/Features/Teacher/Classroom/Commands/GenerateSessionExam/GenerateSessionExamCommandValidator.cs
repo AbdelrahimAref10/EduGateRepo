@@ -12,6 +12,10 @@ public sealed class GenerateSessionExamCommandValidator : AbstractValidator<Gene
         RuleFor(x => x.QuestionCount)
             .InclusiveBetween(ExamRules.MinQuestionCount, ExamRules.MaxQuestionCount);
 
+        RuleFor(x => x.MinutesPerQuestion)
+            .InclusiveBetween(ExamRules.MinMinutesPerQuestion, ExamRules.MaxMinutesPerQuestion)
+            .WithMessage($"حدد وقت كل سؤال من {ExamRules.MinMinutesPerQuestion} إلى {ExamRules.MaxMinutesPerQuestion} دقيقة.");
+
         RuleFor(x => x.Files)
             .NotEmpty()
             .WithMessage("ارفع ملف PDF أو Word أو صورة لتوليد الامتحان.");

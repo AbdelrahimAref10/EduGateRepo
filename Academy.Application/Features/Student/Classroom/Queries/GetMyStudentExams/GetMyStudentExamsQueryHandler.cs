@@ -34,6 +34,14 @@ public sealed class GetMyStudentExamsQueryHandler(IApplicationDbContext dbContex
                 Title = x.Title,
                 Subject = x.LessonGroupSession.LessonGroup.Lesson.Subject,
                 GroupName = x.LessonGroupSession.LessonGroup.Name,
+                SessionNumber = dbContext.LessonGroupSessions.Count(s =>
+                    s.LessonGroupId == x.LessonGroupSession.LessonGroupId
+                    && (s.SessionDate < x.LessonGroupSession.SessionDate
+                        || (s.SessionDate == x.LessonGroupSession.SessionDate
+                            && s.StartTime < x.LessonGroupSession.StartTime)
+                        || (s.SessionDate == x.LessonGroupSession.SessionDate
+                            && s.StartTime == x.LessonGroupSession.StartTime
+                            && s.Id <= x.LessonGroupSessionId))),
                 Topic = x.LessonGroupSession.Topic,
                 TeacherName = (x.LessonGroupSession.LessonGroup.Lesson.Teacher.User.FirstName + " "
                                + x.LessonGroupSession.LessonGroup.Lesson.Teacher.User.LastName).Trim(),

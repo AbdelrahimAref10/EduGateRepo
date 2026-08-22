@@ -1,3 +1,183 @@
 :host {
   display: block;
 }
+
+.exam-create-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-ink) 48%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.exam-create-dialog {
+  display: flex;
+  width: min(28rem, 100%);
+  max-height: min(90vh, 40rem);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 1.25rem;
+  background: var(--color-surface);
+  box-shadow: 0 24px 60px rgba(0, 21, 46, 0.26);
+}
+
+.exam-create-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.15rem 1.25rem 0.85rem;
+}
+
+.exam-create-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary-700);
+}
+
+.exam-create-head h3 {
+  margin-top: 0.2rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.exam-create-close {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-body);
+  color: var(--color-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.exam-create-close:disabled {
+  opacity: 0.5;
+}
+
+.exam-create-body {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.95rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.exam-create-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 420px) {
+  .exam-create-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.exam-dropzone {
+  display: grid;
+  min-width: 0;
+  cursor: pointer;
+  place-items: center;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  border: 1px dashed color-mix(in srgb, var(--color-primary-500) 38%, var(--color-line));
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-primary-50) 70%, white);
+  padding: 1.15rem 1rem;
+  text-align: center;
+}
+
+.exam-dropzone-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.exam-dropzone-hint {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.exam-file-list {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+}
+
+.exam-file-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 0.85rem;
+  background: var(--color-body);
+  padding: 0.55rem 0.65rem;
+}
+
+.exam-file-ext {
+  display: grid;
+  width: 2.4rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.exam-file-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.exam-file-size {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.exam-file-remove {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-danger, #be123c);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.exam-create-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
+}

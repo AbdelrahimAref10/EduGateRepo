@@ -68,7 +68,7 @@ internal static class StudentExamProgress
 
     public static int RemainingSeconds(Exam exam, ExamAttempt attempt)
     {
-        var allowed = exam.SecondsPerQuestion > 0 ? exam.SecondsPerQuestion : ExamRules.SecondsPerQuestion;
+        var allowed = exam.SecondsPerQuestion > 0 ? exam.SecondsPerQuestion : ExamRules.DefaultSecondsPerQuestion;
         var elapsed = (int)Math.Floor((DateTime.UtcNow - attempt.CurrentQuestionStartedAtUtc).TotalSeconds);
         return Math.Max(0, allowed - elapsed);
     }
@@ -106,7 +106,7 @@ internal static class StudentExamProgress
             Title = exam.Title,
             Status = (int)exam.Status,
             QuestionCount = questions.Count,
-            SecondsPerQuestion = exam.SecondsPerQuestion > 0 ? exam.SecondsPerQuestion : ExamRules.SecondsPerQuestion,
+            SecondsPerQuestion = exam.SecondsPerQuestion > 0 ? exam.SecondsPerQuestion : ExamRules.DefaultSecondsPerQuestion,
             HasStarted = started,
             HasSubmitted = submitted,
             CurrentQuestionNumber = currentNumber,

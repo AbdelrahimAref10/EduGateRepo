@@ -30,6 +30,7 @@ export class TeacherGroupManageComponent implements OnInit {
   readonly lessonId = signal(0);
   readonly groupId = signal(0);
   readonly loading = signal(false);
+  readonly loadingSessions = signal(false);
   readonly endingGroup = signal(false);
   readonly deletingGroup = signal(false);
   readonly startingSessionId = signal<number | null>(null);
@@ -38,6 +39,7 @@ export class TeacherGroupManageComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly group = signal<LessonGroupDto | null>(null);
+  readonly sessions = signal<LessonGroupSessionDto[]>([]);
   readonly lessonStudents = signal<LessonStudentDto[]>([]);
 
   readonly selectableStudents = computed(() => {
@@ -67,26 +69,38 @@ export class TeacherGroupManageComponent implements OnInit {
       return;
     }
 
-    this.loading.set(true);
     this.error.set(null);
+    this.loadGroupDetails(lessonId, groupId);
+    this.loadSessions(lessonId, groupId);
+  }
 
+  private loadGroupDetails(lessonId: number, groupId: number): void {
+    this.loading.set(true);
     this.lessonsApi.getGroup(lessonId, groupId).subscribe({
       next: (data) => {
-        this.group.set(data);
-        this.lessonsApi.getLessonManage(lessonId).subscribe({
-          next: (manage) => {
-            this.lessonStudents.set(manage.students ?? []);
-            this.loading.set(false);
-          },
-          error: (err) => {
-            this.loading.set(false);
-            this.error.set(err?.result?.detail || err?.message || 'Failed to load students.');
-          },
-        });
+        this.group.set(data.group);
+        this.lessonStudents.set(data.students ?? []);
+        this.loading.set(false);
       },
       error: (err) => {
         this.loading.set(false);
         this.error.set(err?.result?.detail || err?.message || 'Failed to load group.');
+      },
+    });
+  }
+
+  private loadSessions(lessonId = this.lessonId(), groupId = this.groupId()): void {
+    if (!lessonId || !groupId) return;
+
+    this.loadingSessions.set(true);
+    this.lessonsApi.getGroupSessions(lessonId, groupId).subscribe({
+      next: (rows) => {
+        this.sessions.set(rows ?? []);
+        this.loadingSessions.set(false);
+      },
+      error: (err) => {
+        this.loadingSessions.set(false);
+        this.error.set(err?.result?.detail || err?.message || 'Failed to load sessions.');
       },
     });
   }
@@ -265,10 +279,12 @@ export class TeacherGroupManageComponent implements OnInit {
     this.error.set(null);
 
     this.lessonsApi.endSession(this.lessonId(), this.groupId(), session.id).subscribe({
-      next: () => {
+      next: (updated) => {
         this.endingSessionId.set(null);
         this.success.set('sessionEnded');
-        this.loadAll();
+        this.sessions.update((rows) =>
+          rows.map((row) => (row.id === updated.id ? updated : row)),
+        );
       },
       error: (err) => {
         this.endingSessionId.set(null);

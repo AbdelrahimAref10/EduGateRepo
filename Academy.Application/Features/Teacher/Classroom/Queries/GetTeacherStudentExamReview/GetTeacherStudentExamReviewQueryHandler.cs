@@ -29,15 +29,6 @@ public sealed class GetTeacherStudentExamReviewQueryHandler(IApplicationDbContex
         if (session is null)
             return Result<TeacherStudentExamReviewDto>.NotFound("الحصة غير موجودة.");
 
-        var isMember = await dbContext.LessonGroupMembers
-            .AsNoTracking()
-            .AnyAsync(
-                x => x.LessonGroupId == session.LessonGroupId && x.StudentId == request.StudentId,
-                cancellationToken);
-
-        if (!isMember)
-            return Result<TeacherStudentExamReviewDto>.NotFound("الطالب غير موجود في هذه المجموعة.");
-
         var exam = await dbContext.Exams
             .AsNoTracking()
             .Include(x => x.Questions)
@@ -57,7 +48,18 @@ public sealed class GetTeacherStudentExamReviewQueryHandler(IApplicationDbContex
                 cancellationToken);
 
         if (attempt is null || attempt.SubmittedAtUtc is null)
+        {
+            var isMember = await dbContext.LessonGroupMembers
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.LessonGroupId == session.LessonGroupId && x.StudentId == request.StudentId,
+                    cancellationToken);
+
+            if (!isMember)
+                return Result<TeacherStudentExamReviewDto>.NotFound("الطالب غير موجود في هذه المجموعة.");
+
             return Result<TeacherStudentExamReviewDto>.NotFound("الطالب لم يسلّم الامتحان بعد.");
+        }
 
         var student = attempt.Student;
         var questions = TeacherExamReviewMapper.ToQuestions(exam, attempt);

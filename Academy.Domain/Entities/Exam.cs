@@ -24,7 +24,7 @@ public class Exam : BaseEntity
 
     public DateTime? PublishedAtUtc { get; set; }
 
-    /// <summary>Time allowed for each question. Default 10 minutes.</summary>
+    /// <summary>Time allowed for each question, set by the teacher in minutes then stored as seconds.</summary>
     public int SecondsPerQuestion { get; set; } = 600;
 
     public ICollection<ExamQuestion> Questions { get; set; } = [];

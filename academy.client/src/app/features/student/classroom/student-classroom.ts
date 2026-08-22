@@ -93,6 +93,11 @@ export class StudentClassroomComponent implements OnInit {
     });
   }
 
+  examMinutes(seconds?: number | null): number {
+    const value = seconds && seconds > 0 ? seconds : 600;
+    return Math.max(1, Math.round(value / 60));
+  }
+
   examActionLabel(): string {
     const exam = this.exam();
     if (!exam) return 'classroom.openExam';

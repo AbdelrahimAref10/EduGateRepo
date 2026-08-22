@@ -8,11 +8,15 @@ import {
   ClassroomStudentDetailDto,
   TeacherClassroomDto,
   TeacherExamDto,
+  TeacherExamResultsDto,
+  TeacherExamReviewOptionDto,
+  TeacherExamReviewQuestionDto,
+  TeacherStudentExamReviewDto,
   UpdateClassroomInfoRequest,
   UpdateClassroomMaterialRequest,
   UpdateStudentSessionDetailRequest,
 } from '../../../core/api/academy-api.generated';
-import { ClassroomUploadService, TeacherExamResults, TeacherExamReviewOption, TeacherExamReviewQuestion, TeacherStudentExamReview } from '../../../core/api/classroom-upload.service';
+import { ClassroomUploadService } from '../../../core/api/classroom-upload.service';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
@@ -63,13 +67,14 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   readonly success = signal<string | null>(null);
   readonly classroom = signal<TeacherClassroomDto | null>(null);
   readonly exam = signal<TeacherExamDto | null>(null);
-  readonly examResults = signal<TeacherExamResults | null>(null);
+  readonly examResults = signal<TeacherExamResultsDto | null>(null);
   readonly generatingExam = signal(false);
   readonly examModalOpen = signal(false);
   readonly examWorkspaceOpen = signal(false);
   readonly examWorkspaceTab = signal<ExamWorkspaceTab>('questions');
-  readonly studentReview = signal<TeacherStudentExamReview | null>(null);
+  readonly studentReview = signal<TeacherStudentExamReviewDto | null>(null);
   readonly loadingStudentReview = signal(false);
+  readonly loadingExamResults = signal(false);
   readonly examFiles = signal<File[]>([]);
   readonly loadingExam = signal(false);
   readonly studentDrafts = signal<Record<number, StudentDraft>>({});
@@ -77,6 +82,7 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
 
   readonly examForm = this.fb.nonNullable.group({
     questionCount: [10, [Validators.required, Validators.min(5), Validators.max(20)]],
+    minutesPerQuestion: [10, [Validators.required, Validators.min(1), Validators.max(60)]],
   });
 
   readonly infoForm = this.fb.nonNullable.group({
@@ -177,18 +183,8 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
 
   openStudentReview(studentId: number): void {
     this.error.set(null);
-    const cached = this.examResults()?.students?.find((row) => row.studentId === studentId);
-    if (cached?.hasSubmitted && cached.questions?.length) {
-      this.studentReview.set({
-        ...cached,
-        title: this.examResults()?.title || this.exam()?.title || '',
-      });
-      this.examWorkspaceTab.set('review');
-      return;
-    }
-
     this.loadingStudentReview.set(true);
-    this.uploadApi.getStudentExamReview(this.sessionId(), studentId).subscribe({
+    this.classroomApi.getStudentExamReview(this.sessionId(), studentId).subscribe({
       next: (data) => {
         this.studentReview.set(data);
         this.examWorkspaceTab.set('review');
@@ -206,13 +202,13 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     this.examWorkspaceTab.set('results');
   }
 
-  reviewQuestionOutcome(question: TeacherExamReviewQuestion): QuestionOutcome {
+  reviewQuestionOutcome(question: TeacherExamReviewQuestionDto): QuestionOutcome {
     if (question.selectedOptionId == null) return 'skipped';
     const picked = question.options?.find((option) => option.id === question.selectedOptionId);
     return picked?.isCorrect === true ? 'correct' : 'wrong';
   }
 
-  reviewOptionTone(question: TeacherExamReviewQuestion, option: TeacherExamReviewOption): ReviewTone {
+  reviewOptionTone(question: TeacherExamReviewQuestionDto, option: TeacherExamReviewOptionDto): ReviewTone {
     const selected = question.selectedOptionId === option.id;
     const correct = option.isCorrect === true;
     if (correct && selected) return 'correct';
@@ -255,15 +251,23 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     const id = this.sessionId();
     if (!id) return;
 
-    this.uploadApi.getExamResults(id).subscribe({
-      next: (data) => this.examResults.set(data),
-      error: () => this.examResults.set(null),
+    this.loadingExamResults.set(true);
+    this.classroomApi.getExamResults(id).subscribe({
+      next: (data) => {
+        this.examResults.set(data);
+        this.loadingExamResults.set(false);
+      },
+      error: (err) => {
+        this.examResults.set(null);
+        this.loadingExamResults.set(false);
+        this.error.set(this.httpErrorMessage(err, 'Failed to load exam results.'));
+      },
     });
   }
 
   openExamModal(): void {
     this.error.set(null);
-    this.examForm.reset({ questionCount: 10 });
+    this.examForm.reset({ questionCount: 10, minutesPerQuestion: 10 });
     this.examFiles.set([]);
     this.examModalOpen.set(true);
   }
@@ -295,6 +299,11 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   }
 
   generateExam(): void {
+    if (this.examForm.invalid) {
+      this.examForm.markAllAsTouched();
+      return;
+    }
+
     const files = this.examFiles();
     if (!files.length) {
       this.error.set(this.i18n.t('classroom.examNoFiles'));
@@ -305,7 +314,12 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     this.success.set(null);
     this.generatingExam.set(true);
 
-    this.uploadApi.generateExam(this.sessionId(), this.examForm.controls.questionCount.value, files).subscribe({
+    this.uploadApi.generateExam(
+      this.sessionId(),
+      this.examForm.controls.questionCount.value,
+      this.examForm.controls.minutesPerQuestion.value,
+      files,
+    ).subscribe({
       next: (data) => {
         this.exam.set(data);
         this.generatingExam.set(false);
@@ -341,6 +355,17 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     if (ext === 'PDF') return 'PDF';
     if (ext === 'DOC' || ext === 'DOCX') return 'WORD';
     if (ext === 'XLS' || ext === 'XLSX') return 'EXCEL';
+    return ext || 'FILE';
+  }
+
+  examMinutes(seconds?: number | null): number {
+    const value = seconds && seconds > 0 ? seconds : 600;
+    return Math.max(1, Math.round(value / 60));
+  }
+
+  examFileExt(fileName: string): string {
+    const ext = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.') + 1).toUpperCase() : 'FILE';
+    if (ext === 'JPEG') return 'JPG';
     return ext || 'FILE';
   }
 

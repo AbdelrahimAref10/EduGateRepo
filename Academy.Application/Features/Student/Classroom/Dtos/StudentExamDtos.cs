@@ -78,6 +78,8 @@ public sealed class StudentExamListItemDto
 
     public required string GroupName { get; init; }
 
+    public required int SessionNumber { get; init; }
+
     public string? Topic { get; init; }
 
     public required string TeacherName { get; init; }

@@ -111,7 +111,8 @@
           <p class="mt-2 text-sm leading-relaxed text-muted">{{ 'classroom.studentExamHint' | t }}</p>
           <p class="mt-3 text-sm font-bold text-ink">
             {{ exam()!.questionCount }} {{ 'classroom.examQuestionCount' | t }}
-            · {{ 'classroom.examTimeHint' | t }}
+            · {{ examMinutes(exam()!.secondsPerQuestion) }}
+            {{ 'classroom.examMinutesEach' | t }}
           </p>
           <button type="button" class="btn-primary mt-5" (click)="startExam()" [disabled]="startingExam()">
             {{ startingExam() ? ('classroom.startingExam' | t) : ('classroom.startExam' | t) }}

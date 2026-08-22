@@ -2,7 +2,13 @@ namespace Academy.Application.Features.Classroom.Exams;
 
 public static class ExamRules
 {
-    public const int SecondsPerQuestion = 10 * 60;
+    public const int DefaultMinutesPerQuestion = 10;
+
+    public const int MinMinutesPerQuestion = 1;
+
+    public const int MaxMinutesPerQuestion = 60;
+
+    public const int DefaultSecondsPerQuestion = DefaultMinutesPerQuestion * 60;
 
     public const int MinQuestionCount = 5;
 

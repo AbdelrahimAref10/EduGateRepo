@@ -85,14 +85,13 @@ public sealed class AddGroupMemberByCodeCommandHandler(
             .Include(x => x.Area)
                 .ThenInclude(x => x.City)
             .Include(x => x.Dates)
-            .Include(x => x.Sessions)
             .Include(x => x.Members)
                 .ThenInclude(x => x.Student)
                     .ThenInclude(x => x.User)
             .FirstAsync(x => x.Id == group.Id, cancellationToken);
 
         return Result<LessonGroupDto>.Success(
-            LessonMappings.ToGroupDto(refreshed, requestLanguage.Current, includeSessions: true));
+            LessonMappings.ToGroupDto(refreshed, requestLanguage.Current));
     }
 
     private async Task<Result<StudentEntity>> ResolveStudentAsync(

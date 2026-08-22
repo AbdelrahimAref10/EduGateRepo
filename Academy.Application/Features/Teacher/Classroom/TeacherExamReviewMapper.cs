@@ -7,7 +7,9 @@ internal static class TeacherExamReviewMapper
 {
     public static IReadOnlyList<TeacherExamReviewQuestionDto> ToQuestions(Exam exam, ExamAttempt? attempt)
     {
-        var selected = attempt?.Answers.ToDictionary(x => x.ExamQuestionId, x => x.SelectedOptionId)
+        var selected = attempt?.Answers
+            .GroupBy(x => x.ExamQuestionId)
+            .ToDictionary(g => g.Key, g => g.Last().SelectedOptionId)
             ?? new Dictionary<int, int?>();
 
         return exam.Questions

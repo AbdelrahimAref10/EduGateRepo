@@ -31,37 +31,70 @@ public sealed class GetTeacherSessionExamResultsQueryHandler(IApplicationDbConte
 
         var exam = await dbContext.Exams
             .AsNoTracking()
-            .Include(x => x.Questions)
-                .ThenInclude(x => x.Options)
-            .Include(x => x.Attempts)
-                .ThenInclude(x => x.Answers)
-            .Include(x => x.Attempts)
-                .ThenInclude(x => x.Student)
-                    .ThenInclude(x => x.User)
-            .FirstOrDefaultAsync(x => x.LessonGroupSessionId == request.SessionId, cancellationToken);
+            .Where(x => x.LessonGroupSessionId == request.SessionId)
+            .Select(x => new { x.Id, x.Title, Status = (int)x.Status })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (exam is null)
             return Result<TeacherExamResultsDto>.NotFound("لا يوجد امتحان لهذه الحصة.");
 
         var members = await dbContext.LessonGroupMembers
             .AsNoTracking()
-            .Include(x => x.Student)
-                .ThenInclude(x => x.User)
             .Where(x => x.LessonGroupId == session.LessonGroupId)
             .OrderBy(x => x.AddedAtUtc)
+            .Select(x => new RosterStudent(x.StudentId, x.Student.User.FullName, x.Student.StudentCode))
             .ToListAsync(cancellationToken);
 
-        var attemptByStudentId = exam.Attempts.ToDictionary(x => x.StudentId);
+        var sessionStudents = await dbContext.LessonSessionStudentDetails
+            .AsNoTracking()
+            .Where(x => x.LessonGroupSessionId == session.Id)
+            .Select(x => new RosterStudent(x.StudentId, x.Student.User.FullName, x.Student.StudentCode))
+            .ToListAsync(cancellationToken);
 
-        var rows = members.Select(member =>
+        var attempts = await dbContext.ExamAttempts
+            .AsNoTracking()
+            .Where(x => x.ExamId == exam.Id)
+            .Select(x => new AttemptRow(
+                x.StudentId,
+                x.Student.User.FullName,
+                x.Student.StudentCode,
+                x.Score,
+                x.MaxScore,
+                x.SubmittedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        var attemptByStudentId = attempts
+            .GroupBy(x => x.StudentId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(a => a.SubmittedAtUtc.HasValue)
+                    .ThenByDescending(a => a.SubmittedAtUtc)
+                    .First());
+
+        var roster = new List<RosterStudent>(members.Count + sessionStudents.Count);
+        var seen = new HashSet<int>();
+
+        foreach (var person in members.Concat(sessionStudents))
         {
-            attemptByStudentId.TryGetValue(member.StudentId, out var attempt);
+            if (seen.Add(person.StudentId))
+                roster.Add(person);
+        }
+
+        foreach (var attempt in attemptByStudentId.Values)
+        {
+            if (seen.Add(attempt.StudentId))
+                roster.Add(new RosterStudent(attempt.StudentId, attempt.StudentName, attempt.StudentCode));
+        }
+
+        var rows = roster.Select(person =>
+        {
+            attemptByStudentId.TryGetValue(person.StudentId, out var attempt);
             var submitted = attempt?.SubmittedAtUtc is not null;
             return new TeacherExamResultRowDto
             {
-                StudentId = member.StudentId,
-                StudentName = member.Student.User.FullName,
-                StudentCode = member.Student.StudentCode,
+                StudentId = person.StudentId,
+                StudentName = person.StudentName,
+                StudentCode = person.StudentCode,
                 HasSubmitted = submitted,
                 Score = submitted ? attempt!.Score : null,
                 MaxScore = submitted ? attempt!.MaxScore : null,
@@ -69,7 +102,7 @@ public sealed class GetTeacherSessionExamResultsQueryHandler(IApplicationDbConte
                     ? Math.Round(attempt.Score * 100m / attempt.MaxScore, 1)
                     : null,
                 SubmittedAtUtc = attempt?.SubmittedAtUtc,
-                Questions = submitted ? TeacherExamReviewMapper.ToQuestions(exam, attempt) : []
+                Questions = []
             };
         }).ToList();
 
@@ -77,10 +110,20 @@ public sealed class GetTeacherSessionExamResultsQueryHandler(IApplicationDbConte
         {
             ExamId = exam.Id,
             Title = exam.Title,
-            Status = (int)exam.Status,
+            Status = exam.Status,
             SubmittedCount = rows.Count(x => x.HasSubmitted),
             StudentCount = rows.Count,
             Students = rows
         });
     }
+
+    private sealed record RosterStudent(int StudentId, string StudentName, string? StudentCode);
+
+    private sealed record AttemptRow(
+        int StudentId,
+        string StudentName,
+        string? StudentCode,
+        int Score,
+        int MaxScore,
+        DateTime? SubmittedAtUtc);
 }

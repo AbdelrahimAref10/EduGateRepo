@@ -82,8 +82,7 @@ public sealed class GeminiExamGenerator(
                         status, model, attempt, body);
 
                     if (IsDailyQuota(status, body, lastError))
-                        return Result<GeneratedExam>.Failure(
-                            "خلصت طلبات جيميناي المجانية لليوم على النموذج الحالي. جرّب بعد شوية أو ولّد تاني بنفس الملفات.");
+                        return Result<GeneratedExam>.Failure("تعذر إنشاء الامتحان حالياً. حاول مرة أخرى.");
 
                     if (IsRetryable(status, body, lastError))
                     {
@@ -139,8 +138,7 @@ public sealed class GeminiExamGenerator(
         }
 
         if (sawRetryable)
-            return Result<GeneratedExam>.Failure(
-                "جيميناي الفري مشغول دلوقتي. مش محتاج تستنى ساعات — جرّب التوليد تاني بعد دقيقة.");
+            return Result<GeneratedExam>.Failure("تعذر إنشاء الامتحان حالياً. حاول مرة أخرى.");
 
         return Result<GeneratedExam>.Failure(lastError ?? "فشل توليد الامتحان من Gemini.");
     }

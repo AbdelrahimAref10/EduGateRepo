@@ -43,6 +43,7 @@ internal static class ClassroomMappings
 
     public static TeacherClassroomDto ToTeacherClassroomDto(
         LessonGroupSession session,
+        int sessionNumber,
         IReadOnlyList<ClassroomStudentDetailDto> students,
         IReadOnlyList<ClassroomMaterialDto> materials)
     {
@@ -54,6 +55,7 @@ internal static class ClassroomMappings
             SessionId = session.Id,
             LessonId = lesson.Id,
             LessonGroupId = session.LessonGroupId,
+            SessionNumber = sessionNumber,
             GroupName = session.LessonGroup.Name,
             Subject = lesson.Subject,
             SessionDate = session.SessionDate,

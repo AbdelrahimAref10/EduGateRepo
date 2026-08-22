@@ -9,4 +9,5 @@ public sealed record GenerateSessionExamCommand(
     int UserId,
     int SessionId,
     int QuestionCount,
+    int MinutesPerQuestion,
     IReadOnlyList<ExamUploadedFile> Files) : IRequest<Result<TeacherExamDto>>;

@@ -14,6 +14,7 @@ using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherClassroom
 using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherSessionExam;
 using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherSessionExamResults;
 using Academy.Application.Features.Teacher.Classroom.Queries.GetTeacherStudentExamReview;
+using Academy.Application.Features.Classroom.Exams;
 using Academy.Domain.Common;
 using Academy.Domain.Enums;
 using Academy.Server.Extensions;
@@ -270,6 +271,7 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
     public async Task<IActionResult> GenerateExam(
         int sessionId,
         [FromForm] string? questionCount,
+        [FromForm] string? minutesPerQuestion,
         [FromForm(Name = "files")] IFormFileCollection? files,
         CancellationToken cancellationToken)
     {
@@ -279,6 +281,9 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
 
         if (!int.TryParse(questionCount, out var parsedCount) || parsedCount <= 0)
             parsedCount = 10;
+
+        if (!int.TryParse(minutesPerQuestion, out var parsedMinutes) || parsedMinutes <= 0)
+            parsedMinutes = ExamRules.DefaultMinutesPerQuestion;
 
         var uploads = new List<ExamUploadedFile>();
         foreach (var file in files ?? Enumerable.Empty<IFormFile>())
@@ -302,6 +307,7 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
                 userId.Value,
                 sessionId,
                 parsedCount,
+                parsedMinutes,
                 uploads),
             cancellationToken);
 

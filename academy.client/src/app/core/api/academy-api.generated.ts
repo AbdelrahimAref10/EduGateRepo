@@ -270,7 +270,7 @@ export interface IClassroomClient {
     deleteMaterial(sessionId: number, materialId: number): Observable<void>;
     downloadMaterialFile(sessionId: number, materialId: number): Observable<FileResponse>;
     getExam(sessionId: number): Observable<TeacherExamDto>;
-    generateExam(sessionId: number, questionCount: string | null | undefined, files: any[] | null | undefined): Observable<TeacherExamDto>;
+    generateExam(sessionId: number, questionCount: string | null | undefined, minutesPerQuestion: string | null | undefined, files: any[] | null | undefined): Observable<TeacherExamDto>;
     publishExam(sessionId: number): Observable<TeacherExamDto>;
     getExamResults(sessionId: number): Observable<TeacherExamResultsDto>;
     getStudentExamReview(sessionId: number, studentId: number): Observable<TeacherStudentExamReviewDto>;
@@ -905,7 +905,7 @@ export class ClassroomClient implements IClassroomClient {
         return _observableOf(null as any);
     }
 
-    generateExam(sessionId: number, questionCount: string | null | undefined, files: any[] | null | undefined): Observable<TeacherExamDto> {
+    generateExam(sessionId: number, questionCount: string | null | undefined, minutesPerQuestion: string | null | undefined, files: any[] | null | undefined): Observable<TeacherExamDto> {
         let url_ = this.baseUrl + "/api/teacher/classroom/sessions/{sessionId}/exam";
         if (sessionId === undefined || sessionId === null)
             throw new globalThis.Error("The parameter 'sessionId' must be defined.");
@@ -915,6 +915,8 @@ export class ClassroomClient implements IClassroomClient {
         const content_ = new FormData();
         if (questionCount !== null && questionCount !== undefined)
             content_.append("questionCount", questionCount.toString());
+        if (minutesPerQuestion !== null && minutesPerQuestion !== undefined)
+            content_.append("minutesPerQuestion", minutesPerQuestion.toString());
         if (files !== null && files !== undefined)
             files.forEach(item_ => content_.append("files", item_.toString()));
 
@@ -1714,9 +1716,10 @@ export interface ILessonsClient {
     startLesson(lessonId: number): Observable<LessonDto>;
     addLessonStudent(lessonId: number, request: AddLessonStudentRequest): Observable<LessonStudentDto>;
     createGroup(lessonId: number, request: CreateLessonGroupRequest): Observable<LessonGroupDto>;
-    getGroup(lessonId: number, groupId: number): Observable<LessonGroupDto>;
+    getGroup(lessonId: number, groupId: number): Observable<LessonGroupManageDto>;
     updateGroup(lessonId: number, groupId: number, request: UpdateLessonGroupRequest): Observable<LessonGroupDto>;
     deleteGroup(lessonId: number, groupId: number): Observable<void>;
+    getGroupSessions(lessonId: number, groupId: number): Observable<LessonGroupSessionDto[]>;
     endGroup(lessonId: number, groupId: number): Observable<LessonGroupDto>;
     startGroup(lessonId: number, groupId: number): Observable<LessonGroupDto>;
     startSession(lessonId: number, groupId: number, sessionId: number): Observable<LessonGroupSessionDto>;
@@ -2317,7 +2320,7 @@ export class LessonsClient implements ILessonsClient {
         return _observableOf(null as any);
     }
 
-    getGroup(lessonId: number, groupId: number): Observable<LessonGroupDto> {
+    getGroup(lessonId: number, groupId: number): Observable<LessonGroupManageDto> {
         let url_ = this.baseUrl + "/api/teacher/lessons/{lessonId}/groups/{groupId}";
         if (lessonId === undefined || lessonId === null)
             throw new globalThis.Error("The parameter 'lessonId' must be defined.");
@@ -2342,14 +2345,14 @@ export class LessonsClient implements ILessonsClient {
                 try {
                     return this.processGetGroup(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<LessonGroupDto>;
+                    return _observableThrow(e) as any as Observable<LessonGroupManageDto>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<LessonGroupDto>;
+                return _observableThrow(response_) as any as Observable<LessonGroupManageDto>;
         }));
     }
 
-    protected processGetGroup(response: HttpResponseBase): Observable<LessonGroupDto> {
+    protected processGetGroup(response: HttpResponseBase): Observable<LessonGroupManageDto> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -2360,7 +2363,7 @@ export class LessonsClient implements ILessonsClient {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = LessonGroupDto.fromJS(resultData200);
+            result200 = LessonGroupManageDto.fromJS(resultData200);
             return _observableOf(result200);
             }));
         } else if (status === 404) {
@@ -2512,6 +2515,74 @@ export class LessonsClient implements ILessonsClient {
             let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result409 = ProblemDetails.fromJS(resultData409);
             return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getGroupSessions(lessonId: number, groupId: number): Observable<LessonGroupSessionDto[]> {
+        let url_ = this.baseUrl + "/api/teacher/lessons/{lessonId}/groups/{groupId}/sessions";
+        if (lessonId === undefined || lessonId === null)
+            throw new globalThis.Error("The parameter 'lessonId' must be defined.");
+        url_ = url_.replace("{lessonId}", encodeURIComponent("" + lessonId));
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetGroupSessions(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetGroupSessions(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<LessonGroupSessionDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<LessonGroupSessionDto[]>;
+        }));
+    }
+
+    protected processGetGroupSessions(response: HttpResponseBase): Observable<LessonGroupSessionDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(LessonGroupSessionDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -7203,6 +7274,7 @@ export class TeacherClassroomDto implements ITeacherClassroomDto {
     sessionId!: number;
     lessonId!: number;
     lessonGroupId!: number;
+    sessionNumber!: number;
     groupName!: string;
     subject!: string;
     sessionDate!: Date;
@@ -7232,6 +7304,7 @@ export class TeacherClassroomDto implements ITeacherClassroomDto {
             this.sessionId = _data["sessionId"];
             this.lessonId = _data["lessonId"];
             this.lessonGroupId = _data["lessonGroupId"];
+            this.sessionNumber = _data["sessionNumber"];
             this.groupName = _data["groupName"];
             this.subject = _data["subject"];
             this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
@@ -7269,6 +7342,7 @@ export class TeacherClassroomDto implements ITeacherClassroomDto {
         data["sessionId"] = this.sessionId;
         data["lessonId"] = this.lessonId;
         data["lessonGroupId"] = this.lessonGroupId;
+        data["sessionNumber"] = this.sessionNumber;
         data["groupName"] = this.groupName;
         data["subject"] = this.subject;
         data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
@@ -7299,6 +7373,7 @@ export interface ITeacherClassroomDto {
     sessionId: number;
     lessonId: number;
     lessonGroupId: number;
+    sessionNumber: number;
     groupName: string;
     subject: string;
     sessionDate: Date;
@@ -9167,6 +9242,58 @@ export interface ILessonGroupDateInputDto {
     startTime?: string;
 }
 
+export class LessonGroupManageDto implements ILessonGroupManageDto {
+    group!: LessonGroupDto;
+    students!: LessonStudentDto[];
+
+    constructor(data?: ILessonGroupManageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.group = new LessonGroupDto();
+            this.students = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.group = _data["group"] ? LessonGroupDto.fromJS(_data["group"]) : new LessonGroupDto();
+            if (Array.isArray(_data["students"])) {
+                this.students = [] as any;
+                for (let item of _data["students"])
+                    this.students!.push(LessonStudentDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): LessonGroupManageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LessonGroupManageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["group"] = this.group ? this.group.toJSON() : undefined as any;
+        if (Array.isArray(this.students)) {
+            data["students"] = [];
+            for (let item of this.students)
+                data["students"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ILessonGroupManageDto {
+    group: LessonGroupDto;
+    students: LessonStudentDto[];
+}
+
 export class UpdateLessonGroupRequest implements IUpdateLessonGroupRequest {
     name?: string;
     dates?: LessonGroupDateInputDto[];
@@ -10362,6 +10489,7 @@ export class StudentExamListItemDto implements IStudentExamListItemDto {
     title!: string;
     subject!: string;
     groupName!: string;
+    sessionNumber!: number;
     topic?: string | undefined;
     teacherName!: string;
     sessionDate!: Date;
@@ -10392,6 +10520,7 @@ export class StudentExamListItemDto implements IStudentExamListItemDto {
             this.title = _data["title"];
             this.subject = _data["subject"];
             this.groupName = _data["groupName"];
+            this.sessionNumber = _data["sessionNumber"];
             this.topic = _data["topic"];
             this.teacherName = _data["teacherName"];
             this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
@@ -10422,6 +10551,7 @@ export class StudentExamListItemDto implements IStudentExamListItemDto {
         data["title"] = this.title;
         data["subject"] = this.subject;
         data["groupName"] = this.groupName;
+        data["sessionNumber"] = this.sessionNumber;
         data["topic"] = this.topic;
         data["teacherName"] = this.teacherName;
         data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
@@ -10445,6 +10575,7 @@ export interface IStudentExamListItemDto {
     title: string;
     subject: string;
     groupName: string;
+    sessionNumber: number;
     topic?: string | undefined;
     teacherName: string;
     sessionDate: Date;

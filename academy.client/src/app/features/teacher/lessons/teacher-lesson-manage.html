@@ -16,9 +16,6 @@
         </p>
       }
     </div>
-    <button type="button" class="btn-ghost" (click)="copyBookingLink()" [disabled]="loading() || !manage()?.lesson">
-      {{ 'marketplace.copyBookingLink' | t }}
-    </button>
     <button type="button" class="btn-ghost" (click)="loadManage()" [disabled]="loading()">
       {{ 'lessons.refresh' | t }}
     </button>
@@ -47,9 +44,6 @@
   }
   @if (success() === 'studentAdded') {
     <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.studentAdded' | t }}</div>
-  }
-  @if (success() === 'linkCopied') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'marketplace.linkCopied' | t }}</div>
   }
 
   @if (loading() && !manage()) {
@@ -145,99 +139,6 @@
       <div class="border-b border-line px-5 py-4">
         <h3 class="section-title">{{ 'lessons.groups' | t }}</h3>
         <p class="mt-1 text-sm text-muted">{{ 'lessons.groupsHint' | t }}</p>
-      </div>
-
-      <div class="border-b border-line bg-body/50 px-5 py-4">
-        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
-          {{ editingGroupId() ? ('lessons.editGroupTitle' | t) : ('lessons.createGroupTitle' | t) }}
-        </p>
-        <form class="grid gap-3 md:grid-cols-2" [formGroup]="groupForm" (ngSubmit)="submitGroup()">
-          <label>
-            <span class="label-text">{{ 'lessons.groupName' | t }}</span>
-            <input class="field" type="text" formControlName="name" />
-          </label>
-          <label>
-            <span class="label-text">{{ 'lessons.area' | t }}</span>
-            <select class="field" formControlName="areaId">
-              <option [ngValue]="0" disabled>{{ 'lessons.selectArea' | t }}</option>
-              @for (area of cityAreas(); track area.id) {
-                <option [ngValue]="area.id">{{ area.name }}</option>
-              }
-            </select>
-          </label>
-          <label>
-            <span class="label-text">{{ 'lessons.periodStart' | t }}</span>
-            <input class="field" type="date" formControlName="periodStartDate" />
-          </label>
-          <label>
-            <span class="label-text">{{ 'lessons.periodEnd' | t }}</span>
-            <input class="field" type="date" formControlName="periodEndDate" />
-          </label>
-          <label class="md:col-span-2">
-            <span class="label-text">{{ 'lessons.address' | t }}</span>
-            <input class="field" type="text" formControlName="address" />
-          </label>
-          <label>
-            <span class="label-text">{{ 'lessons.maxCapacity' | t }}</span>
-            <input class="field" type="number" min="1" formControlName="maxCapacity" />
-          </label>
-          <label>
-            <span class="label-text">{{ 'lessons.notes' | t }}</span>
-            <input class="field" type="text" formControlName="notes" />
-          </label>
-
-          <div class="md:col-span-2" formArrayName="dates">
-            <div class="mb-2 flex items-center justify-between gap-2">
-              <span class="label-text mb-0">{{ 'lessons.schedule' | t }}</span>
-              <button type="button" class="btn-ghost text-xs" (click)="addDateRow()">
-                {{ 'lessons.addDay' | t }}
-              </button>
-            </div>
-            <div class="space-y-2">
-              @for (row of dates.controls; track $index; let i = $index) {
-                <div class="grid grid-cols-[1fr_auto_auto] items-end gap-2" [formGroupName]="i">
-                  <label>
-                    <span class="sr-only">{{ 'lessons.day' | t }}</span>
-                    <select class="field" formControlName="dayOfWeek">
-                      @for (day of weekDays; track day) {
-                        <option [ngValue]="day">{{ dayLabel(day) }}</option>
-                      }
-                    </select>
-                  </label>
-                  <label>
-                    <span class="sr-only">{{ 'lessons.time' | t }}</span>
-                    <input class="field w-32" type="time" formControlName="startTime" />
-                  </label>
-                  <button
-                    type="button"
-                    class="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-danger"
-                    (click)="removeDateRow(i)"
-                    [disabled]="dates.length <= 1"
-                  >
-                    {{ 'lessons.removeDay' | t }}
-                  </button>
-                </div>
-              }
-            </div>
-          </div>
-
-          <div class="flex flex-wrap gap-2 md:col-span-2">
-            <button type="submit" class="btn-primary" [disabled]="savingGroup() || loadingAreas()">
-              {{
-                savingGroup()
-                  ? ('lessons.saving' | t)
-                  : editingGroupId()
-                    ? ('lessons.updateGroup' | t)
-                    : ('lessons.createGroup' | t)
-              }}
-            </button>
-            @if (editingGroupId()) {
-              <button type="button" class="btn-ghost" (click)="cancelEditGroup()" [disabled]="savingGroup()">
-                {{ 'lessons.cancel' | t }}
-              </button>
-            }
-          </div>
-        </form>
       </div>
 
       <div class="space-y-4 p-5">
@@ -363,7 +264,108 @@
             </article>
           }
         }
+
+        <div class="pt-1">
+          <button type="button" class="btn-primary" (click)="toggleGroupForm()">
+            {{ groupFormOpen() ? ('lessons.hideGroupForm' | t) : ('lessons.createNewGroup' | t) }}
+          </button>
+        </div>
       </div>
+
+      @if (groupFormOpen()) {
+        <div class="border-t border-line bg-body/50 px-5 py-4">
+          <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+            {{ editingGroupId() ? ('lessons.editGroupTitle' | t) : ('lessons.createGroupTitle' | t) }}
+          </p>
+          <form class="grid gap-3 md:grid-cols-2" [formGroup]="groupForm" (ngSubmit)="submitGroup()">
+            <label>
+              <span class="label-text">{{ 'lessons.groupName' | t }}</span>
+              <input class="field" type="text" formControlName="name" />
+            </label>
+            <label>
+              <span class="label-text">{{ 'lessons.area' | t }}</span>
+              <select class="field" formControlName="areaId">
+                <option [ngValue]="0" disabled>{{ 'lessons.selectArea' | t }}</option>
+                @for (area of cityAreas(); track area.id) {
+                  <option [ngValue]="area.id">{{ area.name }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              <span class="label-text">{{ 'lessons.periodStart' | t }}</span>
+              <input class="field" type="date" formControlName="periodStartDate" />
+            </label>
+            <label>
+              <span class="label-text">{{ 'lessons.periodEnd' | t }}</span>
+              <input class="field" type="date" formControlName="periodEndDate" />
+            </label>
+            <label class="md:col-span-2">
+              <span class="label-text">{{ 'lessons.address' | t }}</span>
+              <input class="field" type="text" formControlName="address" />
+            </label>
+            <label>
+              <span class="label-text">{{ 'lessons.maxCapacity' | t }}</span>
+              <input class="field" type="number" min="1" formControlName="maxCapacity" />
+            </label>
+            <label>
+              <span class="label-text">{{ 'lessons.notes' | t }}</span>
+              <input class="field" type="text" formControlName="notes" />
+            </label>
+
+            <div class="md:col-span-2" formArrayName="dates">
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <span class="label-text mb-0">{{ 'lessons.schedule' | t }}</span>
+                <button type="button" class="btn-ghost text-xs" (click)="addDateRow()">
+                  {{ 'lessons.addDay' | t }}
+                </button>
+              </div>
+              <div class="space-y-2">
+                @for (row of dates.controls; track $index; let i = $index) {
+                  <div class="grid grid-cols-[1fr_auto_auto] items-end gap-2" [formGroupName]="i">
+                    <label>
+                      <span class="sr-only">{{ 'lessons.day' | t }}</span>
+                      <select class="field" formControlName="dayOfWeek">
+                        @for (day of weekDays; track day) {
+                          <option [ngValue]="day">{{ dayLabel(day) }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      <span class="sr-only">{{ 'lessons.time' | t }}</span>
+                      <input class="field w-32" type="time" formControlName="startTime" />
+                    </label>
+                    <button
+                      type="button"
+                      class="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-danger"
+                      (click)="removeDateRow(i)"
+                      [disabled]="dates.length <= 1"
+                    >
+                      {{ 'lessons.removeDay' | t }}
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 md:col-span-2">
+              <button type="submit" class="btn-primary" [disabled]="savingGroup() || loadingAreas()">
+                {{
+                  savingGroup()
+                    ? ('lessons.saving' | t)
+                    : editingGroupId()
+                      ? ('lessons.updateGroup' | t)
+                      : ('lessons.createGroup' | t)
+                }}
+              </button>
+              @if (editingGroupId()) {
+                <button type="button" class="btn-ghost" (click)="cancelEditGroup()" [disabled]="savingGroup()">
+                  {{ 'lessons.cancel' | t }}
+                </button>
+              }
+            </div>
+          </form>
+        </div>
+      }
     </section>
   }
 </section>

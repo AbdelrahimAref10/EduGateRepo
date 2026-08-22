@@ -43,7 +43,8 @@ internal static class ExamMappings
     public static Exam ToExamEntity(
         int sessionId,
         int createdByUserId,
-        Academy.Application.Contracts.Ai.GeneratedExam generated)
+        Academy.Application.Contracts.Ai.GeneratedExam generated,
+        int secondsPerQuestion)
     {
         var exam = new Exam
         {
@@ -53,7 +54,9 @@ internal static class ExamMappings
             CreatedByUserId = createdByUserId,
             CreatedAtUtc = DateTime.UtcNow,
             PublishedAtUtc = DateTime.UtcNow,
-            SecondsPerQuestion = ExamRules.SecondsPerQuestion
+            SecondsPerQuestion = secondsPerQuestion > 0
+                ? secondsPerQuestion
+                : ExamRules.DefaultSecondsPerQuestion
         };
 
         var questionOrder = 0;

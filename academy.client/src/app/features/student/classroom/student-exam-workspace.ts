@@ -109,6 +109,11 @@ export class StudentExamWorkspaceComponent implements OnDestroy {
     });
   }
 
+  examMinutes(seconds?: number | null): number {
+    const value = seconds && seconds > 0 ? seconds : 600;
+    return Math.max(1, Math.round(value / 60));
+  }
+
   formatRemaining(): string {
     const total = Math.max(0, this.remainingSeconds());
     const minutes = Math.floor(total / 60);

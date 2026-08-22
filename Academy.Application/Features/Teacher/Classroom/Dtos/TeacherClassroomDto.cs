@@ -8,6 +8,8 @@ public sealed class TeacherClassroomDto
 
     public required int LessonGroupId { get; init; }
 
+    public required int SessionNumber { get; init; }
+
     public required string GroupName { get; init; }
 
     public required string Subject { get; init; }

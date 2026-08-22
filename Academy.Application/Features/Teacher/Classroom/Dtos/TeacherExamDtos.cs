@@ -3,6 +3,8 @@ namespace Academy.Application.Features.Teacher.Classroom.Dtos;
 public sealed class GenerateSessionExamRequest
 {
     public int QuestionCount { get; set; } = 10;
+
+    public int MinutesPerQuestion { get; set; } = 10;
 }
 
 public sealed class TeacherExamOptionDto

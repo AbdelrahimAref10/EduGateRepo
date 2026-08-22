@@ -16,6 +16,7 @@ using Academy.Application.Features.Teacher.Lessons.Commands.UpdateLesson;
 using Academy.Application.Features.Teacher.Lessons.Commands.UpdateLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroup;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroupSessions;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonManage;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyCityAreas;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessons;
@@ -210,7 +211,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
     }
 
     [HttpGet("{lessonId:int}/groups/{groupId:int}")]
-    [ProducesResponseType(typeof(LessonGroupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LessonGroupManageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetGroup(
         int lessonId,
@@ -223,6 +224,25 @@ public sealed class LessonsController(ISender sender) : ControllerBase
 
         var result = await sender.Send(
             new GetLessonGroupQuery(userId.Value, lessonId, groupId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{lessonId:int}/groups/{groupId:int}/sessions")]
+    [ProducesResponseType(typeof(IReadOnlyList<LessonGroupSessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetGroupSessions(
+        int lessonId,
+        int groupId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetLessonGroupSessionsQuery(userId.Value, lessonId, groupId),
             cancellationToken);
 
         return result.ToActionResult();
