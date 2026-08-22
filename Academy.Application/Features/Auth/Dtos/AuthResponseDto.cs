@@ -18,6 +18,8 @@ public sealed class AuthResponseDto
 
     public required IReadOnlyList<string> Roles { get; init; }
 
+    public IReadOnlyList<string> Permissions { get; init; } = [];
+
     /// <summary>
     /// Preferred language id: 1 = Arabic, 2 = English.
     /// </summary>

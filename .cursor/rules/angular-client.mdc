@@ -1,0 +1,40 @@
+---
+description: Angular 22 SPA patterns for academy.client
+globs: academy.client/**/*.{ts,html,css}
+alwaysApply: false
+---
+
+# Angular client
+
+## Structure
+
+- `core/` — auth, i18n, API, notifications
+- `features/{role|area}/` — feature components
+- `shared/` — reusable UI (menus, dialogs, switchers)
+
+## Components
+
+- Prefer **standalone** components with `inject()` and `signal()` for UI state.
+- Colocate `*.ts`, `*.html`, `*.css`.
+- Use Reactive Forms (`FormBuilder.nonNullable`) for forms.
+- Use `TranslatePipe` / `TranslationService` for user-facing strings — avoid hard-coded copy when i18n exists.
+
+```typescript
+@Component({ standalone: true, imports: [...], templateUrl: './login.html' })
+export class LoginComponent {
+  private readonly auth = inject(AuthService);
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+}
+```
+
+## API & auth
+
+- Prefer NSwag clients from `core/api/academy-api.generated.ts` (e.g. `LessonsClient`).
+- Do not hand-edit the generated file; rebuild Server after API changes.
+- Auth: `AuthService`, `TokenStorageService`, `auth.interceptor`, `auth.guard` / `role.guard`.
+- Realtime notifications: existing `NotificationService` + SignalR — extend, don't fork.
+
+## Styling
+
+- Tailwind CSS 4 utility classes; match existing shell/feature layout patterns.

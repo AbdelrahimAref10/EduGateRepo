@@ -1,13 +1,17 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
+using Academy.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Teacher.Lessons.Commands.StartLessonGroupSession;
 
-public sealed class StartLessonGroupSessionCommandHandler(IApplicationDbContext dbContext)
+public sealed class StartLessonGroupSessionCommandHandler(
+    IApplicationDbContext dbContext,
+    INotificationService notificationService)
     : IRequestHandler<StartLessonGroupSessionCommand, Result<LessonGroupSessionDto>>
 {
     public async Task<Result<LessonGroupSessionDto>> Handle(
@@ -15,6 +19,7 @@ public sealed class StartLessonGroupSessionCommandHandler(IApplicationDbContext 
         CancellationToken cancellationToken)
     {
         var teacher = await dbContext.Teachers
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
 
         if (teacher is null)
@@ -40,6 +45,7 @@ public sealed class StartLessonGroupSessionCommandHandler(IApplicationDbContext 
         if (session.EndedAtUtc.HasValue)
             return Result<LessonGroupSessionDto>.Conflict("هذه الحصة منتهية بالفعل.");
 
+        var lessonJustStarted = false;
         if (!session.StartedAtUtc.HasValue)
         {
             var now = DateTime.UtcNow;
@@ -49,9 +55,33 @@ public sealed class StartLessonGroupSessionCommandHandler(IApplicationDbContext 
                 session.LessonGroup.StartedAtUtc = now;
 
             if (!session.LessonGroup.Lesson.StartedAtUtc.HasValue)
+            {
                 session.LessonGroup.Lesson.StartedAtUtc = now;
+                lessonJustStarted = true;
+            }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        if (lessonJustStarted)
+        {
+            var teacherName = teacher.User.FullName;
+            var subject = session.LessonGroup.Lesson.Subject;
+            await notificationService.CreateAsync(
+                new NotificationCreateRequest
+                {
+                    RecipientUserIds = [],
+                    UserTargetId = teacher.UserId,
+                    Type = NotificationType.LessonStarted,
+                    EntityType = NotificationEntityType.Lesson,
+                    EntityId = session.LessonGroup.Lesson.Id,
+                    TitleAr = "بدء درس",
+                    TitleEn = "Lesson started",
+                    BodyAr = $"بدأ المعلم {teacherName} درس «{subject}».",
+                    BodyEn = $"Teacher {teacherName} started the lesson '{subject}'.",
+                    IncludeSuperAdmins = true
+                },
+                cancellationToken);
         }
 
         await ClassroomSeeding.EnsureStudentDetailsAsync(dbContext, session, cancellationToken);

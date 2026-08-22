@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
 import { roleGuard } from './core/auth/role.guard';
+import { manageUsersGuard } from './core/auth/permission.guard';
 import { LoginComponent } from './features/auth/login/login';
 import { RegisterComponent } from './features/auth/register/register';
 import { ParentDashboardComponent } from './features/dashboards/parent-dashboard/parent-dashboard';
@@ -16,6 +17,9 @@ import { StudentLessonsComponent } from './features/student/lessons/student-less
 import { StudentMyLessonsComponent } from './features/student/lessons/student-my-lessons';
 import { AdminEducationComponent } from './features/super-admin/education/admin-education';
 import { AdminCountriesComponent } from './features/super-admin/countries/admin-countries';
+import { AdminLessonsComponent } from './features/super-admin/lessons/admin-lessons';
+import { AdminGroupsComponent } from './features/super-admin/groups/admin-groups';
+import { AdminUsersComponent } from './features/super-admin/users/admin-users';
 import { TeacherBookingsComponent } from './features/teacher/bookings/teacher-bookings';
 import { TeacherClassroomComponent } from './features/teacher/classroom/teacher-classroom';
 import { TeacherGroupManageComponent } from './features/teacher/lessons/teacher-group-manage';
@@ -45,6 +49,9 @@ const routes: Routes = [
     },
     children: [
       { path: '', component: SuperAdminDashboardComponent },
+      { path: 'users', canActivate: [manageUsersGuard], component: AdminUsersComponent },
+      { path: 'lessons', component: AdminLessonsComponent },
+      { path: 'groups', component: AdminGroupsComponent },
       { path: 'education', component: AdminEducationComponent },
       { path: 'countries', component: AdminCountriesComponent },
       { path: 'profile', component: EditProfileComponent },

@@ -2,6 +2,7 @@ import { Component, Input, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 type Accent = 'admin' | 'teacher' | 'student' | 'parent';
@@ -19,6 +20,7 @@ export class RoleDashboardComponent {
   @Input() kickerKey = 'shell.workspace';
 
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
 
   private readonly accentSignal = toSignal(
     this.route.parent!.data.pipe(map((data) => (data['accent'] as Accent) ?? 'teacher')),
@@ -29,12 +31,19 @@ export class RoleDashboardComponent {
 
   readonly quickLinks = computed(() => {
     switch (this.accent()) {
-      case 'admin':
-        return [
+      case 'admin': {
+        const links = [
+          { labelKey: 'adminLessons.nav', link: '/super-admin/lessons' },
+          { labelKey: 'adminGroups.nav', link: '/super-admin/groups' },
           { labelKey: 'education.nav', link: '/super-admin/education' },
           { labelKey: 'countries.nav', link: '/super-admin/countries' },
           { labelKey: 'common.profile', link: '/super-admin/profile' },
         ];
+        if (this.auth.canManageUsers()) {
+          return [{ labelKey: 'adminUsers.nav', link: '/super-admin/users' }, ...links];
+        }
+        return links;
+      }
       case 'teacher':
         return [
           { labelKey: 'lessons.nav', link: '/teacher/lessons' },

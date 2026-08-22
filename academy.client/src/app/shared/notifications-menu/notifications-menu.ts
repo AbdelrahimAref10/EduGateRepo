@@ -62,6 +62,12 @@ export class NotificationsMenuComponent {
     if (!role) return null;
 
     if (role === 'SuperAdmin') {
+      if (item.type === 'LessonGroupEnded') {
+        return ['/super-admin/groups'];
+      }
+      if (item.entityType === 'Lesson') {
+        return ['/super-admin/lessons'];
+      }
       return ['/super-admin'];
     }
 

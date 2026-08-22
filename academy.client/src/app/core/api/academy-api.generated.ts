@@ -5258,6 +5258,135 @@ export class EducationTypesClient implements IEducationTypesClient {
     }
 }
 
+export interface ILessonsOverviewClient {
+    getAllLessons(): Observable<AdminLessonListItemDto[]>;
+    getAllGroups(): Observable<AdminGroupListItemDto[]>;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class LessonsOverviewClient implements ILessonsOverviewClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getAllLessons(): Observable<AdminLessonListItemDto[]> {
+        let url_ = this.baseUrl + "/api/super-admin/lessons";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetAllLessons(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetAllLessons(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AdminLessonListItemDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AdminLessonListItemDto[]>;
+        }));
+    }
+
+    protected processGetAllLessons(response: HttpResponseBase): Observable<AdminLessonListItemDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AdminLessonListItemDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getAllGroups(): Observable<AdminGroupListItemDto[]> {
+        let url_ = this.baseUrl + "/api/super-admin/groups";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetAllGroups(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetAllGroups(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AdminGroupListItemDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AdminGroupListItemDto[]>;
+        }));
+    }
+
+    protected processGetAllGroups(response: HttpResponseBase): Observable<AdminGroupListItemDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AdminGroupListItemDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
 export interface ISuperAdminDashboardClient {
     getDashboard(): Observable<FileResponse>;
 }
@@ -5319,6 +5448,293 @@ export class SuperAdminDashboardClient implements ISuperAdminDashboardClient {
                 fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
             }
             return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+export interface IUsersClient {
+    getUsers(): Observable<AdminUserListItemDto[]>;
+    createUser(request: CreateAdminUserRequest): Observable<AdminUserListItemDto>;
+    updateUserRole(userId: number, request: UpdateAdminUserRoleRequest): Observable<AdminUserListItemDto>;
+    setManageUsersPermission(userId: number, request: SetManageUsersPermissionRequest): Observable<AdminUserListItemDto>;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class UsersClient implements IUsersClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getUsers(): Observable<AdminUserListItemDto[]> {
+        let url_ = this.baseUrl + "/api/super-admin/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetUsers(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetUsers(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AdminUserListItemDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AdminUserListItemDto[]>;
+        }));
+    }
+
+    protected processGetUsers(response: HttpResponseBase): Observable<AdminUserListItemDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AdminUserListItemDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    createUser(request: CreateAdminUserRequest): Observable<AdminUserListItemDto> {
+        let url_ = this.baseUrl + "/api/super-admin/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreateUser(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreateUser(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AdminUserListItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AdminUserListItemDto>;
+        }));
+    }
+
+    protected processCreateUser(response: HttpResponseBase): Observable<AdminUserListItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AdminUserListItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    updateUserRole(userId: number, request: UpdateAdminUserRoleRequest): Observable<AdminUserListItemDto> {
+        let url_ = this.baseUrl + "/api/super-admin/users/{userId}/role";
+        if (userId === undefined || userId === null)
+            throw new globalThis.Error("The parameter 'userId' must be defined.");
+        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdateUserRole(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdateUserRole(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AdminUserListItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AdminUserListItemDto>;
+        }));
+    }
+
+    protected processUpdateUserRole(response: HttpResponseBase): Observable<AdminUserListItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AdminUserListItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    setManageUsersPermission(userId: number, request: SetManageUsersPermissionRequest): Observable<AdminUserListItemDto> {
+        let url_ = this.baseUrl + "/api/super-admin/users/{userId}/permissions/manage-users";
+        if (userId === undefined || userId === null)
+            throw new globalThis.Error("The parameter 'userId' must be defined.");
+        url_ = url_.replace("{userId}", encodeURIComponent("" + userId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSetManageUsersPermission(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSetManageUsersPermission(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AdminUserListItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AdminUserListItemDto>;
+        }));
+    }
+
+    protected processSetManageUsersPermission(response: HttpResponseBase): Observable<AdminUserListItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AdminUserListItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -8603,6 +9019,566 @@ export interface IUpdateEducationSubjectRequest {
     sortOrder?: number;
 }
 
+export class AdminLessonListItemDto implements IAdminLessonListItemDto {
+    id!: number;
+    subject!: string;
+    teacherId!: number;
+    teacherName!: string;
+    educationTypeName!: string;
+    educationStageName!: string;
+    educationYearName!: string;
+    isActive!: boolean;
+    startedAtUtc?: Date | undefined;
+    hasStarted!: boolean;
+    groupsCount!: number;
+    bookingsCount!: number;
+    confirmedBookingsCount!: number;
+    createdAtUtc!: Date;
+    students!: AdminLessonStudentDto[];
+
+    constructor(data?: IAdminLessonListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.students = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.subject = _data["subject"];
+            this.teacherId = _data["teacherId"];
+            this.teacherName = _data["teacherName"];
+            this.educationTypeName = _data["educationTypeName"];
+            this.educationStageName = _data["educationStageName"];
+            this.educationYearName = _data["educationYearName"];
+            this.isActive = _data["isActive"];
+            this.startedAtUtc = _data["startedAtUtc"] ? new Date(_data["startedAtUtc"].toString()) : undefined as any;
+            this.hasStarted = _data["hasStarted"];
+            this.groupsCount = _data["groupsCount"];
+            this.bookingsCount = _data["bookingsCount"];
+            this.confirmedBookingsCount = _data["confirmedBookingsCount"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            if (Array.isArray(_data["students"])) {
+                this.students = [] as any;
+                for (let item of _data["students"])
+                    this.students!.push(AdminLessonStudentDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): AdminLessonListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminLessonListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["subject"] = this.subject;
+        data["teacherId"] = this.teacherId;
+        data["teacherName"] = this.teacherName;
+        data["educationTypeName"] = this.educationTypeName;
+        data["educationStageName"] = this.educationStageName;
+        data["educationYearName"] = this.educationYearName;
+        data["isActive"] = this.isActive;
+        data["startedAtUtc"] = this.startedAtUtc ? this.startedAtUtc.toISOString() : undefined as any;
+        data["hasStarted"] = this.hasStarted;
+        data["groupsCount"] = this.groupsCount;
+        data["bookingsCount"] = this.bookingsCount;
+        data["confirmedBookingsCount"] = this.confirmedBookingsCount;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        if (Array.isArray(this.students)) {
+            data["students"] = [];
+            for (let item of this.students)
+                data["students"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IAdminLessonListItemDto {
+    id: number;
+    subject: string;
+    teacherId: number;
+    teacherName: string;
+    educationTypeName: string;
+    educationStageName: string;
+    educationYearName: string;
+    isActive: boolean;
+    startedAtUtc?: Date | undefined;
+    hasStarted: boolean;
+    groupsCount: number;
+    bookingsCount: number;
+    confirmedBookingsCount: number;
+    createdAtUtc: Date;
+    students: AdminLessonStudentDto[];
+}
+
+export class AdminLessonStudentDto implements IAdminLessonStudentDto {
+    bookingId!: number;
+    studentId!: number;
+    studentName!: string;
+    studentCode?: string | undefined;
+    status!: string;
+    createdAtUtc!: Date;
+    reviewedAtUtc?: Date | undefined;
+    assignedGroupId?: number | undefined;
+    assignedGroupName?: string | undefined;
+
+    constructor(data?: IAdminLessonStudentDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.bookingId = _data["bookingId"];
+            this.studentId = _data["studentId"];
+            this.studentName = _data["studentName"];
+            this.studentCode = _data["studentCode"];
+            this.status = _data["status"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            this.reviewedAtUtc = _data["reviewedAtUtc"] ? new Date(_data["reviewedAtUtc"].toString()) : undefined as any;
+            this.assignedGroupId = _data["assignedGroupId"];
+            this.assignedGroupName = _data["assignedGroupName"];
+        }
+    }
+
+    static fromJS(data: any): AdminLessonStudentDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminLessonStudentDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["bookingId"] = this.bookingId;
+        data["studentId"] = this.studentId;
+        data["studentName"] = this.studentName;
+        data["studentCode"] = this.studentCode;
+        data["status"] = this.status;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        data["reviewedAtUtc"] = this.reviewedAtUtc ? this.reviewedAtUtc.toISOString() : undefined as any;
+        data["assignedGroupId"] = this.assignedGroupId;
+        data["assignedGroupName"] = this.assignedGroupName;
+        return data;
+    }
+}
+
+export interface IAdminLessonStudentDto {
+    bookingId: number;
+    studentId: number;
+    studentName: string;
+    studentCode?: string | undefined;
+    status: string;
+    createdAtUtc: Date;
+    reviewedAtUtc?: Date | undefined;
+    assignedGroupId?: number | undefined;
+    assignedGroupName?: string | undefined;
+}
+
+export class AdminGroupListItemDto implements IAdminGroupListItemDto {
+    id!: number;
+    name!: string;
+    lessonId!: number;
+    lessonSubject!: string;
+    teacherId!: number;
+    teacherName!: string;
+    areaName!: string;
+    cityName!: string;
+    startedAtUtc?: Date | undefined;
+    endedAtUtc?: Date | undefined;
+    hasStarted!: boolean;
+    hasEnded!: boolean;
+    membersCount!: number;
+    createdAtUtc!: Date;
+    members!: AdminGroupMemberDto[];
+
+    constructor(data?: IAdminGroupListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.members = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.lessonId = _data["lessonId"];
+            this.lessonSubject = _data["lessonSubject"];
+            this.teacherId = _data["teacherId"];
+            this.teacherName = _data["teacherName"];
+            this.areaName = _data["areaName"];
+            this.cityName = _data["cityName"];
+            this.startedAtUtc = _data["startedAtUtc"] ? new Date(_data["startedAtUtc"].toString()) : undefined as any;
+            this.endedAtUtc = _data["endedAtUtc"] ? new Date(_data["endedAtUtc"].toString()) : undefined as any;
+            this.hasStarted = _data["hasStarted"];
+            this.hasEnded = _data["hasEnded"];
+            this.membersCount = _data["membersCount"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            if (Array.isArray(_data["members"])) {
+                this.members = [] as any;
+                for (let item of _data["members"])
+                    this.members!.push(AdminGroupMemberDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): AdminGroupListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminGroupListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["lessonId"] = this.lessonId;
+        data["lessonSubject"] = this.lessonSubject;
+        data["teacherId"] = this.teacherId;
+        data["teacherName"] = this.teacherName;
+        data["areaName"] = this.areaName;
+        data["cityName"] = this.cityName;
+        data["startedAtUtc"] = this.startedAtUtc ? this.startedAtUtc.toISOString() : undefined as any;
+        data["endedAtUtc"] = this.endedAtUtc ? this.endedAtUtc.toISOString() : undefined as any;
+        data["hasStarted"] = this.hasStarted;
+        data["hasEnded"] = this.hasEnded;
+        data["membersCount"] = this.membersCount;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        if (Array.isArray(this.members)) {
+            data["members"] = [];
+            for (let item of this.members)
+                data["members"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IAdminGroupListItemDto {
+    id: number;
+    name: string;
+    lessonId: number;
+    lessonSubject: string;
+    teacherId: number;
+    teacherName: string;
+    areaName: string;
+    cityName: string;
+    startedAtUtc?: Date | undefined;
+    endedAtUtc?: Date | undefined;
+    hasStarted: boolean;
+    hasEnded: boolean;
+    membersCount: number;
+    createdAtUtc: Date;
+    members: AdminGroupMemberDto[];
+}
+
+export class AdminGroupMemberDto implements IAdminGroupMemberDto {
+    id!: number;
+    studentId!: number;
+    studentName!: string;
+    studentCode?: string | undefined;
+    addedAtUtc!: Date;
+
+    constructor(data?: IAdminGroupMemberDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.studentId = _data["studentId"];
+            this.studentName = _data["studentName"];
+            this.studentCode = _data["studentCode"];
+            this.addedAtUtc = _data["addedAtUtc"] ? new Date(_data["addedAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): AdminGroupMemberDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminGroupMemberDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["studentId"] = this.studentId;
+        data["studentName"] = this.studentName;
+        data["studentCode"] = this.studentCode;
+        data["addedAtUtc"] = this.addedAtUtc ? this.addedAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IAdminGroupMemberDto {
+    id: number;
+    studentId: number;
+    studentName: string;
+    studentCode?: string | undefined;
+    addedAtUtc: Date;
+}
+
+export class AdminUserListItemDto implements IAdminUserListItemDto {
+    id!: number;
+    email!: string;
+    firstName!: string;
+    lastName!: string;
+    fullName!: string;
+    phoneNumber?: string | undefined;
+    areaId?: number | undefined;
+    roles!: string[];
+    studentCode?: string | undefined;
+    hasManageUsers!: boolean;
+    createdAtUtc!: Date;
+
+    constructor(data?: IAdminUserListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.roles = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.email = _data["email"];
+            this.firstName = _data["firstName"];
+            this.lastName = _data["lastName"];
+            this.fullName = _data["fullName"];
+            this.phoneNumber = _data["phoneNumber"];
+            this.areaId = _data["areaId"];
+            if (Array.isArray(_data["roles"])) {
+                this.roles = [] as any;
+                for (let item of _data["roles"])
+                    this.roles!.push(item);
+            }
+            this.studentCode = _data["studentCode"];
+            this.hasManageUsers = _data["hasManageUsers"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): AdminUserListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdminUserListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["email"] = this.email;
+        data["firstName"] = this.firstName;
+        data["lastName"] = this.lastName;
+        data["fullName"] = this.fullName;
+        data["phoneNumber"] = this.phoneNumber;
+        data["areaId"] = this.areaId;
+        if (Array.isArray(this.roles)) {
+            data["roles"] = [];
+            for (let item of this.roles)
+                data["roles"].push(item);
+        }
+        data["studentCode"] = this.studentCode;
+        data["hasManageUsers"] = this.hasManageUsers;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IAdminUserListItemDto {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    phoneNumber?: string | undefined;
+    areaId?: number | undefined;
+    roles: string[];
+    studentCode?: string | undefined;
+    hasManageUsers: boolean;
+    createdAtUtc: Date;
+}
+
+export class CreateAdminUserRequest implements ICreateAdminUserRequest {
+    email!: string;
+    password!: string;
+    confirmPassword!: string;
+    firstName!: string;
+    lastName!: string;
+    phoneNumber?: string | undefined;
+    role!: AppRole;
+    areaId?: number | undefined;
+    grantManageUsers?: boolean;
+
+    constructor(data?: ICreateAdminUserRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.email = _data["email"];
+            this.password = _data["password"];
+            this.confirmPassword = _data["confirmPassword"];
+            this.firstName = _data["firstName"];
+            this.lastName = _data["lastName"];
+            this.phoneNumber = _data["phoneNumber"];
+            this.role = _data["role"];
+            this.areaId = _data["areaId"];
+            this.grantManageUsers = _data["grantManageUsers"];
+        }
+    }
+
+    static fromJS(data: any): CreateAdminUserRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAdminUserRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["email"] = this.email;
+        data["password"] = this.password;
+        data["confirmPassword"] = this.confirmPassword;
+        data["firstName"] = this.firstName;
+        data["lastName"] = this.lastName;
+        data["phoneNumber"] = this.phoneNumber;
+        data["role"] = this.role;
+        data["areaId"] = this.areaId;
+        data["grantManageUsers"] = this.grantManageUsers;
+        return data;
+    }
+}
+
+export interface ICreateAdminUserRequest {
+    email: string;
+    password: string;
+    confirmPassword: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string | undefined;
+    role: AppRole;
+    areaId?: number | undefined;
+    grantManageUsers?: boolean;
+}
+
+export enum AppRole {
+    SuperAdmin = 1,
+    Teacher = 2,
+    Student = 3,
+    Parent = 4,
+}
+
+export class UpdateAdminUserRoleRequest implements IUpdateAdminUserRoleRequest {
+    role!: AppRole;
+
+    constructor(data?: IUpdateAdminUserRoleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.role = _data["role"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAdminUserRoleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdminUserRoleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["role"] = this.role;
+        return data;
+    }
+}
+
+export interface IUpdateAdminUserRoleRequest {
+    role: AppRole;
+}
+
+export class SetManageUsersPermissionRequest implements ISetManageUsersPermissionRequest {
+    granted!: boolean;
+
+    constructor(data?: ISetManageUsersPermissionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.granted = _data["granted"];
+        }
+    }
+
+    static fromJS(data: any): SetManageUsersPermissionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetManageUsersPermissionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["granted"] = this.granted;
+        return data;
+    }
+}
+
+export interface ISetManageUsersPermissionRequest {
+    granted: boolean;
+}
+
 export class StudentClassroomSessionListItemDto implements IStudentClassroomSessionListItemDto {
     sessionId!: number;
     lessonId!: number;
@@ -9359,6 +10335,7 @@ export class AuthResponseDto implements IAuthResponseDto {
     email!: string;
     fullName!: string;
     roles!: string[];
+    permissions?: string[];
     languageId!: number;
     studentCode?: string | undefined;
     areaId?: number | undefined;
@@ -9389,6 +10366,11 @@ export class AuthResponseDto implements IAuthResponseDto {
                 for (let item of _data["roles"])
                     this.roles!.push(item);
             }
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
             this.languageId = _data["languageId"];
             this.studentCode = _data["studentCode"];
             this.areaId = _data["areaId"];
@@ -9416,6 +10398,11 @@ export class AuthResponseDto implements IAuthResponseDto {
             for (let item of this.roles)
                 data["roles"].push(item);
         }
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
         data["languageId"] = this.languageId;
         data["studentCode"] = this.studentCode;
         data["areaId"] = this.areaId;
@@ -9432,6 +10419,7 @@ export interface IAuthResponseDto {
     email: string;
     fullName: string;
     roles: string[];
+    permissions?: string[];
     languageId: number;
     studentCode?: string | undefined;
     areaId?: number | undefined;
@@ -9499,13 +10487,6 @@ export interface IRegisterRequest {
     phoneNumber?: string | undefined;
     role?: AppRole;
     areaId?: number;
-}
-
-export enum AppRole {
-    SuperAdmin = 1,
-    Teacher = 2,
-    Student = 3,
-    Parent = 4,
 }
 
 export class LoginRequest implements ILoginRequest {

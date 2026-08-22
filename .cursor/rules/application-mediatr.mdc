@@ -1,0 +1,42 @@
+---
+description: MediatR feature, Result, and FluentValidation conventions
+globs: Academy.Application/**/*.cs
+alwaysApply: false
+---
+
+# Application layer (MediatR)
+
+## Feature layout
+
+```
+Features/{RoleOrArea}/{Entity}/Commands|Queries/{Name}/
+  {Name}Command|Query.cs
+  {Name}Command|QueryHandler.cs
+  {Name}Command|QueryValidator.cs   # when needed
+```
+
+DTOs live in the feature's `Dtos/` folder (or shared feature Dtos).
+
+## Commands / queries
+
+- Use `sealed record` for requests implementing `IRequest<Result>` or `IRequest<Result<T>>`.
+- Handlers: `sealed class` + primary constructor, implement `IRequestHandler<,>`.
+- Pass `UserId` (and similar) on the command/query from the controller — do not read HTTP context here.
+- Return `Result` / `Result<T>` (`Success`, `Failure`, `NotFound`, `Conflict`) — never throw for expected business failures.
+- Inject `IApplicationDbContext` and `IRequestLanguage` when needed; use EF via the contract, not concrete DbContext.
+
+```csharp
+// ✅
+public sealed record CreateLessonCommand(...) : IRequest<Result<LessonDto>>;
+
+public sealed class CreateLessonCommandHandler(IApplicationDbContext db, IRequestLanguage lang)
+    : IRequestHandler<CreateLessonCommand, Result<LessonDto>>
+{
+    public async Task<Result<LessonDto>> Handle(...) { /* ... */ return Result<LessonDto>.Success(dto); }
+}
+```
+
+## Validation
+
+- FluentValidation `AbstractValidator<T>` next to the command/query.
+- Keep field rules in validators; keep domain/authorization checks in handlers.

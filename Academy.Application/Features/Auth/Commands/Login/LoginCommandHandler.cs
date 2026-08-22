@@ -1,3 +1,4 @@
+using Academy.Application.Common.Identity;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Identity;
 using Academy.Application.Contracts.Persistence;
@@ -35,12 +36,14 @@ public sealed class LoginCommandHandler(
         await userManager.ResetAccessFailedCountAsync(user);
 
         var roles = await userManager.GetRolesAsync(user);
+        var permissions = await UserPermissionHelper.GetPermissionsAsync(userManager, user);
         var tokens = tokenService.GenerateTokens(new TokenUserInfo
         {
             UserId = user.Id,
             Email = user.Email!,
             FullName = user.FullName,
             Roles = roles.ToList(),
+            Permissions = permissions,
             LanguageId = user.PreferredLanguage
         });
 
@@ -73,6 +76,7 @@ public sealed class LoginCommandHandler(
             Email = user.Email!,
             FullName = user.FullName,
             Roles = roles.ToList(),
+            Permissions = permissions,
             LanguageId = (int)user.PreferredLanguage,
             StudentCode = studentCode,
             AreaId = user.AreaId

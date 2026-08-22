@@ -1,0 +1,30 @@
+---
+description: EF Core, Identity, and SQL Server persistence rules
+globs: Academy.Persistence/**/*.cs,Academy.Infrastructure/**/*.cs,Academy.Domain/**/*.cs
+alwaysApply: false
+---
+
+# Persistence & infrastructure
+
+## Persistence
+
+- SQL Server + EF Core 10; configs under `Configurations/`, context under `Contexts/`.
+- Add migrations in `Migrations/`; keep seed in `Seed/` (e.g. Identity seeder).
+- Expose data through `IApplicationDbContext` for Application — do not leak concrete context into Domain.
+- Prefer fluent entity configurations over attributes when matching existing style.
+
+## Domain
+
+- Entities/enums/value objects only; no MediatR, EF, or ASP.NET types (except Identity store abstractions already used).
+- Put shared domain constants (e.g. `AppRoles`) in Domain/Common.
+
+## Infrastructure
+
+- Register Identity, JWT Bearer, and Persistence DI here (`DependencyInjection/`).
+- Keep auth token issuance / identity adapters in Infrastructure; Application talks via contracts.
+
+## Do not
+
+- Query the DB from controllers.
+- Add business workflows in Persistence interceptors unless the pattern already exists.
+- Commit secrets or connection strings; use configuration / user secrets.
