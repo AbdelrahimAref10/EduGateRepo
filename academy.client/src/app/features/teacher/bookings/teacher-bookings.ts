@@ -5,13 +5,14 @@ import {
   TeacherBookingDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 
 type Tab = 'pending' | 'all';
 
 @Component({
   selector: 'app-teacher-bookings',
   standalone: true,
-  imports: [TranslatePipe, DatePipe],
+  imports: [TranslatePipe, DatePipe, UserAvatarComponent],
   templateUrl: './teacher-bookings.html',
   styleUrl: './teacher-bookings.css',
 })

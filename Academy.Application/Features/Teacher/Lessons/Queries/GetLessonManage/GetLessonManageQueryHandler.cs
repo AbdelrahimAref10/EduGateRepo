@@ -1,3 +1,4 @@
+using Academy.Application.Common.Images;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
@@ -66,6 +67,7 @@ public sealed class GetLessonManageQueryHandler(
                     BookingId = x.Id,
                     StudentId = x.StudentId,
                     StudentName = x.Student.User.FullName,
+                    PhotoUrl = ImageService.DisplayValue(x.Student.User.ProfilePhoto),
                     StudentCode = x.Student.StudentCode,
                     Status = x.Status.ToString(),
                     CreatedAtUtc = x.CreatedAtUtc,

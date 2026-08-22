@@ -12,6 +12,8 @@ public sealed class TeacherBookingDto
 
     public required string StudentName { get; init; }
 
+    public string? StudentPhotoUrl { get; init; }
+
     public string? StudentCode { get; init; }
 
     public required string Subject { get; init; }

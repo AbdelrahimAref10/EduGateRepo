@@ -16,6 +16,7 @@ import { ClassroomUploadService, TeacherExamResults, TeacherExamReviewOption, Te
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 
 type ClassroomTab = 'stream' | 'people';
 type ExamWorkspaceTab = 'questions' | 'results' | 'review';
@@ -34,7 +35,7 @@ const EXAM_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', 
 @Component({
   selector: 'app-teacher-classroom',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink, UserAvatarComponent],
   templateUrl: './teacher-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './teacher-classroom.css'],
 })

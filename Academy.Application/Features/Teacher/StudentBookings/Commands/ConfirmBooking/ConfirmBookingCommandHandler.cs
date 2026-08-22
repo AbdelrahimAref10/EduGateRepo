@@ -1,3 +1,4 @@
+using Academy.Application.Common.Images;
 using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
@@ -80,6 +81,7 @@ public sealed class ConfirmBookingCommandHandler(
             TeacherId = booking.TeacherId,
             StudentId = booking.StudentId,
             StudentName = booking.Student.User.FullName,
+            StudentPhotoUrl = ImageService.DisplayValue(booking.Student.User.ProfilePhoto),
             StudentCode = booking.Student.StudentCode,
             Subject = booking.Lesson.Subject,
             EducationTypeName = LocalizedNames.Pick(

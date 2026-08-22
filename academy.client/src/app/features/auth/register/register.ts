@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   AppRole,
   AreaDto,
@@ -12,6 +12,7 @@ import {
   GovernoratesClient,
 } from '../../../core/api/academy-api.generated';
 import { AuthService } from '../../../core/auth/auth.service';
+import { loginQueryParams } from '../../../core/auth/return-url';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { LanguageSwitcherComponent } from '../../../shared/language-switcher/language-switcher';
@@ -36,6 +37,7 @@ export class RegisterComponent implements OnInit {
   private readonly governoratesApi = inject(GovernoratesClient);
   private readonly citiesApi = inject(CitiesClient);
   private readonly i18n = inject(TranslationService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly loadingCountries = signal(false);
@@ -43,6 +45,8 @@ export class RegisterComponent implements OnInit {
   readonly loadingCities = signal(false);
   readonly loadingAreas = signal(false);
   readonly error = signal<string | null>(null);
+  readonly returnUrl = () => this.route.snapshot.queryParamMap.get('returnUrl');
+  readonly loginQuery = () => loginQueryParams(this.returnUrl());
 
   readonly countries = signal<CountryDto[]>([]);
   readonly governorates = signal<GovernorateDto[]>([]);
@@ -70,6 +74,11 @@ export class RegisterComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const role = this.route.snapshot.queryParamMap.get('role');
+    if (role === 'Student') this.form.controls.role.setValue(AppRole.Student);
+    if (role === 'Teacher') this.form.controls.role.setValue(AppRole.Teacher);
+    if (role === 'Parent') this.form.controls.role.setValue(AppRole.Parent);
+
     this.loadCountries();
 
     this.form.controls.countryId.valueChanges.subscribe((countryId) => {
@@ -135,7 +144,7 @@ export class RegisterComponent implements OnInit {
         phoneNumber: value.phoneNumber || undefined,
         role: value.role,
         areaId: value.areaId,
-      })
+      }, this.returnUrl())
       .subscribe({
         next: () => this.loading.set(false),
         error: (err) => {

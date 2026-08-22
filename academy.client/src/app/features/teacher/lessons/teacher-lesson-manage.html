@@ -16,6 +16,9 @@
         </p>
       }
     </div>
+    <button type="button" class="btn-ghost" (click)="copyBookingLink()" [disabled]="loading() || !manage()?.lesson">
+      {{ 'marketplace.copyBookingLink' | t }}
+    </button>
     <button type="button" class="btn-ghost" (click)="loadManage()" [disabled]="loading()">
       {{ 'lessons.refresh' | t }}
     </button>
@@ -44,6 +47,9 @@
   }
   @if (success() === 'studentAdded') {
     <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'lessons.studentAdded' | t }}</div>
+  }
+  @if (success() === 'linkCopied') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">{{ 'marketplace.linkCopied' | t }}</div>
   }
 
   @if (loading() && !manage()) {

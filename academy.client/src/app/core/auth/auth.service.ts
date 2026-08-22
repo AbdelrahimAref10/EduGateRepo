@@ -13,6 +13,7 @@ import {
   AuthSession,
   ROLE_HOME,
 } from './auth.models';
+import { isSafeReturnUrl } from './return-url';
 import { NotificationService } from '../notifications/notification.service';
 import { TokenStorageService } from './token-storage.service';
 import { TranslationService } from '../i18n/translation.service';
@@ -51,18 +52,19 @@ export class AuthService {
   readonly fullName = computed(() => this.sessionSignal()?.fullName ?? '');
   readonly languageId = computed(() => this.sessionSignal()?.languageId ?? 1);
   readonly primaryRole = computed<AppRoleName | null>(() => this.roles()[0] ?? null);
+  readonly photoUrl = computed(() => this.sessionSignal()?.photoUrl ?? null);
 
-  login(payload: LoginPayload): Observable<AuthSession> {
+  login(payload: LoginPayload, returnUrl?: string | null): Observable<AuthSession> {
     return this.http.post<AuthResponse>('/api/auth/login', payload).pipe(
       switchMap((response) => from(this.persistAsync(response))),
-      tap((session) => this.navigateByRole(session.roles)),
+      tap((session) => this.navigateAfterAuth(session.roles, returnUrl)),
     );
   }
 
-  register(payload: RegisterPayload): Observable<AuthSession> {
+  register(payload: RegisterPayload, returnUrl?: string | null): Observable<AuthSession> {
     return this.http.post<AuthResponse>('/api/auth/register', payload).pipe(
       switchMap((response) => from(this.persistAsync(response))),
-      tap((session) => this.navigateByRole(session.roles)),
+      tap((session) => this.navigateAfterAuth(session.roles, returnUrl)),
     );
   }
 
@@ -100,6 +102,7 @@ export class AuthService {
         languageId: dto.languageId,
         studentCode: dto.studentCode,
         areaId: dto.areaId,
+        photoUrl: dto.photoUrl,
       }) satisfies AuthResponse),
       switchMap((response) => from(this.persistAsync(response))),
     );
@@ -114,7 +117,7 @@ export class AuthService {
     }
   }
 
-  patchSessionIdentity(patch: { email?: string; fullName?: string }): void {
+  patchSessionIdentity(patch: { email?: string; fullName?: string; photoUrl?: string | null }): void {
     const next = this.tokenStorage.updateIdentity(patch);
     if (next) this.sessionSignal.set(next);
   }
@@ -132,6 +135,15 @@ export class AuthService {
   navigateByRole(roles: AppRoleName[]): void {
     const role = roles[0];
     void this.router.navigateByUrl(role ? ROLE_HOME[role] : '/login');
+  }
+
+  navigateAfterAuth(roles: AppRoleName[], returnUrl?: string | null): void {
+    if (isSafeReturnUrl(returnUrl) && roles.includes('Student')) {
+      void this.router.navigateByUrl(returnUrl);
+      return;
+    }
+
+    this.navigateByRole(roles);
   }
 
   private async persistAsync(response: AuthResponse): Promise<AuthSession> {

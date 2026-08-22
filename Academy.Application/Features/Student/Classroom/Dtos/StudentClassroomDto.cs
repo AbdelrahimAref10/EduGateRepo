@@ -32,6 +32,8 @@ public sealed class StudentClassroomDto
 
     public required string TeacherName { get; init; }
 
+    public string? TeacherPhotoUrl { get; init; }
+
     public ClassroomStudentDetailDto? MyDetail { get; init; }
 
     public IReadOnlyList<StudentClassroomClassmateDto> Classmates { get; init; } = [];

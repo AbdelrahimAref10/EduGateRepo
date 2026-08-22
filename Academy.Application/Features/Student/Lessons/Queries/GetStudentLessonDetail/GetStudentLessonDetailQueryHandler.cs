@@ -1,5 +1,6 @@
 using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
+using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Student.Lessons.Dtos;
@@ -107,7 +108,9 @@ public sealed class GetStudentLessonDetailQueryHandler(
                 lesson.EducationSubject.NameAr,
                 lesson.EducationSubject.NameEn,
                 language),
+            TeacherId = lesson.TeacherId,
             TeacherName = $"{lesson.Teacher.User.FirstName} {lesson.Teacher.User.LastName}".Trim(),
+            TeacherPhotoUrl = ImageService.DisplayValue(lesson.Teacher.User.ProfilePhoto),
             EducationTypeName = LocalizedNames.Pick(
                 lesson.EducationType.NameAr,
                 lesson.EducationType.NameEn,

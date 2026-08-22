@@ -8,6 +8,7 @@ import {
   StudentExamDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { StudentExamWorkspaceComponent } from './student-exam-workspace';
 
 type ClassroomTab = 'stream' | 'people';
@@ -15,7 +16,7 @@ type ClassroomTab = 'stream' | 'people';
 @Component({
   selector: 'app-student-classroom',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent],
+  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent, UserAvatarComponent],
   templateUrl: './student-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom.css'],
 })

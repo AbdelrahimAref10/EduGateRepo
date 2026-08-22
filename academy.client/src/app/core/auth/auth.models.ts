@@ -10,6 +10,7 @@ export interface AuthSession {
   fullName: string;
   roles: AppRoleName[];
   languageId: number;
+  photoUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -24,6 +25,7 @@ export interface AuthResponse {
   languageId: number;
   studentCode?: string | null;
   areaId?: number | null;
+  photoUrl?: string | null;
 }
 
 export const AUTH_STORAGE_KEY = 'academy.auth.session';

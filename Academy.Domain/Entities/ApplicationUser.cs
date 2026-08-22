@@ -12,6 +12,11 @@ public class ApplicationUser : IdentityUser<int>
     public string? Bio { get; set; }
 
     /// <summary>
+    /// Optional profile photo as a data URL (data:image/...;base64,...).
+    /// </summary>
+    public string? ProfilePhoto { get; set; }
+
+    /// <summary>
     /// Preferred UI language (Arabic = 1, English = 2).
     /// </summary>
     public AppLanguage PreferredLanguage { get; set; } = AppLanguage.Arabic;

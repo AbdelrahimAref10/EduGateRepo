@@ -17,6 +17,13 @@ import { StudentLessonsComponent } from './features/student/lessons/student-less
 import { StudentMyLessonsComponent } from './features/student/lessons/student-my-lessons';
 import { AdminEducationComponent } from './features/super-admin/education/admin-education';
 import { AdminCountriesComponent } from './features/super-admin/countries/admin-countries';
+import { LandingComponent } from './features/landing/landing';
+import { PublicLayoutComponent } from './features/marketplace/public-layout';
+import { MarketplaceDiscoverComponent } from './features/marketplace/marketplace-discover';
+import { StudentDiscoverComponent } from './features/student/discover/student-discover';
+import { StudentTeacherComponent } from './features/student/discover/student-teacher';
+import { PublicTeacherComponent } from './features/marketplace/public-teacher';
+import { PublicLessonRedirectComponent } from './features/marketplace/public-lesson-redirect';
 import { TeacherBookingsComponent } from './features/teacher/bookings/teacher-bookings';
 import { TeacherClassroomComponent } from './features/teacher/classroom/teacher-classroom';
 import { TeacherGroupManageComponent } from './features/teacher/lessons/teacher-group-manage';
@@ -24,7 +31,7 @@ import { TeacherLessonManageComponent } from './features/teacher/lessons/teacher
 import { TeacherLessonsComponent } from './features/teacher/lessons/teacher-lessons';
 
 const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: '', pathMatch: 'full', component: LandingComponent },
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -34,6 +41,15 @@ const routes: Routes = [
     path: 'register',
     canActivate: [guestGuard],
     component: RegisterComponent,
+  },
+  {
+    path: '',
+    component: PublicLayoutComponent,
+    children: [
+      { path: 'discover', component: MarketplaceDiscoverComponent },
+      { path: 't/:teacherId', component: PublicTeacherComponent },
+      { path: 'l/:lessonId', component: PublicLessonRedirectComponent },
+    ],
   },
   {
     path: 'super-admin',
@@ -85,6 +101,8 @@ const routes: Routes = [
       { path: 'lessons/:lessonId', component: StudentLessonDetailComponent },
       { path: 'book', component: StudentLessonsComponent },
       { path: 'exams', component: StudentExamsComponent },
+      { path: 'discover', component: StudentDiscoverComponent },
+      { path: 'discover/:teacherId', component: StudentTeacherComponent },
       { path: 'classroom/:sessionId', component: StudentClassroomComponent },
       { path: 'profile', component: EditProfileComponent },
     ],
@@ -103,7 +121,7 @@ const routes: Routes = [
       { path: 'profile', component: EditProfileComponent },
     ],
   },
-  { path: '**', redirectTo: 'login' },
+  { path: '**', redirectTo: '' },
 ];
 
 @NgModule({

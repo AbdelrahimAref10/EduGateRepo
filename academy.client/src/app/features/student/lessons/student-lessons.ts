@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
@@ -7,11 +7,12 @@ import {
 } from '../../../core/api/academy-api.generated';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 
 @Component({
   selector: 'app-student-lessons',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink],
+  imports: [TranslatePipe, DatePipe, DecimalPipe, RouterLink, UserAvatarComponent],
   templateUrl: './student-lessons.html',
   styleUrl: './student-lessons.css',
 })
@@ -47,7 +48,7 @@ export class StudentLessonsComponent implements OnInit {
   }
 
   openConfirm(lesson: AvailableLessonDto): void {
-    if (this.bookingId() !== null) return;
+    if (this.bookingId() !== null || lesson.isFull) return;
     this.error.set(null);
     this.confirmLesson.set(lesson);
   }
@@ -87,6 +88,12 @@ export class StudentLessonsComponent implements OnInit {
   price(lesson: AvailableLessonDto): number | string {
     if (lesson.billingType === 'Monthly') return lesson.monthlyPrice ?? '—';
     return lesson.sessionPrice ?? '—';
+  }
+
+  seatsKey(lesson: AvailableLessonDto): string {
+    if (lesson.seatsOpen) return 'marketplace.seatsOpen';
+    if (lesson.isFull) return 'marketplace.seatsFull';
+    return 'marketplace.seatsLeft';
   }
 
   initials(name?: string): string {

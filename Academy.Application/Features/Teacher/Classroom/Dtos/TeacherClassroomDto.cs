@@ -30,6 +30,8 @@ public sealed class TeacherClassroomDto
 
     public required string TeacherName { get; init; }
 
+    public string? TeacherPhotoUrl { get; init; }
+
     public IReadOnlyList<ClassroomStudentDetailDto> Students { get; init; } = [];
 
     public IReadOnlyList<ClassroomMaterialDto> Materials { get; init; } = [];

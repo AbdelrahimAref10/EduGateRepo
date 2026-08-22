@@ -87,6 +87,10 @@ export class NotificationsMenuComponent {
       if (role === 'Teacher') return ['/teacher/lessons', item.entityId];
     }
 
+    if (item.type === 'TeacherReviewReceived') {
+      if (role === 'Teacher') return ['/teacher'];
+    }
+
     return null;
   }
 }

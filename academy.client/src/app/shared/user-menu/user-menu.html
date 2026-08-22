@@ -8,9 +8,7 @@
     <span class="hidden min-w-0 text-end sm:block">
       <strong class="block max-w-[9.5rem] truncate text-[13px] font-bold text-ink">{{ fullName() }}</strong>
     </span>
-    <span class="grid size-9 place-items-center rounded-lg bg-navy-700 text-[11px] font-bold text-primary-200">
-      {{ initials() }}
-    </span>
+    <app-user-avatar [src]="photoUrl()" [alt]="fullName()" size="md" />
   </button>
 
   <div
@@ -19,9 +17,7 @@
     [attr.aria-hidden]="!open()"
   >
     <div class="mb-2 flex items-center gap-3 border-b border-line px-2 pb-3 pt-1">
-      <span class="grid size-10 place-items-center rounded-lg bg-navy-700 text-sm font-bold text-primary-200">
-        {{ initials() }}
-      </span>
+      <app-user-avatar [src]="photoUrl()" [alt]="fullName()" size="md" />
       <div class="min-w-0">
         <strong class="block truncate text-sm text-ink">{{ fullName() }}</strong>
         <small class="block truncate text-xs text-muted">{{ email() }}</small>

@@ -76,6 +76,8 @@ public sealed class AcademyDbContext
 
     public DbSet<NotificationDetail> NotificationDetails => Set<NotificationDetail>();
 
+    public DbSet<TeacherReview> TeacherReviews => Set<TeacherReview>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

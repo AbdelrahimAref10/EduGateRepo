@@ -59,5 +59,7 @@ public interface IApplicationDbContext
 
     DbSet<NotificationDetail> NotificationDetails { get; }
 
+    DbSet<TeacherReview> TeacherReviews { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

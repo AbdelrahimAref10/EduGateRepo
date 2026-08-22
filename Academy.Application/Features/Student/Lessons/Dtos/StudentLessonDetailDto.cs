@@ -10,7 +10,11 @@ public sealed class StudentLessonDetailDto
 
     public required string Subject { get; init; }
 
+    public required int TeacherId { get; init; }
+
     public required string TeacherName { get; init; }
+
+    public string? TeacherPhotoUrl { get; init; }
 
     public required string EducationTypeName { get; init; }
 
@@ -33,4 +37,4 @@ public sealed class StudentLessonDetailDto
     /// <summary>Null when the student is not assigned to a group yet.</summary>
     public StudentLessonGroupDto? MyGroup { get; init; }
 }
-
+

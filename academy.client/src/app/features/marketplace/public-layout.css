@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.public-site {
+  overflow: clip;
+  min-height: 100svh;
+  background: #f7f8fa;
+  color: var(--color-ink);
+}
+
+.public-main {
+  width: 100%;
+}

@@ -8,6 +8,8 @@ public sealed class ClassroomStudentDetailDto
 
     public required string StudentName { get; init; }
 
+    public string? PhotoUrl { get; init; }
+
     public string? StudentCode { get; init; }
 
     public required bool IsPresent { get; init; }

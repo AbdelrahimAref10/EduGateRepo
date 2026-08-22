@@ -6,11 +6,12 @@ import {
   StudentLessonListItemDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 
 @Component({
   selector: 'app-student-my-lessons',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink],
+  imports: [TranslatePipe, DatePipe, RouterLink, UserAvatarComponent],
   templateUrl: './student-my-lessons.html',
   styleUrl: './student-my-lessons.css',
 })

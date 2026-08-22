@@ -20,5 +20,12 @@ public sealed class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
+
+        builder.Property(x => x.RatingAverage)
+            .HasPrecision(4, 2)
+            .IsRequired();
+
+        builder.Property(x => x.RatingCount)
+            .IsRequired();
     }
 }

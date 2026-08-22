@@ -475,6 +475,18 @@ export class TeacherLessonManageComponent implements OnInit {
     return `${y}-${m}-${d}`;
   }
 
+  copyBookingLink(): void {
+    const teacherId = this.manage()?.lesson?.teacherId;
+    const lessonId = this.lessonId();
+    if (!teacherId || !lessonId) return;
+
+    const url = `${window.location.origin}/t/${teacherId}?lesson=${lessonId}`;
+    void navigator.clipboard.writeText(url).then(
+      () => this.success.set('linkCopied'),
+      () => this.error.set(this.i18n.t('marketplace.copyFailed')),
+    );
+  }
+
   private parseDate(value: string): Date | undefined {
     if (!value) return undefined;
     const [y, m, d] = value.split('-').map(Number);

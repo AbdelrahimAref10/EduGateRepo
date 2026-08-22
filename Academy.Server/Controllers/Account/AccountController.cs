@@ -31,6 +31,7 @@ public sealed class AccountController(ISender sender) : ControllerBase
     }
 
     [HttpPut("profile")]
+    [RequestSizeLimit(8 * 1024 * 1024)]
     [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -50,6 +51,7 @@ public sealed class AccountController(ISender sender) : ControllerBase
                 request.Email,
                 request.PhoneNumber,
                 request.Bio,
+                request.PhotoBase64,
                 request.AreaId,
                 request.CurrentPassword,
                 request.NewPassword,

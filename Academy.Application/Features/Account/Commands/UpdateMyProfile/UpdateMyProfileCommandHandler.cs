@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Images;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Account.Dtos;
@@ -13,7 +14,8 @@ namespace Academy.Application.Features.Account.Commands.UpdateMyProfile;
 public sealed class UpdateMyProfileCommandHandler(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext dbContext,
-    IRequestLanguage requestLanguage)
+    IRequestLanguage requestLanguage,
+    IImageService images)
     : IRequestHandler<UpdateMyProfileCommand, Result<UserProfileDto>>
 {
     public async Task<Result<UserProfileDto>> Handle(
@@ -57,6 +59,22 @@ public sealed class UpdateMyProfileCommandHandler(
             : request.PhoneNumber.Trim();
         user.Bio = string.IsNullOrWhiteSpace(request.Bio) ? null : request.Bio.Trim();
         user.AreaId = request.AreaId;
+
+        if (request.PhotoBase64 is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.PhotoBase64))
+            {
+                user.ProfilePhoto = null;
+            }
+            else
+            {
+                var photo = images.Normalize(request.PhotoBase64);
+                if (!photo.IsSuccess)
+                    return Result<UserProfileDto>.Failure(photo.Error, photo.StatusCode);
+
+                user.ProfilePhoto = photo.Value;
+            }
+        }
 
         var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)

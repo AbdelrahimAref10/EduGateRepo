@@ -34,11 +34,13 @@ public sealed class GeminiExamGenerator(
         var payload = BuildPayload(request);
         var models = DistinctModels(settings.Model);
         string? lastError = null;
-        var sawHighDemand = false;
+        var sawRetryable = false;
+
+        using var gate = await GeminiFreeTierGate.EnterAsync(cancellationToken);
 
         foreach (var model in models)
         {
-            for (var attempt = 1; attempt <= 2; attempt++)
+            for (var attempt = 1; attempt <= 3; attempt++)
             {
                 var url = $"{settings.BaseUrl.TrimEnd('/')}/models/{model}:generateContent";
                 using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
@@ -50,6 +52,18 @@ public sealed class GeminiExamGenerator(
                 {
                     response = await httpClient.SendAsync(httpRequest, cancellationToken);
                 }
+                catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    lastError = "انتهت مهلة الاتصال بـ Gemini.";
+                    sawRetryable = true;
+                    if (attempt < 3)
+                    {
+                        await Task.Delay(Backoff(attempt, TimeSpan.FromSeconds(3)), cancellationToken);
+                        continue;
+                    }
+
+                    break;
+                }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to call Gemini exam generator.");
@@ -57,30 +71,35 @@ public sealed class GeminiExamGenerator(
                     break;
                 }
 
-                var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                if (!response.IsSuccessStatusCode)
+                using var activeResponse = response;
+                var body = await activeResponse.Content.ReadAsStringAsync(cancellationToken);
+                if (!activeResponse.IsSuccessStatusCode)
                 {
-                    lastError = ReadGeminiError(body) ?? $"Gemini HTTP {(int)response.StatusCode}";
+                    var status = (int)activeResponse.StatusCode;
+                    lastError = ReadGeminiError(body) ?? $"Gemini HTTP {status}";
                     logger.LogWarning(
                         "Gemini exam generate failed ({Status}) model {Model} attempt {Attempt}: {Body}",
-                        (int)response.StatusCode, model, attempt, body);
+                        status, model, attempt, body);
 
-                    if (IsQuotaExceeded((int)response.StatusCode, lastError))
-                        return Result<GeneratedExam>.Failure("تم استهلاك الحد المجاني اليومي لـ Gemini. حاول لاحقاً.");
+                    if (IsDailyQuota(status, body, lastError))
+                        return Result<GeneratedExam>.Failure(
+                            "خلصت طلبات جيميناي المجانية لليوم على النموذج الحالي. جرّب بعد شوية أو ولّد تاني بنفس الملفات.");
 
-                    if (IsHighDemand((int)response.StatusCode, lastError))
+                    if (IsRetryable(status, body, lastError))
                     {
-                        sawHighDemand = true;
-                        if (attempt == 1)
+                        sawRetryable = true;
+                        var delay = RetryDelay(body, attempt);
+                        GeminiFreeTierGate.Cooldown(delay);
+                        if (attempt < 3)
                         {
-                            await Task.Delay(TimeSpan.FromSeconds(1.5), cancellationToken);
+                            await Task.Delay(delay, cancellationToken);
                             continue;
                         }
 
                         break;
                     }
 
-                    if ((int)response.StatusCode is 404 or 400)
+                    if (status is 404 or 400)
                         break;
 
                     return Result<GeneratedExam>.Failure(lastError);
@@ -119,9 +138,9 @@ public sealed class GeminiExamGenerator(
             }
         }
 
-        if (sawHighDemand)
+        if (sawRetryable)
             return Result<GeneratedExam>.Failure(
-                "Gemini مشغول حالياً. انتظر دقيقة وجرب التوليد مرة أخرى.");
+                "جيميناي الفري مشغول دلوقتي. مش محتاج تستنى ساعات — جرّب التوليد تاني بعد دقيقة.");
 
         return Result<GeneratedExam>.Failure(lastError ?? "فشل توليد الامتحان من Gemini.");
     }
@@ -130,45 +149,145 @@ public sealed class GeminiExamGenerator(
     {
         var list = new[]
         {
-            configured,
             "gemini-2.5-flash-lite",
-            "gemini-2.0-flash",
             "gemini-2.0-flash-lite",
-            "gemini-2.5-flash",
-            "gemini-flash-latest"
+            configured,
+            "gemini-2.0-flash",
+            "gemini-flash-latest",
+            "gemini-2.5-flash"
         };
 
         return list
             .Where(m => !string.IsNullOrWhiteSpace(m))
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(4)
             .ToArray();
     }
 
-    private static bool IsHighDemand(int statusCode, string? error)
+    private static bool IsRetryable(int statusCode, string body, string? error)
     {
-        if (statusCode is 503 or 529)
-            return true;
+        if (statusCode is 429 or 503 or 529)
+            return !IsDailyQuota(statusCode, body, error);
 
-        if (string.IsNullOrWhiteSpace(error))
+        if (string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(body))
             return false;
 
-        return error.Contains("high demand", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("try again later", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("overloaded", StringComparison.OrdinalIgnoreCase);
+        var text = $"{error} {body}";
+        return text.Contains("high demand", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("try again later", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("overloaded", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsQuotaExceeded(int statusCode, string? error)
+    private static bool IsDailyQuota(int statusCode, string body, string? error)
     {
-        if (statusCode != 429 || IsHighDemand(statusCode, error))
+        if (statusCode != 429)
             return false;
 
-        if (string.IsNullOrWhiteSpace(error))
-            return true;
+        var text = $"{error} {body}";
+        if (text.Contains("PerMinute", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("RequestsPerMinute", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
 
-        return error.Contains("quota", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("exhausted", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("limit", StringComparison.OrdinalIgnoreCase);
+        return text.Contains("PerDay", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("RequestsPerDay", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("per day", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static TimeSpan RetryDelay(string body, int attempt)
+    {
+        var parsed = ParseRetryDelay(body);
+        var fallback = Backoff(attempt, TimeSpan.FromSeconds(2));
+        var delay = parsed ?? fallback;
+        if (delay < TimeSpan.FromSeconds(2))
+            delay = TimeSpan.FromSeconds(2);
+        if (delay > TimeSpan.FromSeconds(12))
+            delay = TimeSpan.FromSeconds(12);
+        return delay;
+    }
+
+    private static TimeSpan Backoff(int attempt, TimeSpan first)
+    {
+        var seconds = first.TotalSeconds * Math.Pow(2, Math.Max(0, attempt - 1));
+        return TimeSpan.FromSeconds(Math.Min(12, seconds));
+    }
+
+    private static TimeSpan? ParseRetryDelay(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            foreach (var value in WalkStrings(doc.RootElement))
+            {
+                if (!TryParseDuration(value, out var delay))
+                    continue;
+                if (delay > TimeSpan.Zero)
+                    return delay;
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> WalkStrings(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (property.Name.Equals("retryDelay", StringComparison.OrdinalIgnoreCase)
+                        && property.Value.ValueKind == JsonValueKind.String
+                        && property.Value.GetString() is { } delay)
+                    {
+                        yield return delay;
+                    }
+
+                    foreach (var child in WalkStrings(property.Value))
+                        yield return child;
+                }
+
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                {
+                    foreach (var child in WalkStrings(item))
+                        yield return child;
+                }
+
+                break;
+        }
+    }
+
+    private static bool TryParseDuration(string raw, out TimeSpan delay)
+    {
+        delay = TimeSpan.Zero;
+        var value = raw.Trim();
+        if (value.Length < 2)
+            return false;
+
+        var unit = value[^1];
+        if (!double.TryParse(value[..^1], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var number))
+        {
+            return false;
+        }
+
+        delay = unit switch
+        {
+            's' or 'S' => TimeSpan.FromSeconds(number),
+            'm' or 'M' => TimeSpan.FromMinutes(number),
+            'h' or 'H' => TimeSpan.FromHours(number),
+            _ => TimeSpan.Zero
+        };
+        return delay > TimeSpan.Zero;
     }
 
     private static string? ReadGeminiError(string body)
@@ -202,6 +321,7 @@ public sealed class GeminiExamGenerator(
         foreach (var material in request.Materials)
         {
             if (material.FileBytes is { Length: > 0 } bytes
+                && bytes.Length <= 4 * 1024 * 1024
                 && !string.IsNullOrWhiteSpace(material.MimeType)
                 && IsGeminiInlineType(material.MimeType))
             {

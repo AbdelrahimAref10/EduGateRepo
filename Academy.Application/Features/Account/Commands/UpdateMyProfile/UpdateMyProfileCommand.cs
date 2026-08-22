@@ -11,6 +11,7 @@ public sealed record UpdateMyProfileCommand(
     string Email,
     string? PhoneNumber,
     string? Bio,
+    string? PhotoBase64,
     int AreaId,
     string? CurrentPassword,
     string? NewPassword, 

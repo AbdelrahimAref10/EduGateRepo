@@ -9,7 +9,11 @@
       </h2>
       @if (detail(); as d) {
         <p class="mt-1 text-sm text-muted">
-          {{ d.teacherName }} · {{ d.educationTypeName }} · {{ d.educationStageName }} · {{ d.educationYearName }}
+          <a [routerLink]="['/student/discover', d.teacherId]" class="inline-flex items-center gap-2 font-semibold text-primary-700 hover:underline">
+            <app-user-avatar [src]="d.teacherPhotoUrl" [alt]="d.teacherName" size="sm" />
+            {{ d.teacherName }}
+          </a>
+          · {{ d.educationTypeName }} · {{ d.educationStageName }} · {{ d.educationYearName }}
         </p>
         <p class="mt-1 text-sm text-muted">
           {{ d.areaName }} · {{ d.countryName }}
@@ -96,6 +100,10 @@
           }
         </div>
       </section>
+    }
+
+    @if (canReview() && d.teacherId) {
+      <app-teacher-review-form [teacherId]="d.teacherId" [review]="myReview()" (saved)="load()" />
     }
   }
 </section>

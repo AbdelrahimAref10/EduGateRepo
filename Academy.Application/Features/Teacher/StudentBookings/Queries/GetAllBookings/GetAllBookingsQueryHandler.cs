@@ -35,6 +35,7 @@ public sealed class GetAllBookingsQueryHandler(
                 TeacherId = x.TeacherId,
                 StudentId = x.StudentId,
                 StudentName = (x.Student.User.FirstName + " " + x.Student.User.LastName).Trim(),
+                StudentPhotoUrl = x.Student.User.ProfilePhoto,
                 StudentCode = x.Student.StudentCode,
                 Subject = x.Lesson.Subject,
                 EducationTypeName = language == AppLanguage.Arabic

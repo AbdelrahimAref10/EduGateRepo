@@ -1,0 +1,110 @@
+<section class="space-y-4">
+  <header class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleStudent' | t }}</p>
+      <h2 class="page-title mt-1">{{ 'marketplace.studentTitle' | t }}</h2>
+      <p class="mt-1 text-sm text-muted">{{ 'marketplace.studentSubtitle' | t }}</p>
+    </div>
+    <a routerLink="/student/book" class="btn-ghost">{{ 'booking.studentNav' | t }}</a>
+  </header>
+
+  <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-line">
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ 'auth.country' | t }}
+        <select class="field" (change)="catalog.onCountry($any($event.target).value)">
+          <option value="">{{ 'marketplace.anyCountry' | t }}</option>
+          @for (country of catalog.countries(); track country.id) {
+            <option [value]="country.id">{{ catalog.placeLabel(country.nameAr, country.nameEn) }}</option>
+          }
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ 'lessons.educationType' | t }}
+        <select class="field" (change)="catalog.onType($any($event.target).value)">
+          <option value="">{{ 'marketplace.anyType' | t }}</option>
+          @for (type of catalog.types(); track type.id) {
+            <option [value]="type.id">{{ type.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ 'lessons.educationStage' | t }}
+        <select class="field" (change)="catalog.onStage($any($event.target).value)" [disabled]="!catalog.typeId()">
+          <option value="">{{ 'marketplace.anyStage' | t }}</option>
+          @for (stage of catalog.stages(); track stage.id) {
+            <option [value]="stage.id">{{ stage.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ 'lessons.educationYear' | t }}
+        <select class="field" (change)="catalog.onYear($any($event.target).value)" [disabled]="!catalog.stageId()">
+          <option value="">{{ 'marketplace.anyYear' | t }}</option>
+          @for (year of catalog.years(); track year.id) {
+            <option [value]="year.id">{{ year.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
+        {{ 'lessons.subject' | t }}
+        <select class="field" (change)="catalog.onSubject($any($event.target).value)" [disabled]="!catalog.yearId()">
+          <option value="">{{ 'marketplace.anySubject' | t }}</option>
+          @for (subject of catalog.subjects(); track subject.id) {
+            <option [value]="subject.id">{{ subject.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  </div>
+
+  @if (catalog.error()) {
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-danger" role="alert">
+      {{ catalog.error() }}
+    </div>
+  }
+
+  @if (catalog.loading()) {
+    <div class="grid gap-4 md:grid-cols-2">
+      @for (_ of [1, 2, 3, 4]; track $index) {
+        <div class="h-36 animate-pulse rounded-2xl bg-white shadow-sm ring-1 ring-line"></div>
+      }
+    </div>
+  } @else if (catalog.teachers().length === 0) {
+    <div class="rounded-2xl bg-white px-6 py-16 text-center shadow-sm ring-1 ring-line">
+      <p class="font-semibold text-ink">{{ 'marketplace.emptyTeachers' | t }}</p>
+    </div>
+  } @else {
+    <div class="grid gap-4 md:grid-cols-2">
+      @for (teacher of catalog.teachers(); track teacher.id) {
+        <article class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-line">
+          <div class="h-1.5 w-full bg-gradient-to-l from-primary-600 via-primary-500 to-primary-300"></div>
+          <div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+            <app-user-avatar [src]="teacher.photoUrl" [alt]="teacher.name" size="lg" />
+            <div class="min-w-0 flex-1">
+              <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-600">
+                {{ teacher.subjectName || ('marketplace.availableNow' | t) }}
+              </p>
+              <h3 class="mt-1 truncate text-lg font-bold text-ink">{{ teacher.name }}</h3>
+              <p class="mt-0.5 truncate text-sm text-muted">
+                {{ teacher.countryName || ('marketplace.locationHidden' | t) }}
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <app-rating-stars [filled]="stars(teacher)" />
+                @if (teacher.ratingCount) {
+                  <span class="font-bold text-ink">{{ rating(teacher) }}</span>
+                }
+                <span class="rounded-full bg-body px-2 py-0.5 text-xs font-bold text-muted">
+                  {{ teacher.activeLessonsCount }} {{ 'marketplace.lessonsCount' | t }}
+                </span>
+              </div>
+            </div>
+            <button type="button" class="btn-primary w-full sm:w-auto" (click)="open(teacher)">
+              {{ 'marketplace.viewProfile' | t }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

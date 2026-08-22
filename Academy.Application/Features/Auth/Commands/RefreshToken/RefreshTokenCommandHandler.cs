@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Identity;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Auth.Dtos;
@@ -76,7 +77,8 @@ public sealed class RefreshTokenCommandHandler(
             Roles = roles.ToList(),
             LanguageId = (int)user.PreferredLanguage,
             StudentCode = studentCode,
-            AreaId = user.AreaId
+            AreaId = user.AreaId,
+            PhotoUrl = ImageService.DisplayValue(user.ProfilePhoto)
         });
     }
 }

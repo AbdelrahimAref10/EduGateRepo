@@ -21,6 +21,8 @@ public sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Appl
         builder.Property(x => x.Bio)
             .HasMaxLength(500);
 
+        builder.Property(x => x.ProfilePhoto);
+
         builder.Property(x => x.PreferredLanguage)
             .HasConversion<int>()
             .IsRequired()

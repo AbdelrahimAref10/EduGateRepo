@@ -23,7 +23,11 @@
           <p class="mt-2 text-sm text-white/85">
             {{ room.sessionDate | date: 'yyyy-MM-dd' }}
             · {{ toTimeInput(room.startTime) }}
-            · {{ room.teacherName }}
+            ·
+            <span class="inline-flex items-center gap-1.5">
+              <app-user-avatar [src]="room.teacherPhotoUrl" [alt]="room.teacherName" size="sm" />
+              {{ room.teacherName }}
+            </span>
           </p>
           <div class="mt-4 flex flex-wrap gap-2">
             <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
@@ -217,11 +221,7 @@
                   <li
                     class="flex items-center gap-3 rounded-xl border border-line px-3 py-2.5 transition hover:border-primary-200"
                   >
-                    <div
-                      class="flex size-9 items-center justify-center rounded-full bg-primary-50 text-[11px] font-extrabold text-primary-700"
-                    >
-                      {{ initials(mate.studentName) }}
-                    </div>
+                    <app-user-avatar [src]="mate.photoUrl" [alt]="mate.studentName" size="sm" />
                     <div class="min-w-0 flex-1">
                       <p class="truncate text-sm font-bold text-ink">{{ mate.studentName }}</p>
                       <p class="font-mono text-xs text-muted">{{ mate.studentCode || '—' }}</p>

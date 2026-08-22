@@ -5,24 +5,31 @@ import {
   LessonsClient,
   StudentLessonDetailDto,
   StudentLessonSessionDto,
+  StudentTeacherReviewsClient,
+  TeacherReviewDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
+import { TeacherReviewFormComponent } from '../../marketplace/teacher-review-form';
 
 @Component({
   selector: 'app-student-lesson-detail',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink],
+  imports: [TranslatePipe, DatePipe, RouterLink, TeacherReviewFormComponent, UserAvatarComponent],
   templateUrl: './student-lesson-detail.html',
   styleUrl: './student-lesson-detail.css',
 })
 export class StudentLessonDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly lessonsApi = inject(LessonsClient);
+  private readonly reviewsApi = inject(StudentTeacherReviewsClient);
 
   readonly lessonId = signal(0);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly detail = signal<StudentLessonDetailDto | null>(null);
+  readonly canReview = signal(false);
+  readonly myReview = signal<TeacherReviewDto | null>(null);
 
   ngOnInit(): void {
     this.lessonId.set(Number(this.route.snapshot.paramMap.get('lessonId')));
@@ -43,6 +50,7 @@ export class StudentLessonDetailComponent implements OnInit {
       next: (data) => {
         this.detail.set(data);
         this.loading.set(false);
+        this.loadReview(data.teacherId, data.bookingStatus);
       },
       error: (err) => {
         this.loading.set(false);
@@ -71,5 +79,23 @@ export class StudentLessonDetailComponent implements OnInit {
   toTime(value?: string): string {
     if (!value) return '—';
     return value.length >= 5 ? value.slice(0, 5) : value;
+  }
+
+  private loadReview(teacherId?: number, bookingStatus?: string): void {
+    if (!teacherId || bookingStatus !== 'Confirmed') {
+      this.canReview.set(false);
+      this.myReview.set(null);
+      return;
+    }
+
+    this.reviewsApi.getMine(teacherId).subscribe({
+      next: (data) => {
+        this.canReview.set(!!data.canReview);
+        this.myReview.set(data.review ?? null);
+      },
+      error: () => {
+        this.canReview.set(bookingStatus === 'Confirmed');
+      },
+    });
   }
 }

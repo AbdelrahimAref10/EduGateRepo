@@ -1,0 +1,243 @@
+<div class="landing">
+  <app-landing-nav />
+
+  <section class="hero" aria-roledescription="carousel">
+    @for (slide of slides; track slide.image; let i = $index) {
+      <div class="hero-slide" [class.is-active]="heroIndex() === i">
+        <img [src]="slide.image" alt="" (error)="hideBrokenImage($event)" />
+      </div>
+    }
+    <div class="hero-veil"></div>
+    @for (slide of slides; track slide.image; let i = $index) {
+      @if (heroIndex() === i) {
+        <div class="hero-copy">
+          <p class="hero-kicker">{{ slide.kicker | t }}</p>
+          <h1>{{ slide.title | t }}</h1>
+          <p class="hero-lead">{{ slide.body | t }}</p>
+          <div class="hero-actions">
+            <button type="button" class="btn-primary landing-cta landing-cta-lg" (click)="startNow()">
+              {{ 'landing.start' | t }}
+            </button>
+            <a routerLink="/discover" class="hero-link">{{ 'landing.browseMarketplace' | t }}</a>
+          </div>
+        </div>
+      }
+    }
+    <div class="hero-controls">
+      <button type="button" class="hero-arrow" (click)="prevHero()" aria-label="previous">‹</button>
+      <div class="hero-progress">
+        @for (slide of slides; track slide.image; let i = $index) {
+          <button
+            type="button"
+            class="hero-pip"
+            [class.is-on]="heroIndex() === i"
+            (click)="goHero(i)"
+            [attr.aria-label]="'slide ' + (i + 1)"
+          ></button>
+        }
+      </div>
+      <button type="button" class="hero-arrow" (click)="nextHero()" aria-label="next">›</button>
+    </div>
+  </section>
+
+  <section class="band" aria-hidden="true">
+    <div class="band-track">
+      @for (pass of [0, 1]; track pass) {
+        @for (item of marquee; track item) {
+          <span>{{ item | t }}</span>
+        }
+      }
+    </div>
+  </section>
+
+  <section class="section platform" id="platform">
+    <div class="section-head reveal">
+      <p>{{ 'landing.featuresKicker' | t }}</p>
+      <h2>{{ 'landing.featuresTitle' | t }}</h2>
+      <p class="section-lead">{{ 'landing.featuresLead' | t }}</p>
+    </div>
+    <div class="feature-grid">
+      <article class="reveal reveal-scale">
+        <span>01</span>
+        <h3>{{ 'landing.f1Title' | t }}</h3>
+        <p>{{ 'landing.f1Body' | t }}</p>
+      </article>
+      <article class="reveal reveal-scale">
+        <span>02</span>
+        <h3>{{ 'landing.f2Title' | t }}</h3>
+        <p>{{ 'landing.f2Body' | t }}</p>
+      </article>
+      <article class="reveal reveal-scale">
+        <span>03</span>
+        <h3>{{ 'landing.f3Title' | t }}</h3>
+        <p>{{ 'landing.f3Body' | t }}</p>
+      </article>
+      <article class="reveal reveal-scale">
+        <span>04</span>
+        <h3>{{ 'landing.f4Title' | t }}</h3>
+        <p>{{ 'landing.f4Body' | t }}</p>
+      </article>
+      <article class="reveal reveal-scale">
+        <span>05</span>
+        <h3>{{ 'landing.f5Title' | t }}</h3>
+        <p>{{ 'landing.f5Body' | t }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section how" id="how">
+    <div class="section-head reveal">
+      <p>{{ 'landing.howKicker' | t }}</p>
+      <h2>{{ 'landing.howTitle' | t }}</h2>
+    </div>
+    <ol class="how-grid">
+      <li class="reveal reveal-left">
+        <em>01</em>
+        <h3>{{ 'landing.how1Title' | t }}</h3>
+        <p>{{ 'landing.how1Body' | t }}</p>
+      </li>
+      <li class="reveal">
+        <em>02</em>
+        <h3>{{ 'landing.how2Title' | t }}</h3>
+        <p>{{ 'landing.how2Body' | t }}</p>
+      </li>
+      <li class="reveal reveal-right">
+        <em>03</em>
+        <h3>{{ 'landing.how3Title' | t }}</h3>
+        <p>{{ 'landing.how3Body' | t }}</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="market-cta" id="marketplace">
+    <div class="market-cta-inner reveal">
+      <p>{{ 'landing.marketKicker' | t }}</p>
+      <h2>{{ 'landing.marketTitle' | t }}</h2>
+      <p>{{ 'landing.marketBody' | t }}</p>
+      <a routerLink="/discover" class="btn-primary landing-cta landing-cta-lg">{{ 'landing.marketCta' | t }}</a>
+    </div>
+  </section>
+
+  <section class="section apps" id="apps">
+    <div class="section-head reveal">
+      <p>{{ 'landing.appsKicker' | t }}</p>
+      <h2>{{ 'landing.appsTitle' | t }}</h2>
+      <p class="section-lead">{{ 'landing.appsLead' | t }}</p>
+    </div>
+    <div class="app-grid">
+      <article class="app-card reveal reveal-left">
+        <p class="eyebrow">{{ 'landing.teacherApp' | t }}</p>
+        <h3>{{ 'landing.teacherAppTitle' | t }}</h3>
+        <p>{{ 'landing.teacherAppBody' | t }}</p>
+        <div class="store-row">
+          <a class="store" href="https://play.google.com/store" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#3DDC84"
+                d="M3.6 2.3c-.4.4-.6 1-.6 1.8v15.8c0 .8.2 1.4.6 1.8l.1.1 9.1-9.1v-.2L3.7 2.3z"
+              />
+              <path fill="#F4C20D" d="M16.7 12.8 13.4 9.5l-1.2 1.2 3.2 3.2-.1.1-3.1 3.1 1.2 1.2 3.3-3.3c.9-.5.9-1.7 0-2.2z" />
+              <path fill="#4285F4" d="M13.4 14.5 3.6 21.7c.5.5 1.3.6 2.2.1l11-6.3-3.4-3.4z" />
+              <path fill="#EA4335" d="M13.4 9.5 16.8 6.1 5.8 2.2C4.9 1.7 4.1 1.8 3.6 2.3l9.8 7.2z" />
+            </svg>
+            <span>
+              <small>{{ 'landing.getOn' | t }}</small>
+              <strong>Google Play</strong>
+            </span>
+          </a>
+          <a class="store" href="https://apps.apple.com" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M16.4 12.8c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3s1.6-.8 3.1-.8 1.8.8 3.1.8 2.1-1.2 2.8-2.3c.9-1.3 1.2-2.5 1.2-2.6-.1 0-2.3-.9-2.3-3.6zM14.3 6.4c.7-.9 1.2-2.1 1.1-3.4-1 .1-2.3.7-3 .1-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.3-.5 3-.9z"
+              />
+            </svg>
+            <span>
+              <small>{{ 'landing.downloadOn' | t }}</small>
+              <strong>App Store</strong>
+            </span>
+          </a>
+        </div>
+      </article>
+      <article class="app-card reveal reveal-right">
+        <p class="eyebrow">{{ 'landing.studentApp' | t }}</p>
+        <h3>{{ 'landing.studentAppTitle' | t }}</h3>
+        <p>{{ 'landing.studentAppBody' | t }}</p>
+        <div class="store-row">
+          <a class="store" href="https://play.google.com/store" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#3DDC84"
+                d="M3.6 2.3c-.4.4-.6 1-.6 1.8v15.8c0 .8.2 1.4.6 1.8l.1.1 9.1-9.1v-.2L3.7 2.3z"
+              />
+              <path fill="#F4C20D" d="M16.7 12.8 13.4 9.5l-1.2 1.2 3.2 3.2-.1.1-3.1 3.1 1.2 1.2 3.3-3.3c.9-.5.9-1.7 0-2.2z" />
+              <path fill="#4285F4" d="M13.4 14.5 3.6 21.7c.5.5 1.3.6 2.2.1l11-6.3-3.4-3.4z" />
+              <path fill="#EA4335" d="M13.4 9.5 16.8 6.1 5.8 2.2C4.9 1.7 4.1 1.8 3.6 2.3l9.8 7.2z" />
+            </svg>
+            <span>
+              <small>{{ 'landing.getOn' | t }}</small>
+              <strong>Google Play</strong>
+            </span>
+          </a>
+          <a class="store" href="https://apps.apple.com" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M16.4 12.8c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3s1.6-.8 3.1-.8 1.8.8 3.1.8 2.1-1.2 2.8-2.3c.9-1.3 1.2-2.5 1.2-2.6-.1 0-2.3-.9-2.3-3.6zM14.3 6.4c.7-.9 1.2-2.1 1.1-3.4-1 .1-2.3.7-3 .1-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.3-.5 3-.9z"
+              />
+            </svg>
+            <span>
+              <small>{{ 'landing.downloadOn' | t }}</small>
+              <strong>App Store</strong>
+            </span>
+          </a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section stories" id="stories">
+    <div class="section-head row reveal">
+      <div>
+        <p>{{ 'landing.storiesKicker' | t }}</p>
+        <h2>{{ 'landing.storiesTitle' | t }}</h2>
+      </div>
+      <div class="quote-nav">
+        <button type="button" (click)="prevQuote()" aria-label="previous quotes">‹</button>
+        <div class="quote-dots">
+          @for (_ of [0, 1]; track $index) {
+            <button type="button" [class.is-on]="quotePage() === $index" (click)="goQuote($index)"></button>
+          }
+        </div>
+        <button type="button" (click)="nextQuote()" aria-label="next quotes">›</button>
+      </div>
+    </div>
+    <div class="quote-grid reveal" [attr.data-page]="quotePage()">
+      @for (quote of visibleQuotes(); track quote.name) {
+        <blockquote class="quote">
+          <p class="quote-mark">“</p>
+          <p class="quote-text">{{ quote.text | t }}</p>
+          <footer>
+            <strong>{{ quote.name | t }}</strong>
+            <span>{{ quote.role | t }}</span>
+          </footer>
+        </blockquote>
+      }
+    </div>
+  </section>
+
+  <section class="finale">
+    <div class="finale-inner reveal">
+      <h2>{{ 'landing.finaleTitle' | t }}</h2>
+      <p>{{ 'landing.finaleBody' | t }}</p>
+      <div class="finale-actions">
+        <button type="button" class="btn-primary landing-cta landing-cta-lg" (click)="startNow()">
+          {{ 'landing.start' | t }}
+        </button>
+        <a routerLink="/discover" class="finale-link">{{ 'landing.browseMarketplace' | t }}</a>
+      </div>
+    </div>
+  </section>
+
+  <app-landing-footer />
+</div>

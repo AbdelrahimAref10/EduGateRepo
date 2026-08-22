@@ -1,3 +1,4 @@
+using Academy.Application.Common.Images;
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
@@ -131,6 +132,7 @@ public sealed class AddLessonStudentByCodeCommandHandler(
             BookingId = booking.Id,
             StudentId = student.Id,
             StudentName = student.User.FullName,
+            PhotoUrl = ImageService.DisplayValue(student.User.ProfilePhoto),
             StudentCode = student.StudentCode,
             Status = booking.Status.ToString(),
             CreatedAtUtc = booking.CreatedAtUtc,

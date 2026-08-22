@@ -1,5 +1,7 @@
 ﻿using Academy.Application.Behaviors;
+using Academy.Application.Common.Images;
 using Academy.Application.Common.Localization;
+using Academy.Application.Contracts.Images;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Features.Notifications;
@@ -18,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IRequestLanguage, RequestLanguage>();
         services.AddScoped<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<IImageService, ImageService>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));

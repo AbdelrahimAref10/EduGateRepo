@@ -74,7 +74,12 @@
             <tbody>
               @for (booking of rows(); track booking.id) {
                 <tr class="border-b border-line/70 transition hover:bg-body/70">
-                  <td class="px-3 py-3 font-semibold">{{ booking.studentName }}</td>
+                  <td class="px-3 py-3">
+                    <span class="flex items-center gap-2 font-semibold">
+                      <app-user-avatar [src]="booking.studentPhotoUrl" [alt]="booking.studentName" size="sm" />
+                      {{ booking.studentName }}
+                    </span>
+                  </td>
                   <td class="px-3 py-3 text-muted">{{ booking.studentCode || '—' }}</td>
                   <td class="px-3 py-3">{{ booking.subject }}</td>
                   <td class="px-3 py-3">{{ booking.educationTypeName }}</td>

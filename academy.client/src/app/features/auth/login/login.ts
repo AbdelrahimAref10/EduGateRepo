@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { loginQueryParams } from '../../../core/auth/return-url';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { LanguageSwitcherComponent } from '../../../shared/language-switcher/language-switcher';
 
@@ -15,9 +16,12 @@ import { LanguageSwitcherComponent } from '../../../shared/language-switcher/lan
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly returnUrl = computed(() => this.route.snapshot.queryParamMap.get('returnUrl'));
+  readonly registerQueryParams = computed(() => loginQueryParams(this.returnUrl()));
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -32,7 +36,7 @@ export class LoginComponent {
     }
 
     this.loading.set(true);
-    this.auth.login(this.form.getRawValue()).subscribe({
+    this.auth.login(this.form.getRawValue(), this.returnUrl()).subscribe({
       next: () => this.loading.set(false),
       error: (err) => {
         this.loading.set(false);

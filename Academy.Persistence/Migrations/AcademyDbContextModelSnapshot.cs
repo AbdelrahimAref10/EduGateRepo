@@ -176,6 +176,9 @@ namespace Academy.Persistence.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<string>("ProfilePhoto")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -1287,6 +1290,13 @@ namespace Academy.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("RatingAverage")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -1296,6 +1306,43 @@ namespace Academy.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Teachers", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.TeacherReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TeacherId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("TeacherReviews", (string)null);
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.ApplicationRoleClaim", b =>
@@ -1765,6 +1812,25 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.TeacherReview", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany("Reviews")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Teacher", "Teacher")
+                        .WithMany("Reviews")
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Navigation("RoleClaims");
@@ -1899,6 +1965,8 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("ExamAttempts");
 
                     b.Navigation("GroupMemberships");
+
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Teacher", b =>
@@ -1906,6 +1974,8 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Bookings");
 
                     b.Navigation("Lessons");
+
+                    b.Navigation("Reviews");
                 });
 #pragma warning restore 612, 618
         }

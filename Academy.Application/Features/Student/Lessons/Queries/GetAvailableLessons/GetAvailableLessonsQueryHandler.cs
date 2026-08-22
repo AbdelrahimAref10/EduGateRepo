@@ -1,6 +1,8 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
+using Academy.Application.Features.Marketplace;
 using Academy.Application.Features.Student.Lessons.Dtos;
 using Academy.Domain.Enums;
 using MediatR;
@@ -30,6 +32,7 @@ public sealed class GetAvailableLessonsQueryHandler(
         var language = requestLanguage.Current;
 
         var lessons = await dbContext.Lessons
+            .AsNoTracking()
             .Where(x => x.IsActive && !bookedLessonIds.Contains(x.Id))
             .OrderByDescending(x => x.CreatedAtUtc)
             .Select(x => new AvailableLessonDto
@@ -37,6 +40,7 @@ public sealed class GetAvailableLessonsQueryHandler(
                 Id = x.Id,
                 TeacherId = x.TeacherId,
                 TeacherName = (x.Teacher.User.FirstName + " " + x.Teacher.User.LastName).Trim(),
+                TeacherPhotoUrl = x.Teacher.User.ProfilePhoto,
                 Subject = language == AppLanguage.Arabic
                     ? x.EducationSubject.NameAr
                     : x.EducationSubject.NameEn,
@@ -59,10 +63,52 @@ public sealed class GetAvailableLessonsQueryHandler(
                 CountryId = x.CountryId,
                 CountryName = language == AppLanguage.Arabic
                     ? x.Country.NameAr
-                    : x.Country.NameEn
+                    : x.Country.NameEn,
+                RemainingSeats = null,
+                SeatsOpen = true,
+                IsFull = false,
+                TeacherRatingAverage = x.Teacher.Reviews.Select(r => (decimal)r.Rating).DefaultIfEmpty().Average(),
+                TeacherRatingCount = x.Teacher.Reviews.Count()
             })
             .ToListAsync(cancellationToken);
 
-        return Result<IReadOnlyList<AvailableLessonDto>>.Success(lessons);
+        var seats = await LessonSeatLookup.ForLessonsAsync(
+            dbContext,
+            lessons.Select(x => x.Id),
+            cancellationToken);
+
+        var items = lessons
+            .Select(lesson =>
+            {
+                var availability = seats.GetValueOrDefault(lesson.Id, LessonSeatAvailability.Open());
+                return new AvailableLessonDto
+                {
+                    Id = lesson.Id,
+                    TeacherId = lesson.TeacherId,
+                    TeacherName = lesson.TeacherName,
+                    TeacherPhotoUrl = ImageService.DisplayValue(lesson.TeacherPhotoUrl),
+                    Subject = lesson.Subject,
+                    EducationTypeId = lesson.EducationTypeId,
+                    EducationTypeName = lesson.EducationTypeName,
+                    EducationStageId = lesson.EducationStageId,
+                    EducationStageName = lesson.EducationStageName,
+                    EducationYearId = lesson.EducationYearId,
+                    EducationYearName = lesson.EducationYearName,
+                    BillingType = lesson.BillingType,
+                    SessionPrice = lesson.SessionPrice,
+                    MonthlyPrice = lesson.MonthlyPrice,
+                    StartDate = lesson.StartDate,
+                    CountryId = lesson.CountryId,
+                    CountryName = lesson.CountryName,
+                    RemainingSeats = availability.RemainingSeats,
+                    SeatsOpen = availability.SeatsOpen,
+                    IsFull = availability.IsFull,
+                    TeacherRatingAverage = lesson.TeacherRatingAverage,
+                    TeacherRatingCount = lesson.TeacherRatingCount
+                };
+            })
+            .ToList();
+
+        return Result<IReadOnlyList<AvailableLessonDto>>.Success(items);
     }
 }

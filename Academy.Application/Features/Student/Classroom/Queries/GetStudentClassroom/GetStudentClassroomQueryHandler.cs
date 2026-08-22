@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom;
 using Academy.Application.Features.Student.Classroom.Dtos;
@@ -74,6 +75,7 @@ public sealed class GetStudentClassroomQueryHandler(IApplicationDbContext dbCont
             .Select(m => new StudentClassroomClassmateDto
             {
                 StudentName = m.Student.User.FullName,
+                PhotoUrl = ImageService.DisplayValue(m.Student.User.ProfilePhoto),
                 StudentCode = m.Student.StudentCode
             })
             .ToList();
@@ -96,6 +98,7 @@ public sealed class GetStudentClassroomQueryHandler(IApplicationDbContext dbCont
             StartedAtUtc = session.StartedAtUtc,
             EndedAtUtc = session.EndedAtUtc,
             TeacherName = lesson.Teacher.User.FullName,
+            TeacherPhotoUrl = ImageService.DisplayValue(lesson.Teacher.User.ProfilePhoto),
             MyDetail = myDetailEntity is null
                 ? null
                 : ClassroomMappings.ToStudentDetailDto(myDetailEntity),

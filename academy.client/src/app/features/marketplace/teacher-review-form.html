@@ -1,0 +1,46 @@
+<section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-line">
+  <h3 class="text-base font-bold text-ink">
+    {{ review ? ('marketplace.editReview' | t) : ('marketplace.writeReview' | t) }}
+  </h3>
+  <p class="mt-1 text-sm text-muted">{{ 'marketplace.reviewHint' | t }}</p>
+
+  @if (error()) {
+    <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+  @if (success()) {
+    <div class="mt-3 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
+      {{ 'marketplace.reviewSaved' | t }}
+    </div>
+  }
+
+  <div class="mt-4 flex gap-1" role="radiogroup" [attr.aria-label]="'marketplace.rating' | t">
+    @for (star of [1, 2, 3, 4, 5]; track star) {
+      <button
+        type="button"
+        class="text-2xl leading-none transition"
+        [class.text-amber-400]="star <= rating()"
+        [class.text-line]="star > rating()"
+        (click)="setRating(star)"
+      >
+        ★
+      </button>
+    }
+  </div>
+
+  <label class="mt-4 block">
+    <span class="text-xs font-semibold uppercase tracking-wide text-muted">{{ 'marketplace.comment' | t }}</span>
+    <textarea
+      class="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink"
+      rows="3"
+      maxlength="500"
+      [ngModel]="comment()"
+      (ngModelChange)="comment.set($event)"
+    ></textarea>
+  </label>
+
+  <button type="button" class="btn-primary mt-4" (click)="submit()" [disabled]="saving()">
+    {{ saving() ? ('marketplace.savingReview' | t) : ('marketplace.saveReview' | t) }}
+  </button>
+</section>

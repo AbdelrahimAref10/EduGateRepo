@@ -6065,6 +6065,475 @@ export class StudentDashboardClient implements IStudentDashboardClient {
     }
 }
 
+export interface IStudentTeacherReviewsClient {
+    getMine(teacherId: number): Observable<MyTeacherReviewDto>;
+    create(teacherId: number, request: UpsertTeacherReviewRequest): Observable<TeacherReviewDto>;
+    update(teacherId: number, request: UpsertTeacherReviewRequest): Observable<TeacherReviewDto>;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class StudentTeacherReviewsClient implements IStudentTeacherReviewsClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getMine(teacherId: number): Observable<MyTeacherReviewDto> {
+        let url_ = this.baseUrl + "/api/student/teachers/{teacherId}/reviews/mine";
+        if (teacherId === undefined || teacherId === null)
+            throw new globalThis.Error("The parameter 'teacherId' must be defined.");
+        url_ = url_.replace("{teacherId}", encodeURIComponent("" + teacherId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetMine(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetMine(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<MyTeacherReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<MyTeacherReviewDto>;
+        }));
+    }
+
+    protected processGetMine(response: HttpResponseBase): Observable<MyTeacherReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = MyTeacherReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    create(teacherId: number, request: UpsertTeacherReviewRequest): Observable<TeacherReviewDto> {
+        let url_ = this.baseUrl + "/api/student/teachers/{teacherId}/reviews";
+        if (teacherId === undefined || teacherId === null)
+            throw new globalThis.Error("The parameter 'teacherId' must be defined.");
+        url_ = url_.replace("{teacherId}", encodeURIComponent("" + teacherId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TeacherReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TeacherReviewDto>;
+        }));
+    }
+
+    protected processCreate(response: HttpResponseBase): Observable<TeacherReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TeacherReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    update(teacherId: number, request: UpsertTeacherReviewRequest): Observable<TeacherReviewDto> {
+        let url_ = this.baseUrl + "/api/student/teachers/{teacherId}/reviews";
+        if (teacherId === undefined || teacherId === null)
+            throw new globalThis.Error("The parameter 'teacherId' must be defined.");
+        url_ = url_.replace("{teacherId}", encodeURIComponent("" + teacherId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TeacherReviewDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TeacherReviewDto>;
+        }));
+    }
+
+    protected processUpdate(response: HttpResponseBase): Observable<TeacherReviewDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TeacherReviewDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+export interface IPublicMarketplaceClient {
+    getHighlights(): Observable<PublicHighlightsDto>;
+    getTeachers(countryId: number | null | undefined, educationStageId: number | null | undefined, educationSubjectId: number | null | undefined): Observable<PublicTeacherListItemDto[]>;
+    getTeacher(teacherId: number): Observable<PublicTeacherDetailDto>;
+    getLesson(lessonId: number): Observable<PublicLessonDeepLinkDto>;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class PublicMarketplaceClient implements IPublicMarketplaceClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getHighlights(): Observable<PublicHighlightsDto> {
+        let url_ = this.baseUrl + "/api/public/highlights";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetHighlights(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetHighlights(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PublicHighlightsDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PublicHighlightsDto>;
+        }));
+    }
+
+    protected processGetHighlights(response: HttpResponseBase): Observable<PublicHighlightsDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PublicHighlightsDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getTeachers(countryId: number | null | undefined, educationStageId: number | null | undefined, educationSubjectId: number | null | undefined): Observable<PublicTeacherListItemDto[]> {
+        let url_ = this.baseUrl + "/api/public/teachers?";
+        if (countryId !== undefined && countryId !== null)
+            url_ += "countryId=" + encodeURIComponent("" + countryId) + "&";
+        if (educationStageId !== undefined && educationStageId !== null)
+            url_ += "educationStageId=" + encodeURIComponent("" + educationStageId) + "&";
+        if (educationSubjectId !== undefined && educationSubjectId !== null)
+            url_ += "educationSubjectId=" + encodeURIComponent("" + educationSubjectId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetTeachers(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetTeachers(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PublicTeacherListItemDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PublicTeacherListItemDto[]>;
+        }));
+    }
+
+    protected processGetTeachers(response: HttpResponseBase): Observable<PublicTeacherListItemDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(PublicTeacherListItemDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getTeacher(teacherId: number): Observable<PublicTeacherDetailDto> {
+        let url_ = this.baseUrl + "/api/public/teachers/{teacherId}";
+        if (teacherId === undefined || teacherId === null)
+            throw new globalThis.Error("The parameter 'teacherId' must be defined.");
+        url_ = url_.replace("{teacherId}", encodeURIComponent("" + teacherId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetTeacher(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetTeacher(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PublicTeacherDetailDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PublicTeacherDetailDto>;
+        }));
+    }
+
+    protected processGetTeacher(response: HttpResponseBase): Observable<PublicTeacherDetailDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PublicTeacherDetailDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getLesson(lessonId: number): Observable<PublicLessonDeepLinkDto> {
+        let url_ = this.baseUrl + "/api/public/lessons/{lessonId}";
+        if (lessonId === undefined || lessonId === null)
+            throw new globalThis.Error("The parameter 'lessonId' must be defined.");
+        url_ = url_.replace("{lessonId}", encodeURIComponent("" + lessonId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetLesson(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetLesson(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PublicLessonDeepLinkDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PublicLessonDeepLinkDto>;
+        }));
+    }
+
+    protected processGetLesson(response: HttpResponseBase): Observable<PublicLessonDeepLinkDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PublicLessonDeepLinkDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
 export interface IParentDashboardClient {
     getDashboard(): Observable<FileResponse>;
 }
@@ -6745,6 +7214,7 @@ export class TeacherClassroomDto implements ITeacherClassroomDto {
     startedAtUtc?: Date | undefined;
     endedAtUtc?: Date | undefined;
     teacherName!: string;
+    teacherPhotoUrl?: string | undefined;
     students?: ClassroomStudentDetailDto[];
     materials?: ClassroomMaterialDto[];
 
@@ -6773,6 +7243,7 @@ export class TeacherClassroomDto implements ITeacherClassroomDto {
             this.startedAtUtc = _data["startedAtUtc"] ? new Date(_data["startedAtUtc"].toString()) : undefined as any;
             this.endedAtUtc = _data["endedAtUtc"] ? new Date(_data["endedAtUtc"].toString()) : undefined as any;
             this.teacherName = _data["teacherName"];
+            this.teacherPhotoUrl = _data["teacherPhotoUrl"];
             if (Array.isArray(_data["students"])) {
                 this.students = [] as any;
                 for (let item of _data["students"])
@@ -6809,6 +7280,7 @@ export class TeacherClassroomDto implements ITeacherClassroomDto {
         data["startedAtUtc"] = this.startedAtUtc ? this.startedAtUtc.toISOString() : undefined as any;
         data["endedAtUtc"] = this.endedAtUtc ? this.endedAtUtc.toISOString() : undefined as any;
         data["teacherName"] = this.teacherName;
+        data["teacherPhotoUrl"] = this.teacherPhotoUrl;
         if (Array.isArray(this.students)) {
             data["students"] = [];
             for (let item of this.students)
@@ -6838,6 +7310,7 @@ export interface ITeacherClassroomDto {
     startedAtUtc?: Date | undefined;
     endedAtUtc?: Date | undefined;
     teacherName: string;
+    teacherPhotoUrl?: string | undefined;
     students?: ClassroomStudentDetailDto[];
     materials?: ClassroomMaterialDto[];
 }
@@ -6846,6 +7319,7 @@ export class ClassroomStudentDetailDto implements IClassroomStudentDetailDto {
     id!: number;
     studentId!: number;
     studentName!: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
     isPresent!: boolean;
     isPaid!: boolean;
@@ -6866,6 +7340,7 @@ export class ClassroomStudentDetailDto implements IClassroomStudentDetailDto {
             this.id = _data["id"];
             this.studentId = _data["studentId"];
             this.studentName = _data["studentName"];
+            this.photoUrl = _data["photoUrl"];
             this.studentCode = _data["studentCode"];
             this.isPresent = _data["isPresent"];
             this.isPaid = _data["isPaid"];
@@ -6886,6 +7361,7 @@ export class ClassroomStudentDetailDto implements IClassroomStudentDetailDto {
         data["id"] = this.id;
         data["studentId"] = this.studentId;
         data["studentName"] = this.studentName;
+        data["photoUrl"] = this.photoUrl;
         data["studentCode"] = this.studentCode;
         data["isPresent"] = this.isPresent;
         data["isPaid"] = this.isPaid;
@@ -6899,6 +7375,7 @@ export interface IClassroomStudentDetailDto {
     id: number;
     studentId: number;
     studentName: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
     isPresent: boolean;
     isPaid: boolean;
@@ -7984,6 +8461,7 @@ export class LessonStudentDto implements ILessonStudentDto {
     bookingId!: number;
     studentId!: number;
     studentName!: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
     status!: string;
     createdAtUtc!: Date;
@@ -8005,6 +8483,7 @@ export class LessonStudentDto implements ILessonStudentDto {
             this.bookingId = _data["bookingId"];
             this.studentId = _data["studentId"];
             this.studentName = _data["studentName"];
+            this.photoUrl = _data["photoUrl"];
             this.studentCode = _data["studentCode"];
             this.status = _data["status"];
             this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
@@ -8026,6 +8505,7 @@ export class LessonStudentDto implements ILessonStudentDto {
         data["bookingId"] = this.bookingId;
         data["studentId"] = this.studentId;
         data["studentName"] = this.studentName;
+        data["photoUrl"] = this.photoUrl;
         data["studentCode"] = this.studentCode;
         data["status"] = this.status;
         data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
@@ -8040,6 +8520,7 @@ export interface ILessonStudentDto {
     bookingId: number;
     studentId: number;
     studentName: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
     status: string;
     createdAtUtc: Date;
@@ -8261,6 +8742,7 @@ export class LessonGroupMemberDto implements ILessonGroupMemberDto {
     id!: number;
     studentId!: number;
     studentName!: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
     addedAtUtc!: Date;
 
@@ -8278,6 +8760,7 @@ export class LessonGroupMemberDto implements ILessonGroupMemberDto {
             this.id = _data["id"];
             this.studentId = _data["studentId"];
             this.studentName = _data["studentName"];
+            this.photoUrl = _data["photoUrl"];
             this.studentCode = _data["studentCode"];
             this.addedAtUtc = _data["addedAtUtc"] ? new Date(_data["addedAtUtc"].toString()) : undefined as any;
         }
@@ -8295,6 +8778,7 @@ export class LessonGroupMemberDto implements ILessonGroupMemberDto {
         data["id"] = this.id;
         data["studentId"] = this.studentId;
         data["studentName"] = this.studentName;
+        data["photoUrl"] = this.photoUrl;
         data["studentCode"] = this.studentCode;
         data["addedAtUtc"] = this.addedAtUtc ? this.addedAtUtc.toISOString() : undefined as any;
         return data;
@@ -8305,6 +8789,7 @@ export interface ILessonGroupMemberDto {
     id: number;
     studentId: number;
     studentName: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
     addedAtUtc: Date;
 }
@@ -8800,6 +9285,7 @@ export class TeacherBookingDto implements ITeacherBookingDto {
     teacherId!: number;
     studentId!: number;
     studentName!: string;
+    studentPhotoUrl?: string | undefined;
     studentCode?: string | undefined;
     subject!: string;
     educationTypeName!: string;
@@ -8826,6 +9312,7 @@ export class TeacherBookingDto implements ITeacherBookingDto {
             this.teacherId = _data["teacherId"];
             this.studentId = _data["studentId"];
             this.studentName = _data["studentName"];
+            this.studentPhotoUrl = _data["studentPhotoUrl"];
             this.studentCode = _data["studentCode"];
             this.subject = _data["subject"];
             this.educationTypeName = _data["educationTypeName"];
@@ -8852,6 +9339,7 @@ export class TeacherBookingDto implements ITeacherBookingDto {
         data["teacherId"] = this.teacherId;
         data["studentId"] = this.studentId;
         data["studentName"] = this.studentName;
+        data["studentPhotoUrl"] = this.studentPhotoUrl;
         data["studentCode"] = this.studentCode;
         data["subject"] = this.subject;
         data["educationTypeName"] = this.educationTypeName;
@@ -8871,6 +9359,7 @@ export interface ITeacherBookingDto {
     teacherId: number;
     studentId: number;
     studentName: string;
+    studentPhotoUrl?: string | undefined;
     studentCode?: string | undefined;
     subject: string;
     educationTypeName: string;
@@ -9985,6 +10474,7 @@ export class StudentClassroomDto implements IStudentClassroomDto {
     startedAtUtc?: Date | undefined;
     endedAtUtc?: Date | undefined;
     teacherName!: string;
+    teacherPhotoUrl?: string | undefined;
     myDetail?: ClassroomStudentDetailDto | undefined;
     classmates?: StudentClassroomClassmateDto[];
     materials?: ClassroomMaterialDto[];
@@ -10014,6 +10504,7 @@ export class StudentClassroomDto implements IStudentClassroomDto {
             this.startedAtUtc = _data["startedAtUtc"] ? new Date(_data["startedAtUtc"].toString()) : undefined as any;
             this.endedAtUtc = _data["endedAtUtc"] ? new Date(_data["endedAtUtc"].toString()) : undefined as any;
             this.teacherName = _data["teacherName"];
+            this.teacherPhotoUrl = _data["teacherPhotoUrl"];
             this.myDetail = _data["myDetail"] ? ClassroomStudentDetailDto.fromJS(_data["myDetail"]) : undefined as any;
             if (Array.isArray(_data["classmates"])) {
                 this.classmates = [] as any;
@@ -10051,6 +10542,7 @@ export class StudentClassroomDto implements IStudentClassroomDto {
         data["startedAtUtc"] = this.startedAtUtc ? this.startedAtUtc.toISOString() : undefined as any;
         data["endedAtUtc"] = this.endedAtUtc ? this.endedAtUtc.toISOString() : undefined as any;
         data["teacherName"] = this.teacherName;
+        data["teacherPhotoUrl"] = this.teacherPhotoUrl;
         data["myDetail"] = this.myDetail ? this.myDetail.toJSON() : undefined as any;
         if (Array.isArray(this.classmates)) {
             data["classmates"] = [];
@@ -10081,6 +10573,7 @@ export interface IStudentClassroomDto {
     startedAtUtc?: Date | undefined;
     endedAtUtc?: Date | undefined;
     teacherName: string;
+    teacherPhotoUrl?: string | undefined;
     myDetail?: ClassroomStudentDetailDto | undefined;
     classmates?: StudentClassroomClassmateDto[];
     materials?: ClassroomMaterialDto[];
@@ -10088,6 +10581,7 @@ export interface IStudentClassroomDto {
 
 export class StudentClassroomClassmateDto implements IStudentClassroomClassmateDto {
     studentName!: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
 
     constructor(data?: IStudentClassroomClassmateDto) {
@@ -10102,6 +10596,7 @@ export class StudentClassroomClassmateDto implements IStudentClassroomClassmateD
     init(_data?: any) {
         if (_data) {
             this.studentName = _data["studentName"];
+            this.photoUrl = _data["photoUrl"];
             this.studentCode = _data["studentCode"];
         }
     }
@@ -10116,6 +10611,7 @@ export class StudentClassroomClassmateDto implements IStudentClassroomClassmateD
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["studentName"] = this.studentName;
+        data["photoUrl"] = this.photoUrl;
         data["studentCode"] = this.studentCode;
         return data;
     }
@@ -10123,6 +10619,7 @@ export class StudentClassroomClassmateDto implements IStudentClassroomClassmateD
 
 export interface IStudentClassroomClassmateDto {
     studentName: string;
+    photoUrl?: string | undefined;
     studentCode?: string | undefined;
 }
 
@@ -10378,6 +10875,7 @@ export class AvailableLessonDto implements IAvailableLessonDto {
     id!: number;
     teacherId!: number;
     teacherName!: string;
+    teacherPhotoUrl?: string | undefined;
     subject!: string;
     educationTypeId!: number;
     educationTypeName!: string;
@@ -10391,6 +10889,11 @@ export class AvailableLessonDto implements IAvailableLessonDto {
     startDate!: Date;
     countryId!: number;
     countryName!: string;
+    remainingSeats?: number | undefined;
+    seatsOpen!: boolean;
+    isFull!: boolean;
+    teacherRatingAverage!: number;
+    teacherRatingCount!: number;
 
     constructor(data?: IAvailableLessonDto) {
         if (data) {
@@ -10406,6 +10909,7 @@ export class AvailableLessonDto implements IAvailableLessonDto {
             this.id = _data["id"];
             this.teacherId = _data["teacherId"];
             this.teacherName = _data["teacherName"];
+            this.teacherPhotoUrl = _data["teacherPhotoUrl"];
             this.subject = _data["subject"];
             this.educationTypeId = _data["educationTypeId"];
             this.educationTypeName = _data["educationTypeName"];
@@ -10419,6 +10923,11 @@ export class AvailableLessonDto implements IAvailableLessonDto {
             this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : undefined as any;
             this.countryId = _data["countryId"];
             this.countryName = _data["countryName"];
+            this.remainingSeats = _data["remainingSeats"];
+            this.seatsOpen = _data["seatsOpen"];
+            this.isFull = _data["isFull"];
+            this.teacherRatingAverage = _data["teacherRatingAverage"];
+            this.teacherRatingCount = _data["teacherRatingCount"];
         }
     }
 
@@ -10434,6 +10943,7 @@ export class AvailableLessonDto implements IAvailableLessonDto {
         data["id"] = this.id;
         data["teacherId"] = this.teacherId;
         data["teacherName"] = this.teacherName;
+        data["teacherPhotoUrl"] = this.teacherPhotoUrl;
         data["subject"] = this.subject;
         data["educationTypeId"] = this.educationTypeId;
         data["educationTypeName"] = this.educationTypeName;
@@ -10447,6 +10957,11 @@ export class AvailableLessonDto implements IAvailableLessonDto {
         data["startDate"] = this.startDate ? formatDate(this.startDate) : undefined as any;
         data["countryId"] = this.countryId;
         data["countryName"] = this.countryName;
+        data["remainingSeats"] = this.remainingSeats;
+        data["seatsOpen"] = this.seatsOpen;
+        data["isFull"] = this.isFull;
+        data["teacherRatingAverage"] = this.teacherRatingAverage;
+        data["teacherRatingCount"] = this.teacherRatingCount;
         return data;
     }
 }
@@ -10455,6 +10970,7 @@ export interface IAvailableLessonDto {
     id: number;
     teacherId: number;
     teacherName: string;
+    teacherPhotoUrl?: string | undefined;
     subject: string;
     educationTypeId: number;
     educationTypeName: string;
@@ -10468,6 +10984,11 @@ export interface IAvailableLessonDto {
     startDate: Date;
     countryId: number;
     countryName: string;
+    remainingSeats?: number | undefined;
+    seatsOpen: boolean;
+    isFull: boolean;
+    teacherRatingAverage: number;
+    teacherRatingCount: number;
 }
 
 export class StudentLessonListItemDto implements IStudentLessonListItemDto {
@@ -10476,6 +10997,7 @@ export class StudentLessonListItemDto implements IStudentLessonListItemDto {
     bookingStatus!: string;
     subject!: string;
     teacherName!: string;
+    teacherPhotoUrl?: string | undefined;
     educationTypeName!: string;
     educationStageName!: string;
     educationYearName!: string;
@@ -10504,6 +11026,7 @@ export class StudentLessonListItemDto implements IStudentLessonListItemDto {
             this.bookingStatus = _data["bookingStatus"];
             this.subject = _data["subject"];
             this.teacherName = _data["teacherName"];
+            this.teacherPhotoUrl = _data["teacherPhotoUrl"];
             this.educationTypeName = _data["educationTypeName"];
             this.educationStageName = _data["educationStageName"];
             this.educationYearName = _data["educationYearName"];
@@ -10532,6 +11055,7 @@ export class StudentLessonListItemDto implements IStudentLessonListItemDto {
         data["bookingStatus"] = this.bookingStatus;
         data["subject"] = this.subject;
         data["teacherName"] = this.teacherName;
+        data["teacherPhotoUrl"] = this.teacherPhotoUrl;
         data["educationTypeName"] = this.educationTypeName;
         data["educationStageName"] = this.educationStageName;
         data["educationYearName"] = this.educationYearName;
@@ -10553,6 +11077,7 @@ export interface IStudentLessonListItemDto {
     bookingStatus: string;
     subject: string;
     teacherName: string;
+    teacherPhotoUrl?: string | undefined;
     educationTypeName: string;
     educationStageName: string;
     educationYearName: string;
@@ -10571,7 +11096,9 @@ export class StudentLessonDetailDto implements IStudentLessonDetailDto {
     bookingId!: number;
     bookingStatus!: string;
     subject!: string;
+    teacherId!: number;
     teacherName!: string;
+    teacherPhotoUrl?: string | undefined;
     educationTypeName!: string;
     educationStageName!: string;
     educationYearName!: string;
@@ -10598,7 +11125,9 @@ export class StudentLessonDetailDto implements IStudentLessonDetailDto {
             this.bookingId = _data["bookingId"];
             this.bookingStatus = _data["bookingStatus"];
             this.subject = _data["subject"];
+            this.teacherId = _data["teacherId"];
             this.teacherName = _data["teacherName"];
+            this.teacherPhotoUrl = _data["teacherPhotoUrl"];
             this.educationTypeName = _data["educationTypeName"];
             this.educationStageName = _data["educationStageName"];
             this.educationYearName = _data["educationYearName"];
@@ -10625,7 +11154,9 @@ export class StudentLessonDetailDto implements IStudentLessonDetailDto {
         data["bookingId"] = this.bookingId;
         data["bookingStatus"] = this.bookingStatus;
         data["subject"] = this.subject;
+        data["teacherId"] = this.teacherId;
         data["teacherName"] = this.teacherName;
+        data["teacherPhotoUrl"] = this.teacherPhotoUrl;
         data["educationTypeName"] = this.educationTypeName;
         data["educationStageName"] = this.educationStageName;
         data["educationYearName"] = this.educationYearName;
@@ -10645,7 +11176,9 @@ export interface IStudentLessonDetailDto {
     bookingId: number;
     bookingStatus: string;
     subject: string;
+    teacherId: number;
     teacherName: string;
+    teacherPhotoUrl?: string | undefined;
     educationTypeName: string;
     educationStageName: string;
     educationYearName: string;
@@ -10881,6 +11414,631 @@ export interface IBookingDto {
     createdAtUtc: Date;
 }
 
+export class MyTeacherReviewDto implements IMyTeacherReviewDto {
+    canReview!: boolean;
+    review?: TeacherReviewDto | undefined;
+
+    constructor(data?: IMyTeacherReviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.canReview = _data["canReview"];
+            this.review = _data["review"] ? TeacherReviewDto.fromJS(_data["review"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): MyTeacherReviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MyTeacherReviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["canReview"] = this.canReview;
+        data["review"] = this.review ? this.review.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface IMyTeacherReviewDto {
+    canReview: boolean;
+    review?: TeacherReviewDto | undefined;
+}
+
+export class TeacherReviewDto implements ITeacherReviewDto {
+    id!: number;
+    teacherId!: number;
+    studentId!: number;
+    rating!: number;
+    comment?: string | undefined;
+    createdAtUtc!: Date;
+    updatedAtUtc?: Date | undefined;
+
+    constructor(data?: ITeacherReviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.teacherId = _data["teacherId"];
+            this.studentId = _data["studentId"];
+            this.rating = _data["rating"];
+            this.comment = _data["comment"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            this.updatedAtUtc = _data["updatedAtUtc"] ? new Date(_data["updatedAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): TeacherReviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeacherReviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["teacherId"] = this.teacherId;
+        data["studentId"] = this.studentId;
+        data["rating"] = this.rating;
+        data["comment"] = this.comment;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        data["updatedAtUtc"] = this.updatedAtUtc ? this.updatedAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface ITeacherReviewDto {
+    id: number;
+    teacherId: number;
+    studentId: number;
+    rating: number;
+    comment?: string | undefined;
+    createdAtUtc: Date;
+    updatedAtUtc?: Date | undefined;
+}
+
+export class UpsertTeacherReviewRequest implements IUpsertTeacherReviewRequest {
+    rating?: number;
+    comment?: string | undefined;
+
+    constructor(data?: IUpsertTeacherReviewRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.rating = _data["rating"];
+            this.comment = _data["comment"];
+        }
+    }
+
+    static fromJS(data: any): UpsertTeacherReviewRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertTeacherReviewRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["rating"] = this.rating;
+        data["comment"] = this.comment;
+        return data;
+    }
+}
+
+export interface IUpsertTeacherReviewRequest {
+    rating?: number;
+    comment?: string | undefined;
+}
+
+export class PublicHighlightsDto implements IPublicHighlightsDto {
+    teachers!: PublicTeacherListItemDto[];
+    lessons!: PublicLessonCardDto[];
+    reviews!: PublicReviewDto[];
+
+    constructor(data?: IPublicHighlightsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.teachers = [];
+            this.lessons = [];
+            this.reviews = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["teachers"])) {
+                this.teachers = [] as any;
+                for (let item of _data["teachers"])
+                    this.teachers!.push(PublicTeacherListItemDto.fromJS(item));
+            }
+            if (Array.isArray(_data["lessons"])) {
+                this.lessons = [] as any;
+                for (let item of _data["lessons"])
+                    this.lessons!.push(PublicLessonCardDto.fromJS(item));
+            }
+            if (Array.isArray(_data["reviews"])) {
+                this.reviews = [] as any;
+                for (let item of _data["reviews"])
+                    this.reviews!.push(PublicReviewDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): PublicHighlightsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PublicHighlightsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.teachers)) {
+            data["teachers"] = [];
+            for (let item of this.teachers)
+                data["teachers"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.lessons)) {
+            data["lessons"] = [];
+            for (let item of this.lessons)
+                data["lessons"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.reviews)) {
+            data["reviews"] = [];
+            for (let item of this.reviews)
+                data["reviews"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IPublicHighlightsDto {
+    teachers: PublicTeacherListItemDto[];
+    lessons: PublicLessonCardDto[];
+    reviews: PublicReviewDto[];
+}
+
+export class PublicTeacherListItemDto implements IPublicTeacherListItemDto {
+    id!: number;
+    name!: string;
+    bio?: string | undefined;
+    ratingAverage!: number;
+    ratingCount!: number;
+    ratingStars!: number;
+    activeLessonsCount!: number;
+    countryName?: string | undefined;
+    subjectName?: string | undefined;
+    photoUrl?: string | undefined;
+
+    constructor(data?: IPublicTeacherListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.bio = _data["bio"];
+            this.ratingAverage = _data["ratingAverage"];
+            this.ratingCount = _data["ratingCount"];
+            this.ratingStars = _data["ratingStars"];
+            this.activeLessonsCount = _data["activeLessonsCount"];
+            this.countryName = _data["countryName"];
+            this.subjectName = _data["subjectName"];
+            this.photoUrl = _data["photoUrl"];
+        }
+    }
+
+    static fromJS(data: any): PublicTeacherListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PublicTeacherListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["bio"] = this.bio;
+        data["ratingAverage"] = this.ratingAverage;
+        data["ratingCount"] = this.ratingCount;
+        data["ratingStars"] = this.ratingStars;
+        data["activeLessonsCount"] = this.activeLessonsCount;
+        data["countryName"] = this.countryName;
+        data["subjectName"] = this.subjectName;
+        data["photoUrl"] = this.photoUrl;
+        return data;
+    }
+}
+
+export interface IPublicTeacherListItemDto {
+    id: number;
+    name: string;
+    bio?: string | undefined;
+    ratingAverage: number;
+    ratingCount: number;
+    ratingStars: number;
+    activeLessonsCount: number;
+    countryName?: string | undefined;
+    subjectName?: string | undefined;
+    photoUrl?: string | undefined;
+}
+
+export class PublicLessonCardDto implements IPublicLessonCardDto {
+    id!: number;
+    teacherId!: number;
+    teacherName!: string;
+    teacherPhotoUrl?: string | undefined;
+    subject!: string;
+    educationTypeId!: number;
+    educationTypeName!: string;
+    educationStageId!: number;
+    educationStageName!: string;
+    educationYearId!: number;
+    educationYearName!: string;
+    billingType!: string;
+    sessionPrice?: number | undefined;
+    monthlyPrice?: number | undefined;
+    startDate!: Date;
+    countryId!: number;
+    countryName!: string;
+    remainingSeats?: number | undefined;
+    seatsOpen!: boolean;
+    isFull!: boolean;
+    teacherRatingAverage!: number;
+    teacherRatingCount!: number;
+    teacherRatingStars!: number;
+    alreadyBooked!: boolean;
+
+    constructor(data?: IPublicLessonCardDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.teacherId = _data["teacherId"];
+            this.teacherName = _data["teacherName"];
+            this.teacherPhotoUrl = _data["teacherPhotoUrl"];
+            this.subject = _data["subject"];
+            this.educationTypeId = _data["educationTypeId"];
+            this.educationTypeName = _data["educationTypeName"];
+            this.educationStageId = _data["educationStageId"];
+            this.educationStageName = _data["educationStageName"];
+            this.educationYearId = _data["educationYearId"];
+            this.educationYearName = _data["educationYearName"];
+            this.billingType = _data["billingType"];
+            this.sessionPrice = _data["sessionPrice"];
+            this.monthlyPrice = _data["monthlyPrice"];
+            this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : undefined as any;
+            this.countryId = _data["countryId"];
+            this.countryName = _data["countryName"];
+            this.remainingSeats = _data["remainingSeats"];
+            this.seatsOpen = _data["seatsOpen"];
+            this.isFull = _data["isFull"];
+            this.teacherRatingAverage = _data["teacherRatingAverage"];
+            this.teacherRatingCount = _data["teacherRatingCount"];
+            this.teacherRatingStars = _data["teacherRatingStars"];
+            this.alreadyBooked = _data["alreadyBooked"];
+        }
+    }
+
+    static fromJS(data: any): PublicLessonCardDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PublicLessonCardDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["teacherId"] = this.teacherId;
+        data["teacherName"] = this.teacherName;
+        data["teacherPhotoUrl"] = this.teacherPhotoUrl;
+        data["subject"] = this.subject;
+        data["educationTypeId"] = this.educationTypeId;
+        data["educationTypeName"] = this.educationTypeName;
+        data["educationStageId"] = this.educationStageId;
+        data["educationStageName"] = this.educationStageName;
+        data["educationYearId"] = this.educationYearId;
+        data["educationYearName"] = this.educationYearName;
+        data["billingType"] = this.billingType;
+        data["sessionPrice"] = this.sessionPrice;
+        data["monthlyPrice"] = this.monthlyPrice;
+        data["startDate"] = this.startDate ? formatDate(this.startDate) : undefined as any;
+        data["countryId"] = this.countryId;
+        data["countryName"] = this.countryName;
+        data["remainingSeats"] = this.remainingSeats;
+        data["seatsOpen"] = this.seatsOpen;
+        data["isFull"] = this.isFull;
+        data["teacherRatingAverage"] = this.teacherRatingAverage;
+        data["teacherRatingCount"] = this.teacherRatingCount;
+        data["teacherRatingStars"] = this.teacherRatingStars;
+        data["alreadyBooked"] = this.alreadyBooked;
+        return data;
+    }
+}
+
+export interface IPublicLessonCardDto {
+    id: number;
+    teacherId: number;
+    teacherName: string;
+    teacherPhotoUrl?: string | undefined;
+    subject: string;
+    educationTypeId: number;
+    educationTypeName: string;
+    educationStageId: number;
+    educationStageName: string;
+    educationYearId: number;
+    educationYearName: string;
+    billingType: string;
+    sessionPrice?: number | undefined;
+    monthlyPrice?: number | undefined;
+    startDate: Date;
+    countryId: number;
+    countryName: string;
+    remainingSeats?: number | undefined;
+    seatsOpen: boolean;
+    isFull: boolean;
+    teacherRatingAverage: number;
+    teacherRatingCount: number;
+    teacherRatingStars: number;
+    alreadyBooked: boolean;
+}
+
+export class PublicReviewDto implements IPublicReviewDto {
+    id!: number;
+    studentName!: string;
+    studentPhotoUrl?: string | undefined;
+    teacherName?: string | undefined;
+    rating!: number;
+    comment?: string | undefined;
+    createdAtUtc!: Date;
+    updatedAtUtc?: Date | undefined;
+
+    constructor(data?: IPublicReviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.studentName = _data["studentName"];
+            this.studentPhotoUrl = _data["studentPhotoUrl"];
+            this.teacherName = _data["teacherName"];
+            this.rating = _data["rating"];
+            this.comment = _data["comment"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+            this.updatedAtUtc = _data["updatedAtUtc"] ? new Date(_data["updatedAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): PublicReviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PublicReviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["studentName"] = this.studentName;
+        data["studentPhotoUrl"] = this.studentPhotoUrl;
+        data["teacherName"] = this.teacherName;
+        data["rating"] = this.rating;
+        data["comment"] = this.comment;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        data["updatedAtUtc"] = this.updatedAtUtc ? this.updatedAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IPublicReviewDto {
+    id: number;
+    studentName: string;
+    studentPhotoUrl?: string | undefined;
+    teacherName?: string | undefined;
+    rating: number;
+    comment?: string | undefined;
+    createdAtUtc: Date;
+    updatedAtUtc?: Date | undefined;
+}
+
+export class PublicTeacherDetailDto implements IPublicTeacherDetailDto {
+    id!: number;
+    name!: string;
+    bio?: string | undefined;
+    ratingAverage!: number;
+    ratingCount!: number;
+    ratingStars!: number;
+    countryName?: string | undefined;
+    areaName?: string | undefined;
+    photoUrl?: string | undefined;
+    isOwnProfile!: boolean;
+    canReview!: boolean;
+    myReview?: TeacherReviewDto | undefined;
+    lessons!: PublicLessonCardDto[];
+    reviews!: PublicReviewDto[];
+
+    constructor(data?: IPublicTeacherDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.lessons = [];
+            this.reviews = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.bio = _data["bio"];
+            this.ratingAverage = _data["ratingAverage"];
+            this.ratingCount = _data["ratingCount"];
+            this.ratingStars = _data["ratingStars"];
+            this.countryName = _data["countryName"];
+            this.areaName = _data["areaName"];
+            this.photoUrl = _data["photoUrl"];
+            this.isOwnProfile = _data["isOwnProfile"];
+            this.canReview = _data["canReview"];
+            this.myReview = _data["myReview"] ? TeacherReviewDto.fromJS(_data["myReview"]) : undefined as any;
+            if (Array.isArray(_data["lessons"])) {
+                this.lessons = [] as any;
+                for (let item of _data["lessons"])
+                    this.lessons!.push(PublicLessonCardDto.fromJS(item));
+            }
+            if (Array.isArray(_data["reviews"])) {
+                this.reviews = [] as any;
+                for (let item of _data["reviews"])
+                    this.reviews!.push(PublicReviewDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): PublicTeacherDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PublicTeacherDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["bio"] = this.bio;
+        data["ratingAverage"] = this.ratingAverage;
+        data["ratingCount"] = this.ratingCount;
+        data["ratingStars"] = this.ratingStars;
+        data["countryName"] = this.countryName;
+        data["areaName"] = this.areaName;
+        data["photoUrl"] = this.photoUrl;
+        data["isOwnProfile"] = this.isOwnProfile;
+        data["canReview"] = this.canReview;
+        data["myReview"] = this.myReview ? this.myReview.toJSON() : undefined as any;
+        if (Array.isArray(this.lessons)) {
+            data["lessons"] = [];
+            for (let item of this.lessons)
+                data["lessons"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.reviews)) {
+            data["reviews"] = [];
+            for (let item of this.reviews)
+                data["reviews"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IPublicTeacherDetailDto {
+    id: number;
+    name: string;
+    bio?: string | undefined;
+    ratingAverage: number;
+    ratingCount: number;
+    ratingStars: number;
+    countryName?: string | undefined;
+    areaName?: string | undefined;
+    photoUrl?: string | undefined;
+    isOwnProfile: boolean;
+    canReview: boolean;
+    myReview?: TeacherReviewDto | undefined;
+    lessons: PublicLessonCardDto[];
+    reviews: PublicReviewDto[];
+}
+
+export class PublicLessonDeepLinkDto implements IPublicLessonDeepLinkDto {
+    lessonId!: number;
+    teacherId!: number;
+
+    constructor(data?: IPublicLessonDeepLinkDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lessonId = _data["lessonId"];
+            this.teacherId = _data["teacherId"];
+        }
+    }
+
+    static fromJS(data: any): PublicLessonDeepLinkDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PublicLessonDeepLinkDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lessonId"] = this.lessonId;
+        data["teacherId"] = this.teacherId;
+        return data;
+    }
+}
+
+export interface IPublicLessonDeepLinkDto {
+    lessonId: number;
+    teacherId: number;
+}
+
 export class AuthResponseDto implements IAuthResponseDto {
     accessToken!: string;
     refreshToken!: string;
@@ -10893,6 +12051,7 @@ export class AuthResponseDto implements IAuthResponseDto {
     languageId!: number;
     studentCode?: string | undefined;
     areaId?: number | undefined;
+    photoUrl?: string | undefined;
 
     constructor(data?: IAuthResponseDto) {
         if (data) {
@@ -10923,6 +12082,7 @@ export class AuthResponseDto implements IAuthResponseDto {
             this.languageId = _data["languageId"];
             this.studentCode = _data["studentCode"];
             this.areaId = _data["areaId"];
+            this.photoUrl = _data["photoUrl"];
         }
     }
 
@@ -10950,6 +12110,7 @@ export class AuthResponseDto implements IAuthResponseDto {
         data["languageId"] = this.languageId;
         data["studentCode"] = this.studentCode;
         data["areaId"] = this.areaId;
+        data["photoUrl"] = this.photoUrl;
         return data;
     }
 }
@@ -10966,6 +12127,7 @@ export interface IAuthResponseDto {
     languageId: number;
     studentCode?: string | undefined;
     areaId?: number | undefined;
+    photoUrl?: string | undefined;
 }
 
 export class RegisterRequest implements IRegisterRequest {
@@ -11122,6 +12284,7 @@ export class UserProfileDto implements IUserProfileDto {
     email!: string;
     phoneNumber?: string | undefined;
     bio?: string | undefined;
+    photoUrl?: string | undefined;
     roles!: string[];
     languageId!: number;
     studentCode?: string | undefined;
@@ -11155,6 +12318,7 @@ export class UserProfileDto implements IUserProfileDto {
             this.email = _data["email"];
             this.phoneNumber = _data["phoneNumber"];
             this.bio = _data["bio"];
+            this.photoUrl = _data["photoUrl"];
             if (Array.isArray(_data["roles"])) {
                 this.roles = [] as any;
                 for (let item of _data["roles"])
@@ -11189,6 +12353,7 @@ export class UserProfileDto implements IUserProfileDto {
         data["email"] = this.email;
         data["phoneNumber"] = this.phoneNumber;
         data["bio"] = this.bio;
+        data["photoUrl"] = this.photoUrl;
         if (Array.isArray(this.roles)) {
             data["roles"] = [];
             for (let item of this.roles)
@@ -11216,6 +12381,7 @@ export interface IUserProfileDto {
     email: string;
     phoneNumber?: string | undefined;
     bio?: string | undefined;
+    photoUrl?: string | undefined;
     roles: string[];
     languageId: number;
     studentCode?: string | undefined;
@@ -11236,6 +12402,7 @@ export class UpdateMyProfileRequest implements IUpdateMyProfileRequest {
     email?: string;
     phoneNumber?: string | undefined;
     bio?: string | undefined;
+    photoBase64?: string | undefined;
     areaId?: number;
     currentPassword?: string | undefined;
     newPassword?: string | undefined;
@@ -11257,6 +12424,7 @@ export class UpdateMyProfileRequest implements IUpdateMyProfileRequest {
             this.email = _data["email"];
             this.phoneNumber = _data["phoneNumber"];
             this.bio = _data["bio"];
+            this.photoBase64 = _data["photoBase64"];
             this.areaId = _data["areaId"];
             this.currentPassword = _data["currentPassword"];
             this.newPassword = _data["newPassword"];
@@ -11278,6 +12446,7 @@ export class UpdateMyProfileRequest implements IUpdateMyProfileRequest {
         data["email"] = this.email;
         data["phoneNumber"] = this.phoneNumber;
         data["bio"] = this.bio;
+        data["photoBase64"] = this.photoBase64;
         data["areaId"] = this.areaId;
         data["currentPassword"] = this.currentPassword;
         data["newPassword"] = this.newPassword;
@@ -11292,6 +12461,7 @@ export interface IUpdateMyProfileRequest {
     email?: string;
     phoneNumber?: string | undefined;
     bio?: string | undefined;
+    photoBase64?: string | undefined;
     areaId?: number;
     currentPassword?: string | undefined;
     newPassword?: string | undefined;

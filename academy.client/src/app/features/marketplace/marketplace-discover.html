@@ -1,0 +1,129 @@
+<div class="market">
+  <section class="market-hero">
+    <img src="assets/images/landing/hero-2.jpg" alt="" (error)="hideBrokenImage($event)" />
+    <div class="market-veil"></div>
+    <div class="market-copy">
+      <p class="kicker">{{ 'marketplace.publicHeroKicker' | t }}</p>
+      <h1>{{ 'marketplace.publicHeroTitle' | t }}</h1>
+      <p class="lead">{{ 'marketplace.publicHeroLead' | t }}</p>
+    </div>
+  </section>
+
+  <section class="band" aria-hidden="true">
+    <div class="band-track">
+      @for (pass of [0, 1]; track pass) {
+        @for (item of marquee; track item) {
+          <span>{{ item | t }}</span>
+        }
+      }
+    </div>
+  </section>
+
+  <section class="market-body">
+    <div class="filter-card">
+      <div class="filter-head">
+        <div>
+          <p>{{ 'marketplace.filters' | t }}</p>
+          <h2>{{ 'marketplace.featuredTeachers' | t }}</h2>
+        </div>
+        <strong>{{ catalog.teachers().length }} {{ 'marketplace.teachersAvailable' | t }}</strong>
+      </div>
+      <div class="filters">
+        <label>
+          <span>{{ 'auth.country' | t }}</span>
+          <select (change)="catalog.onCountry($any($event.target).value)">
+            <option value="">{{ 'marketplace.anyCountry' | t }}</option>
+            @for (country of catalog.countries(); track country.id) {
+              <option [value]="country.id">{{ catalog.placeLabel(country.nameAr, country.nameEn) }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>{{ 'lessons.educationType' | t }}</span>
+          <select (change)="catalog.onType($any($event.target).value)">
+            <option value="">{{ 'marketplace.anyType' | t }}</option>
+            @for (type of catalog.types(); track type.id) {
+              <option [value]="type.id">{{ type.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>{{ 'lessons.educationStage' | t }}</span>
+          <select (change)="catalog.onStage($any($event.target).value)" [disabled]="!catalog.typeId()">
+            <option value="">{{ 'marketplace.anyStage' | t }}</option>
+            @for (stage of catalog.stages(); track stage.id) {
+              <option [value]="stage.id">{{ stage.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>{{ 'lessons.educationYear' | t }}</span>
+          <select (change)="catalog.onYear($any($event.target).value)" [disabled]="!catalog.stageId()">
+            <option value="">{{ 'marketplace.anyYear' | t }}</option>
+            @for (year of catalog.years(); track year.id) {
+              <option [value]="year.id">{{ year.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>{{ 'lessons.subject' | t }}</span>
+          <select (change)="catalog.onSubject($any($event.target).value)" [disabled]="!catalog.yearId()">
+            <option value="">{{ 'marketplace.anySubject' | t }}</option>
+            @for (subject of catalog.subjects(); track subject.id) {
+              <option [value]="subject.id">{{ subject.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    @if (catalog.error()) {
+      <div class="note danger" role="alert">{{ catalog.error() }}</div>
+    }
+
+    @if (catalog.loading()) {
+      <div class="grid">
+        @for (_ of [1, 2, 3, 4, 5, 6]; track $index) {
+          <div class="skel"></div>
+        }
+      </div>
+    } @else if (catalog.teachers().length === 0) {
+      <div class="empty">{{ 'marketplace.emptyTeachers' | t }}</div>
+    } @else {
+      <div class="grid">
+        @for (teacher of catalog.teachers(); track teacher.id) {
+          <article class="card" (click)="openTeacher(teacher.id)">
+            <div class="photo">
+              <app-user-avatar [src]="teacher.photoUrl" [alt]="teacher.name" size="xl" />
+            </div>
+            <p class="subject">{{ teacher.subjectName || ('marketplace.availableNow' | t) }}</p>
+            <h3>{{ teacher.name }}</h3>
+            <p class="place">{{ teacher.countryName || ('marketplace.locationHidden' | t) }}</p>
+            <div class="foot">
+              <span>
+                <app-rating-stars [filled]="stars(teacher.ratingAverage, teacher.ratingCount, teacher.ratingStars)" />
+                @if (teacher.ratingCount) {
+                  {{ rating(teacher.ratingAverage, teacher.ratingCount) }}
+                }
+              </span>
+              <em>{{ teacher.activeLessonsCount }} {{ 'marketplace.lessonsCount' | t }}</em>
+            </div>
+            <span class="cta">{{ 'marketplace.openProfile' | t }}</span>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="finale">
+    <div class="finale-inner">
+      <h2>{{ 'marketplace.joinCtaTitle' | t }}</h2>
+      <p>{{ 'marketplace.joinCtaBody' | t }}</p>
+      <div class="finale-actions">
+        <button type="button" class="btn-primary landing-cta landing-cta-lg" (click)="startNow()">
+          {{ 'landing.start' | t }}
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

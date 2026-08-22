@@ -1,0 +1,426 @@
+:host {
+  display: block;
+}
+
+.profile {
+  background: #f7f8fa;
+}
+
+.intro {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(56, 182, 203, 0.22), transparent 36%),
+    #00152e;
+}
+
+.intro-inner {
+  width: min(1120px, calc(100% - 2.5rem));
+  margin: 0 auto;
+  padding: 6.4rem 0 5.4rem;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 0.7rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.intro-inner > p,
+.kicker,
+.dialog > p:first-child {
+  margin: 0;
+  color: #74cfde;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.page {
+  width: min(1120px, calc(100% - 2.5rem));
+  margin: -3.6rem auto 0;
+  padding-bottom: 4rem;
+}
+
+.identity,
+.empty,
+.note,
+.skel,
+.lessons article,
+.reviews article,
+.side-card,
+.dialog {
+  border-radius: 1.45rem;
+  background: #fff;
+  border: 1px solid #e6edf3;
+}
+
+.identity,
+.side-card {
+  box-shadow: 0 16px 36px rgba(0, 45, 91, 0.06);
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1.2rem 1.4rem;
+  align-items: center;
+  padding: 1.5rem 1.45rem 1.4rem;
+}
+
+.photo {
+  box-shadow: 0 0 0 6px #eef9fb;
+}
+
+.who h1,
+.head h2,
+.lessons h3,
+.side-card h2,
+.dialog h3 {
+  margin: 0;
+  font-family: Outfit, sans-serif;
+  color: #002d5b;
+  letter-spacing: -0.03em;
+}
+
+.who h1 {
+  margin-top: 0.3rem;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  line-height: 1.08;
+}
+
+.place,
+.side-place,
+.empty,
+.bio p:last-child,
+.reviews p {
+  margin: 0.4rem 0 0;
+  color: #5a6b80;
+  line-height: 1.65;
+}
+
+.score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.score strong {
+  color: #002d5b;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.stats div {
+  min-width: 6.4rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 1rem;
+  background: #f4f8fb;
+}
+
+.stats dt {
+  margin: 0;
+  color: #5a6b80;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stats dd {
+  margin: 0.25rem 0 0;
+  color: #002d5b;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.bio {
+  grid-column: 1 / -1;
+  padding-top: 1rem;
+  border-top: 1px solid #eef2f6;
+}
+
+.bio p:last-child {
+  margin-top: 0.55rem;
+  color: #0a3a66;
+  font-size: 1.02rem;
+  line-height: 1.8;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 0.85fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin: 1.5rem 0 0.9rem;
+}
+
+.head h2,
+.side-card h2 {
+  font-size: 1.55rem;
+}
+
+.head span {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: #eef9fb;
+  color: #007084;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.lessons,
+.reviews {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.lessons article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.8rem 0.95rem 0.8rem 0.85rem;
+  border-inline-start: 3px solid #00a5b9;
+}
+
+.lessons article.on {
+  border-inline-start-color: #007084;
+  box-shadow: 0 0 0 2px rgba(0, 165, 185, 0.16);
+}
+
+.lessons h3 {
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+.lessons p {
+  margin: 0.2rem 0 0;
+  font-size: 0.84rem;
+}
+
+.lessons .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  color: #0a3a66;
+  font-weight: 650;
+}
+
+.pay {
+  display: grid;
+  justify-items: end;
+  min-width: 4.2rem;
+}
+
+.pay strong {
+  font-family: Outfit, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #007084;
+}
+
+.pay small {
+  margin-top: 0.2rem;
+  color: #5a6b80;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.book {
+  min-width: 5.6rem;
+  min-height: 2.35rem;
+  padding-inline: 1rem;
+  border-radius: 999px;
+}
+
+.hint {
+  margin: 0;
+  color: #007084;
+  font-size: 0.88rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.reviews article {
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem 1.05rem;
+}
+
+.reviews header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.reviews strong {
+  color: #002d5b;
+}
+
+.reviews p {
+  margin-top: 0.35rem;
+  color: #0a3a66;
+}
+
+.side {
+  position: sticky;
+  top: 6rem;
+}
+
+.side-card {
+  padding: 1.35rem 1.25rem 1.3rem;
+}
+
+.side-card .kicker {
+  margin-bottom: 0.45rem;
+}
+
+.side-card ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side-card li {
+  padding: 0.75rem 0.8rem;
+  border-radius: 1rem;
+  background: #f4f8fb;
+}
+
+.side-card b {
+  display: block;
+  color: #002d5b;
+  font-size: 1.25rem;
+}
+
+.side-card span {
+  color: #5a6b80;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.side-card .book {
+  width: 100%;
+  margin-top: 1.1rem;
+}
+
+.review-box {
+  margin-top: 1.4rem;
+}
+
+.note,
+.empty,
+.skel {
+  padding: 1.1rem 1.15rem;
+}
+
+.note {
+  margin-bottom: 1rem;
+}
+
+.note.danger {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.note.ok {
+  background: #eef9fb;
+  color: #007084;
+}
+
+.empty {
+  text-align: center;
+  font-weight: 700;
+}
+
+.skel {
+  height: 14rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 21, 46, 0.45);
+}
+
+.dialog {
+  width: min(26rem, 100%);
+  padding: 1.35rem;
+}
+
+.dialog h3 {
+  margin-top: 0.45rem;
+  font-size: 1.35rem;
+}
+
+.dialog p {
+  margin: 0.45rem 0 0;
+  color: #5a6b80;
+}
+
+.actions {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: 1.1rem;
+}
+
+.actions .btn-primary,
+.actions .btn-ghost {
+  flex: 1;
+}
+
+#teacher-lessons {
+  scroll-margin-top: 6rem;
+}
+
+@media (max-width: 960px) {
+  .identity,
+  .split,
+  .lessons article,
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .pay {
+    justify-items: start;
+  }
+
+  .side {
+    position: static;
+  }
+
+  .book,
+  .hint {
+    width: 100%;
+  }
+}

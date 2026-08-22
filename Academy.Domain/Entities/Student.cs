@@ -23,4 +23,6 @@ public class Student : BaseEntity
     public ICollection<LessonGroupMember> GroupMemberships { get; set; } = [];
 
     public ICollection<ExamAttempt> ExamAttempts { get; set; } = [];
+
+    public ICollection<TeacherReview> Reviews { get; set; } = [];
 }

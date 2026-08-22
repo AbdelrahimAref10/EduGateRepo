@@ -53,9 +53,12 @@
               </span>
             </div>
 
-            <p class="text-sm text-muted">
-              <span class="font-semibold text-ink">{{ 'booking.teacher' | t }}:</span>
-              {{ lesson.teacherName }}
+            <p class="flex items-center gap-2 text-sm text-muted">
+              <app-user-avatar [src]="lesson.teacherPhotoUrl" [alt]="lesson.teacherName" size="sm" />
+              <span>
+                <span class="font-semibold text-ink">{{ 'booking.teacher' | t }}:</span>
+                {{ lesson.teacherName }}
+              </span>
             </p>
 
             @if (lesson.assignedGroupName) {

@@ -1,0 +1,198 @@
+<div class="profile">
+  <section class="intro">
+    <div class="intro-inner">
+      <a routerLink="/discover" class="back">{{ 'marketplace.backToDiscover' | t }}</a>
+      <p>{{ 'marketplace.publicHeroKicker' | t }}</p>
+    </div>
+  </section>
+
+  <div class="page">
+    @if (error()) {
+      <div class="note danger" role="alert">{{ error() }}</div>
+    }
+    @if (success() === 'booked') {
+      <div class="note ok" role="status">{{ 'booking.booked' | t }}</div>
+    }
+
+    @if (loading() && !teacher()) {
+      <div class="skel"></div>
+    } @else if (teacher(); as t) {
+      <article class="identity">
+        <app-user-avatar class="photo" [src]="t.photoUrl" [alt]="t.name" size="hero" />
+        <div class="who">
+          @if (subjectLabel(t)) {
+            <p class="kicker">{{ subjectLabel(t) }}</p>
+          }
+          <h1>{{ t.name }}</h1>
+          <p class="place">{{ locationLabel(t) || ('marketplace.locationHidden' | t) }}</p>
+          <div class="score">
+            <app-rating-stars [filled]="stars(t)" />
+            @if (ratingCount(t)) {
+              <strong>{{ ratingText(t) }}</strong>
+            } @else {
+              <span>{{ 'marketplace.noRatings' | t }}</span>
+            }
+          </div>
+        </div>
+        <dl class="stats">
+          <div>
+            <dt>{{ 'marketplace.lessons' | t }}</dt>
+            <dd>{{ t.lessons?.length || 0 }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'marketplace.reviews' | t }}</dt>
+            <dd>{{ ratingCount(t) }}</dd>
+          </div>
+        </dl>
+        @if (t.bio) {
+          <div class="bio">
+            <p class="kicker">{{ 'marketplace.about' | t }}</p>
+            <p>{{ t.bio }}</p>
+          </div>
+        }
+      </article>
+
+      <div class="split">
+        <div class="main">
+          <section id="teacher-lessons">
+            <div class="head">
+              <div>
+                <p class="kicker">{{ 'marketplace.lessonsKicker' | t }}</p>
+                <h2>{{ 'marketplace.lessons' | t }}</h2>
+              </div>
+              <span>{{ t.lessons?.length || 0 }}</span>
+            </div>
+
+            @if (!(t.lessons?.length)) {
+              <p class="empty">{{ 'marketplace.emptyLessons' | t }}</p>
+            } @else {
+              <div class="lessons">
+                @for (lesson of t.lessons; track lesson.id) {
+                  <article [id]="'lesson-' + lesson.id" [class.on]="highlightLessonId() === lesson.id">
+                    <div class="lesson-copy">
+                      <h3>{{ lesson.subject }}</h3>
+                      <p>
+                        {{ lesson.educationTypeName }}
+                        · {{ lesson.educationStageName }}
+                        · {{ lesson.educationYearName }}
+                      </p>
+                      <p class="meta">
+                        <span>{{ lesson.startDate | date: 'yyyy-MM-dd' }}</span>
+                        <span>
+                          {{ seatsKey(lesson) | t }}
+                          @if (!lesson.seatsOpen && !lesson.isFull) {
+                            {{ lesson.remainingSeats }}
+                          }
+                        </span>
+                      </p>
+                    </div>
+                    <div class="pay">
+                      <strong>{{ price(lesson) }}</strong>
+                      <small>{{ billingLabel(lesson.billingType) | t }}</small>
+                    </div>
+                    @if (lesson.alreadyBooked) {
+                      <p class="hint">{{ 'marketplace.alreadyBooked' | t }}</p>
+                    } @else if (t.isOwnProfile) {
+                      <p class="hint">{{ 'marketplace.ownLesson' | t }}</p>
+                    } @else {
+                      <button
+                        type="button"
+                        class="btn-primary book"
+                        (click)="openBook(lesson)"
+                        [disabled]="!canBook(lesson) || bookingId() !== null"
+                      >
+                        {{ lesson.isFull ? ('marketplace.seatsFull' | t) : ('marketplace.bookNow' | t) }}
+                      </button>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </section>
+
+          @if (t.canReview) {
+            <div class="review-box">
+              <app-teacher-review-form [teacherId]="t.id" [review]="t.myReview ?? null" (saved)="load()" />
+            </div>
+          }
+
+          <section>
+            <div class="head">
+              <div>
+                <p class="kicker">{{ 'marketplace.reviewsKicker' | t }}</p>
+                <h2>{{ 'marketplace.reviews' | t }}</h2>
+              </div>
+              <span>{{ t.reviews?.length || 0 }}</span>
+            </div>
+
+            @if (!(t.reviews?.length)) {
+              <p class="empty">{{ 'marketplace.emptyReviews' | t }}</p>
+            } @else {
+              <div class="reviews">
+                @for (review of t.reviews; track review.id) {
+                  <article>
+                    <app-user-avatar [src]="review.studentPhotoUrl" [alt]="review.studentName" size="md" />
+                    <div>
+                      <header>
+                        <strong>{{ review.studentName }}</strong>
+                        <app-rating-stars [filled]="review.rating || 0" />
+                      </header>
+                      @if (review.comment) {
+                        <p>{{ review.comment }}</p>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          </section>
+        </div>
+
+        <aside class="side">
+          <div class="side-card">
+            <p class="kicker">{{ subjectLabel(t) || ('marketplace.nav' | t) }}</p>
+            <h2>{{ t.name }}</h2>
+            <p class="side-place">{{ locationLabel(t) || ('marketplace.locationHidden' | t) }}</p>
+            <ul>
+              <li>
+                <b>{{ t.lessons?.length || 0 }}</b>
+                <span>{{ 'marketplace.lessons' | t }}</span>
+              </li>
+              <li>
+                <b>{{ ratingCount(t) }}</b>
+                <span>{{ 'marketplace.reviews' | t }}</span>
+              </li>
+            </ul>
+            @if (firstBookable(t); as lesson) {
+              <button type="button" class="btn-primary book" (click)="openBook(lesson)" [disabled]="!canBook(lesson)">
+                {{ 'marketplace.bookNow' | t }} · {{ lesson.subject }}
+              </button>
+            } @else {
+              <button type="button" class="btn-ghost book" (click)="scrollToLessons()">
+                {{ 'marketplace.lessons' | t }}
+              </button>
+            }
+          </div>
+        </aside>
+      </div>
+    }
+  </div>
+</div>
+
+@if (confirmLesson(); as lesson) {
+  <div class="overlay" role="dialog" aria-modal="true" (click)="closeConfirm()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <p>{{ 'booking.confirmTitle' | t }}</p>
+      <h3>{{ lesson.subject }}</h3>
+      <p>{{ 'booking.confirmMessage' | t }}</p>
+      <div class="actions">
+        <button type="button" class="btn-primary" (click)="confirmBook()" [disabled]="bookingId() !== null">
+          {{ bookingId() === lesson.id ? ('booking.booking' | t) : ('booking.confirmBook' | t) }}
+        </button>
+        <button type="button" class="btn-ghost" (click)="closeConfirm()" [disabled]="bookingId() !== null">
+          {{ 'booking.cancelBook' | t }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

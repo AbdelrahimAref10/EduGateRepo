@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { API_BASE_URL } from '../../core/api/academy-api.generated';
+import { API_BASE_URL } from '../../../core/api/academy-api.generated';
 
 export interface StudentExamListItem {
   examId: number;
