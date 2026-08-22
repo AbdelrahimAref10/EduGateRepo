@@ -79,5 +79,12 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.HasIndex(x => x.EducationStageId);
         builder.HasIndex(x => x.EducationYearId);
         builder.HasIndex(x => x.EducationSubjectId);
+
+        builder.Property(x => x.RatingAverage)
+            .HasPrecision(4, 2)
+            .IsRequired();
+
+        builder.Property(x => x.RatingCount)
+            .IsRequired();
     }
 }

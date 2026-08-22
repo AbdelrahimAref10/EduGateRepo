@@ -27,7 +27,15 @@ public class LessonGroupSession : BaseEntity
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public decimal RatingAverage { get; set; }
+
+    public int RatingCount { get; set; }
+
     public ICollection<LessonSessionStudentDetail> StudentDetails { get; set; } = [];
 
     public ICollection<LessonSessionMaterial> Materials { get; set; } = [];
+
+    public ICollection<SessionReview> Reviews { get; set; } = [];
+
+    public Exam? Exam { get; set; }
 }

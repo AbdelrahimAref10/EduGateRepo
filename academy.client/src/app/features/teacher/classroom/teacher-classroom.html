@@ -29,6 +29,16 @@
       {{ 'classroom.materialDeleted' | t }}
     </div>
   }
+  @if (success() === 'examGenerated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.examGenerated' | t }}
+    </div>
+  }
+  @if (success() === 'examPublished') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'classroom.examPublished' | t }}
+    </div>
+  }
 
   @if (loading() && !classroom()) {
     <p class="text-center text-sm text-muted">{{ 'classroom.loading' | t }}</p>
@@ -46,6 +56,7 @@
           <div class="min-w-0">
             <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">
               {{ room.groupName }}
+              · {{ 'myExams.session' | t }} {{ room.sessionNumber }}
             </p>
             <h2 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ room.subject }}</h2>
             <p class="mt-2 text-sm text-white/85">
@@ -82,6 +93,35 @@
       </div>
     </header>
 
+    <article class="exam-launch rounded-2xl">
+      <div class="min-w-0">
+        <p class="exam-launch-kicker">{{ 'classroom.exam' | t }}</p>
+        @if (exam(); as currentExam) {
+          <h3 class="mt-1 text-lg font-extrabold tracking-tight text-ink">{{ currentExam.title }}</h3>
+          <p class="mt-1 text-sm text-muted">
+            {{ 'classroom.examCardReady' | t }}
+            · {{ currentExam.questions?.length || 0 }}
+            {{ 'classroom.examQuestionCount' | t }}
+            · {{ examMinutes(currentExam.secondsPerQuestion) }}
+            {{ 'classroom.examMinutesEach' | t }}
+          </p>
+        } @else {
+          <h3 class="mt-1 text-lg font-extrabold tracking-tight text-ink">{{ 'classroom.examCardEmpty' | t }}</h3>
+          <p class="mt-1 text-sm text-muted">{{ 'classroom.examCardEmptyHint' | t }}</p>
+        }
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @if (exam()) {
+          <button type="button" class="btn-primary" (click)="openExamWorkspace()">
+            {{ 'classroom.openExam' | t }}
+          </button>
+        }
+        <button type="button" class="btn-ghost" (click)="openExamModal()" [disabled]="generatingExam()">
+          {{ exam() ? ('classroom.regenerateExam' | t) : ('classroom.createExam' | t) }}
+        </button>
+      </div>
+    </article>
+
     <div class="flex gap-1 border-b border-line">
       <button
         type="button"
@@ -91,7 +131,7 @@
         [class.text-muted]="tab() !== 'stream'"
         (click)="setTab('stream')"
       >
-        {{ 'classroom.stream' | t }}
+        {{ 'classroom.sessionTab' | t }}
       </button>
       <button
         type="button"
@@ -101,11 +141,11 @@
         [class.text-muted]="tab() !== 'people'"
         (click)="setTab('people')"
       >
-        {{ 'classroom.people' | t }}
+        {{ 'classroom.studentsTab' | t }}
       </button>
     </div>
 
-    <div class="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+    <div class="grid gap-5">
       <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'stream'">
         <section class="card overflow-hidden">
           <div class="border-b border-line px-5 py-4">
@@ -260,11 +300,7 @@
                   <article class="rounded-xl border border-line p-4 transition hover:border-primary-200">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                       <div class="flex items-center gap-3">
-                        <div
-                          class="flex size-10 items-center justify-center rounded-full bg-primary-50 text-xs font-extrabold text-primary-700"
-                        >
-                          {{ initials(student.studentName) }}
-                        </div>
+                        <app-user-avatar [src]="student.photoUrl" [alt]="student.studentName" size="md" />
                         <div>
                           <p class="font-bold text-ink">{{ student.studentName }}</p>
                           <p class="font-mono text-xs text-muted">{{ student.studentCode || '—' }}</p>
@@ -332,6 +368,229 @@
     </div>
   }
 
+  @if (examWorkspaceOpen()) {
+    <div class="exam-stage" role="dialog" aria-modal="true">
+      <header class="exam-stage-bar">
+        <button type="button" class="btn-ghost border-white/20 bg-white/10 text-white hover:bg-white/20" (click)="closeExamWorkspace()">
+          {{ 'classroom.exitExam' | t }}
+        </button>
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
+            {{ 'classroom.examTitle' | t }} {{ classroom()?.sessionNumber }}
+          </p>
+          <h2 class="truncate text-lg font-extrabold">{{ exam()?.title || ('classroom.examCardEmpty' | t) }}</h2>
+        </div>
+        <button type="button" class="btn-primary" (click)="openExamModal()" [disabled]="generatingExam()">
+          {{ exam() ? ('classroom.regenerateExam' | t) : ('classroom.createExam' | t) }}
+        </button>
+      </header>
+
+      <div class="exam-stage-body">
+        @if (error()) {
+          <div class="mb-4 w-full rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger">
+            {{ error() }}
+          </div>
+        }
+
+        @if (!exam()) {
+          <section class="exam-board card p-6 text-center">
+            <h3 class="text-xl font-extrabold text-ink">{{ 'classroom.examCardEmpty' | t }}</h3>
+            <p class="mt-2 text-sm text-muted">{{ 'classroom.examCardEmptyHint' | t }}</p>
+            <button type="button" class="btn-primary mt-4" (click)="openExamModal()">
+              {{ 'classroom.createExam' | t }}
+            </button>
+          </section>
+        } @else {
+          <div class="w-full space-y-4">
+            @if (examWorkspaceTab() === 'review' && studentReview(); as review) {
+              <div class="space-y-4">
+                <button type="button" class="btn-ghost" (click)="closeStudentReview()">
+                  ← {{ 'classroom.backToResults' | t }}
+                </button>
+
+                <section class="rounded-2xl bg-white p-5 shadow-card">
+                  <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-primary-700">
+                    {{ 'classroom.studentExamReview' | t }}
+                  </p>
+                  <h3 class="mt-2 text-2xl font-extrabold text-ink">{{ review.studentName }}</h3>
+                  <p class="mt-1 font-mono text-sm text-muted">{{ review.studentCode || '—' }}</p>
+                  <p class="mt-3 text-3xl font-extrabold text-ink">
+                    {{ review.score }} / {{ review.maxScore }}
+                    <span class="text-lg font-semibold text-muted">({{ review.percentage }}%)</span>
+                  </p>
+                  <div class="mt-3 flex flex-wrap gap-2 text-xs font-extrabold uppercase tracking-wide">
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
+                      {{ 'classroom.examCorrectCount' | t }} {{ reviewCorrectCount() }}
+                    </span>
+                    <span class="rounded-full bg-rose-100 px-3 py-1 text-rose-800">
+                      {{ 'classroom.examWrongCount' | t }} {{ reviewWrongCount() }}
+                    </span>
+                  </div>
+                </section>
+
+                <ol class="space-y-3">
+                  @for (question of review.questions; track question.id; let i = $index) {
+                    <li
+                      class="review-q rounded-2xl p-4 shadow-card"
+                      [class.is-correct]="reviewQuestionOutcome(question) === 'correct'"
+                      [class.is-wrong]="reviewQuestionOutcome(question) === 'wrong'"
+                      [class.is-skipped]="reviewQuestionOutcome(question) === 'skipped'"
+                    >
+                      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-sm font-extrabold text-ink">{{ i + 1 }}. {{ question.text }}</p>
+                        <span
+                          class="review-badge"
+                          [class.is-correct]="reviewQuestionOutcome(question) === 'correct'"
+                          [class.is-wrong]="reviewQuestionOutcome(question) !== 'correct'"
+                        >
+                          @if (reviewQuestionOutcome(question) === 'correct') {
+                            {{ 'classroom.correctAnswer' | t }}
+                          } @else if (reviewQuestionOutcome(question) === 'skipped') {
+                            {{ 'classroom.skippedAnswer' | t }}
+                          } @else {
+                            {{ 'classroom.wrongAnswer' | t }}
+                          }
+                        </span>
+                      </div>
+                      <ul class="space-y-2">
+                        @for (option of question.options; track option.id) {
+                          <li
+                            class="review-option rounded-xl text-sm"
+                            [class.is-correct]="reviewOptionTone(question, option) === 'correct'"
+                            [class.is-wrong]="reviewOptionTone(question, option) === 'wrong'"
+                            [class.is-answer]="reviewOptionTone(question, option) === 'answer'"
+                          >
+                            <p class="font-semibold">{{ option.text }}</p>
+                            @if (reviewOptionTone(question, option) === 'correct') {
+                              <span class="review-badge is-correct">
+                                {{ 'classroom.studentAnswer' | t }} · {{ 'classroom.correctAnswer' | t }}
+                              </span>
+                            }
+                            @if (reviewOptionTone(question, option) === 'wrong') {
+                              <span class="review-badge is-wrong">
+                                {{ 'classroom.studentAnswer' | t }} · {{ 'classroom.wrongAnswer' | t }}
+                              </span>
+                            }
+                            @if (reviewOptionTone(question, option) === 'answer') {
+                              <span class="review-badge is-answer">{{ 'classroom.correctAnswer' | t }}</span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </li>
+                  }
+                </ol>
+              </div>
+            } @else {
+            <div class="flex gap-1 rounded-xl bg-white p-1 shadow-card">
+              <button
+                type="button"
+                class="flex-1 rounded-lg px-3 py-2 text-sm font-bold"
+                [class.bg-navy-800]="examWorkspaceTab() === 'questions'"
+                [class.text-white]="examWorkspaceTab() === 'questions'"
+                [class.text-muted]="examWorkspaceTab() !== 'questions'"
+                (click)="setExamWorkspaceTab('questions')"
+              >
+                {{ 'classroom.examQuestionsTab' | t }}
+              </button>
+              <button
+                type="button"
+                class="flex-1 rounded-lg px-3 py-2 text-sm font-bold"
+                [class.bg-navy-800]="examWorkspaceTab() === 'results'"
+                [class.text-white]="examWorkspaceTab() === 'results'"
+                [class.text-muted]="examWorkspaceTab() !== 'results'"
+                (click)="setExamWorkspaceTab('results')"
+              >
+                {{ 'classroom.examResults' | t }}
+                @if (examResults(); as results) {
+                  <span class="ms-1 font-semibold opacity-80">{{ results.submittedCount }}/{{ results.studentCount }}</span>
+                }
+              </button>
+            </div>
+
+            @if (examWorkspaceTab() === 'questions') {
+              <ol class="space-y-3">
+                @for (question of exam()!.questions; track question.id; let i = $index) {
+                  <li class="rounded-2xl border border-line bg-white p-4 shadow-card">
+                    <p class="text-sm font-extrabold text-ink">{{ i + 1 }}. {{ question.text }}</p>
+                    <ul class="mt-3 space-y-2">
+                      @for (option of question.options; track option.id) {
+                        <li
+                          class="review-option rounded-xl text-sm"
+                          [class.is-correct]="option.isCorrect"
+                        >
+                          <p class="font-semibold">{{ option.text }}</p>
+                          @if (option.isCorrect) {
+                            <span class="review-badge is-correct">{{ 'classroom.correctAnswer' | t }}</span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <section class="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+                <div class="overflow-x-auto p-4">
+                  @if (loadingExamResults()) {
+                    <p class="text-sm text-muted">{{ 'classroom.loading' | t }}</p>
+                  } @else if (!(examResults()?.students?.length)) {
+                    <p class="text-sm text-muted">{{ 'classroom.examNoStudents' | t }}</p>
+                  } @else {
+                    <table class="w-full min-w-[480px] text-start text-sm">
+                      <thead>
+                        <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                          <th class="px-2 py-2">{{ 'classroom.students' | t }}</th>
+                          <th class="px-2 py-2">{{ 'classroom.examScore' | t }}</th>
+                          <th class="px-2 py-2">{{ 'classroom.examSubmitted' | t }}</th>
+                          <th class="px-2 py-2"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of examResults()!.students; track row.studentId) {
+                          <tr class="border-b border-line/70">
+                            <td class="px-2 py-2.5">
+                              <p class="font-bold text-ink">{{ row.studentName }}</p>
+                              <p class="font-mono text-xs text-muted">{{ row.studentCode || '—' }}</p>
+                            </td>
+                            <td class="px-2 py-2.5 font-bold">
+                              @if (row.hasSubmitted) {
+                                {{ row.score }} / {{ row.maxScore }}
+                                <span class="text-xs font-semibold text-muted">({{ row.percentage }}%)</span>
+                              } @else {
+                                —
+                              }
+                            </td>
+                            <td class="px-2 py-2.5 text-muted">
+                              {{ row.hasSubmitted ? ('classroom.examSubmitted' | t) : ('classroom.examNotSubmitted' | t) }}
+                            </td>
+                            <td class="px-2 py-2.5">
+                              @if (row.hasSubmitted) {
+                                <button
+                                  type="button"
+                                  class="btn-primary text-xs"
+                                  (click)="openStudentReview(row.studentId)"
+                                  [disabled]="loadingStudentReview()"
+                                >
+                                  {{ 'classroom.viewStudentExam' | t }}
+                                </button>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </div>
+              </section>
+            }
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   @if (materialModalOpen()) {
     <div
       class="fixed inset-0 z-[25000] grid place-items-center bg-ink/45 p-4 backdrop-blur-[2px]"
@@ -375,6 +634,91 @@
               {{ uploading() ? ('lessons.saving' | t) : ('classroom.uploadMaterial' | t) }}
             </button>
             <button type="button" class="btn-ghost" (click)="closeMaterialModal()">
+              {{ 'common.cancel' | t }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (examModalOpen()) {
+    <div class="exam-create-overlay" (click)="closeExamModal()" role="presentation">
+      <div class="exam-create-dialog" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="exam-create-head">
+          <div class="min-w-0">
+            <p class="exam-create-kicker">{{ 'classroom.exam' | t }}</p>
+            <h3>{{ 'classroom.createExam' | t }}</h3>
+          </div>
+          <button
+            type="button"
+            class="exam-create-close"
+            (click)="closeExamModal()"
+            [disabled]="generatingExam()"
+            [attr.aria-label]="'common.cancel' | t"
+          >
+            ×
+          </button>
+        </header>
+
+        <form class="exam-create-body" [formGroup]="examForm" (ngSubmit)="generateExam()">
+          @if (error()) {
+            <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger">
+              {{ error() }}
+            </div>
+          }
+
+          <div class="exam-create-grid">
+            <label>
+              <span class="label-text">{{ 'classroom.examQuestionCount' | t }}</span>
+              <input class="field" type="number" min="5" max="20" formControlName="questionCount" />
+            </label>
+            <label>
+              <span class="label-text">{{ 'classroom.examMinutesPerQuestion' | t }}</span>
+              <input class="field" type="number" min="1" max="60" formControlName="minutesPerQuestion" />
+            </label>
+          </div>
+
+          <div>
+            <span class="label-text">{{ 'classroom.examAddFiles' | t }}</span>
+            <label class="exam-dropzone">
+              <input
+                class="sr-only"
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                (change)="onExamFilesSelected($event)"
+              />
+              <span class="exam-dropzone-title">{{ 'classroom.examDropHint' | t }}</span>
+              <span class="exam-dropzone-hint">{{ 'classroom.examAllowedFiles' | t }}</span>
+            </label>
+          </div>
+
+          @if (examFiles().length) {
+            <ul class="exam-file-list">
+              @for (file of examFiles(); track file.name + file.size; let i = $index) {
+                <li class="exam-file-row">
+                  <span class="exam-file-ext">{{ examFileExt(file.name) }}</span>
+                  <span class="exam-file-name" [title]="file.name">{{ file.name }}</span>
+                  <span class="exam-file-size">{{ formatSize(file.size) }}</span>
+                  <button
+                    type="button"
+                    class="exam-file-remove"
+                    (click)="removeExamFile(i)"
+                    [attr.aria-label]="'common.cancel' | t"
+                  >
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <div class="exam-create-actions">
+            <button type="submit" class="btn-primary" [disabled]="generatingExam()">
+              {{ 'classroom.generateExam' | t }}
+            </button>
+            <button type="button" class="btn-ghost" (click)="closeExamModal()" [disabled]="generatingExam()">
               {{ 'common.cancel' | t }}
             </button>
           </div>

@@ -1,5 +1,6 @@
 using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
+using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Features.Account.Dtos;
 using Academy.Domain.Entities;
@@ -53,6 +54,7 @@ public sealed class GetMyProfileQueryHandler(
             Email = user.Email ?? string.Empty,
             PhoneNumber = user.PhoneNumber,
             Bio = user.Bio,
+            PhotoUrl = ImageService.DisplayValue(user.ProfilePhoto),
             Roles = roles.ToList(),
             LanguageId = (int)user.PreferredLanguage,
             StudentCode = user.StudentProfile?.StudentCode,

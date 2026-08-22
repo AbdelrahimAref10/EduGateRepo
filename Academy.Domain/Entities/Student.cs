@@ -21,4 +21,12 @@ public class Student : BaseEntity
     public ICollection<LessonBooking> Bookings { get; set; } = [];
 
     public ICollection<LessonGroupMember> GroupMemberships { get; set; } = [];
+
+    public ICollection<ExamAttempt> ExamAttempts { get; set; } = [];
+
+    public ICollection<TeacherReview> Reviews { get; set; } = [];
+
+    public ICollection<LessonReview> LessonReviews { get; set; } = [];
+
+    public ICollection<SessionReview> SessionReviews { get; set; } = [];
 }

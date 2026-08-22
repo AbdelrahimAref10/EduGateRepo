@@ -1,6 +1,7 @@
 using Academy.Application.Common.Identity;
 using Academy.Application.Common.Localization;
 using Academy.Application.Common.Models;
+using Academy.Application.Common.Images;
 using Academy.Application.Contracts.Identity;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
@@ -85,7 +86,8 @@ public sealed class UpdatePreferredLanguageCommandHandler(
             Permissions = permissions,
             LanguageId = (int)user.PreferredLanguage,
             StudentCode = studentCode,
-            AreaId = user.AreaId
+            AreaId = user.AreaId,
+            PhotoUrl = ImageService.DisplayValue(user.ProfilePhoto)
         });
     }
 }

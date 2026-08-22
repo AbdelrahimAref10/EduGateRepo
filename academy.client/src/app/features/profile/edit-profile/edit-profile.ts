@@ -13,19 +13,22 @@ import {
   UserProfileDto,
 } from '../../../core/api/academy-api.generated';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ImageService } from '../../../core/images/image.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 
 @Component({
   selector: 'app-edit-profile',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe],
+  imports: [ReactiveFormsModule, TranslatePipe, UserAvatarComponent],
   templateUrl: './edit-profile.html',
   styleUrl: './edit-profile.css',
 })
 export class EditProfileComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly accountApi = inject(AccountClient);
+  private readonly images = inject(ImageService);
   private readonly countriesApi = inject(CountriesClient);
   private readonly governoratesApi = inject(GovernoratesClient);
   private readonly citiesApi = inject(CitiesClient);
@@ -42,6 +45,7 @@ export class EditProfileComponent implements OnInit {
   readonly loadingAreas = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal(false);
+  readonly photoDraft = signal<string | null | undefined>(undefined);
 
   readonly profile = signal<UserProfileDto | null>(null);
   readonly countries = signal<CountryDto[]>([]);
@@ -67,6 +71,27 @@ export class EditProfileComponent implements OnInit {
   ngOnInit(): void {
     this.bindLocationCascade();
     void this.init();
+  }
+
+  previewPhoto(): string | null {
+    const draft = this.photoDraft();
+    if (draft === undefined) return this.profile()?.photoUrl ?? null;
+    return draft;
+  }
+
+  async onPhotoSelected(event: Event): Promise<void> {
+    this.error.set(null);
+    this.success.set(false);
+    try {
+      this.photoDraft.set(await this.images.fromPicker(event));
+    } catch {
+      this.error.set(this.i18n.t('profile.photoInvalid'));
+    }
+  }
+
+  removePhoto(): void {
+    this.photoDraft.set(null);
+    this.success.set(false);
   }
 
   placeLabel(ar?: string, en?: string): string {
@@ -127,6 +152,7 @@ export class EditProfileComponent implements OnInit {
       email: value.email.trim(),
       phoneNumber: value.phoneNumber.trim() || undefined,
       bio: value.bio.trim() || undefined,
+      photoBase64: this.previewPhoto() ?? '',
       areaId: value.areaId,
       currentPassword: changingPassword ? currentPassword : undefined,
       newPassword: changingPassword ? newPassword : undefined,
@@ -138,6 +164,7 @@ export class EditProfileComponent implements OnInit {
       next: (updated) => {
         this.saving.set(false);
         this.profile.set(updated);
+        this.photoDraft.set(undefined);
         this.success.set(true);
         this.form.patchValue({
           currentPassword: '',
@@ -147,6 +174,7 @@ export class EditProfileComponent implements OnInit {
         this.auth.patchSessionIdentity({
           email: updated.email,
           fullName: `${updated.firstName} ${updated.lastName}`.trim(),
+          photoUrl: updated.photoUrl ?? null,
         });
       },
       error: (err) => {

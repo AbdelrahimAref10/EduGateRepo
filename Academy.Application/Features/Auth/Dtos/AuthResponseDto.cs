@@ -28,4 +28,6 @@ public sealed class AuthResponseDto
     public string? StudentCode { get; init; }
 
     public int? AreaId { get; init; }
+
+    public string? PhotoUrl { get; init; }
 }

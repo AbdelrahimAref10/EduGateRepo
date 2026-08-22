@@ -8,6 +8,8 @@ public sealed class AvailableLessonDto
 
     public required string TeacherName { get; init; }
 
+    public string? TeacherPhotoUrl { get; init; }
+
     public required string Subject { get; init; }
 
     public required int EducationTypeId { get; init; }
@@ -33,4 +35,14 @@ public sealed class AvailableLessonDto
     public required int CountryId { get; init; }
 
     public required string CountryName { get; init; }
+
+    public int? RemainingSeats { get; init; }
+
+    public required bool SeatsOpen { get; init; }
+
+    public required bool IsFull { get; init; }
+
+    public required decimal TeacherRatingAverage { get; init; }
+
+    public required int TeacherRatingCount { get; init; }
 }

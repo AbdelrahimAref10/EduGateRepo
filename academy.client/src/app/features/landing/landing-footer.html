@@ -1,0 +1,33 @@
+<footer class="site-footer" id="contact">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="assets/images/Logo2.png" alt="eduGate" />
+      <p>{{ 'landing.footerAbout' | t }}</p>
+    </div>
+    <div>
+      <h3>{{ 'landing.footerExplore' | t }}</h3>
+      <a routerLink="/" fragment="platform">{{ 'landing.navPlatform' | t }}</a>
+      <a routerLink="/" fragment="apps">{{ 'landing.navApps' | t }}</a>
+      <a routerLink="/discover">{{ 'landing.navMarketplace' | t }}</a>
+      <a routerLink="/login">{{ 'auth.signIn' | t }}</a>
+    </div>
+    <div>
+      <h3>{{ 'landing.footerContact' | t }}</h3>
+      <a href="tel:+201000000001">{{ 'landing.phoneSalesLabel' | t }} · {{ 'landing.phoneSales' | t }}</a>
+      <a href="tel:+201200000002">{{ 'landing.phoneSupportLabel' | t }} · {{ 'landing.phoneSupport' | t }}</a>
+      <a href="https://wa.me/201500000003" target="_blank" rel="noreferrer">
+        {{ 'landing.phoneWhatsappLabel' | t }} · {{ 'landing.phoneWhatsapp' | t }}
+      </a>
+      <a href="mailto:hello@edugate.app">{{ 'landing.email' | t }}</a>
+    </div>
+    <div>
+      <h3>{{ 'landing.footerHours' | t }}</h3>
+      <p>{{ 'landing.hoursValue' | t }}</p>
+      <p>{{ 'landing.address' | t }}</p>
+    </div>
+  </div>
+  <div class="footer-bar">
+    <p>© {{ year }} eduGate. {{ 'landing.rights' | t }}</p>
+    <p>{{ 'landing.tagline' | t }}</p>
+  </div>
+</footer>

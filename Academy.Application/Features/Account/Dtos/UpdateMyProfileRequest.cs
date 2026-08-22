@@ -12,6 +12,12 @@ public sealed class UpdateMyProfileRequest
 
     public string? Bio { get; set; }
 
+    /// <summary>
+    /// Optional profile photo as base64 or a data URL. Empty string removes the photo.
+    /// Null leaves the current photo unchanged.
+    /// </summary>
+    public string? PhotoBase64 { get; set; }
+
     public int AreaId { get; set; }
 
     public string? CurrentPassword { get; set; }

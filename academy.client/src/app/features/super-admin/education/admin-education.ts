@@ -236,8 +236,8 @@ export class AdminEducationComponent implements OnInit {
           this.savingType.set(false);
           this.success.set('typeCreated');
           this.typeForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
-          this.loadTypes();
-          if (created.id) this.selectType(created.id);
+          this.types.update((items) => this.sortByOrder([...items, created]));
+          this.selectType(created.id);
         },
         error: (err) => this.failSave(this.savingType, err, 'Failed to create education type.'),
       });
@@ -259,11 +259,13 @@ export class AdminEducationComponent implements OnInit {
         }),
       )
       .subscribe({
-        next: () => {
+        next: (updated) => {
           this.savingType.set(false);
           this.success.set('typeUpdated');
           this.cancelEditType();
-          this.loadTypes();
+          this.types.update((items) =>
+            this.sortByOrder(items.map((item) => (item.id === updated.id ? updated : item))),
+          );
         },
         error: (err) => this.failSave(this.savingType, err, 'Failed to update education type.'),
       });
@@ -276,9 +278,9 @@ export class AdminEducationComponent implements OnInit {
       successKey: 'typeDeleted',
       request: this.api.deleteType(type.id),
       after: () => {
+        this.types.update((items) => items.filter((item) => item.id !== type.id));
         if (this.selectedTypeId() === type.id) this.clearFromType();
         if (this.editingTypeId() === type.id) this.cancelEditType();
-        this.loadTypes();
       },
       fallback: 'Failed to delete education type.',
     });
@@ -308,9 +310,9 @@ export class AdminEducationComponent implements OnInit {
           this.savingStage.set(false);
           this.success.set('stageCreated');
           this.stageForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
-          this.loadTypes();
-          this.loadStages(typeId);
-          if (created.id) this.selectStage(created.id);
+          this.stages.update((items) => this.sortByOrder([...items, created]));
+          this.bumpTypeStages(typeId, 1);
+          this.selectStage(created.id);
         },
         error: (err) => this.failSave(this.savingStage, err, 'Failed to create education stage.'),
       });
@@ -334,11 +336,13 @@ export class AdminEducationComponent implements OnInit {
         }),
       )
       .subscribe({
-        next: () => {
+        next: (updated) => {
           this.savingStage.set(false);
           this.success.set('stageUpdated');
           this.cancelEditStage();
-          this.loadStages(typeId);
+          this.stages.update((items) =>
+            this.sortByOrder(items.map((item) => (item.id === updated.id ? updated : item))),
+          );
         },
         error: (err) => this.failSave(this.savingStage, err, 'Failed to update education stage.'),
       });
@@ -354,6 +358,8 @@ export class AdminEducationComponent implements OnInit {
       successKey: 'stageDeleted',
       request: this.api.deleteStage(typeId, stage.id),
       after: () => {
+        this.stages.update((items) => items.filter((item) => item.id !== stage.id));
+        this.bumpTypeStages(typeId, -1);
         if (this.selectedStageId() === stage.id) {
           this.selectedStageId.set(null);
           this.selectedYearId.set(null);
@@ -361,8 +367,6 @@ export class AdminEducationComponent implements OnInit {
           this.subjects.set([]);
         }
         if (this.editingStageId() === stage.id) this.cancelEditStage();
-        this.loadTypes();
-        this.loadStages(typeId);
       },
       fallback: 'Failed to delete education stage.',
     });
@@ -394,9 +398,9 @@ export class AdminEducationComponent implements OnInit {
           this.savingYear.set(false);
           this.success.set('yearCreated');
           this.yearForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
-          this.loadStages(typeId);
-          this.loadYears(typeId, stageId);
-          if (created.id) this.selectYear(created.id);
+          this.years.update((items) => this.sortByOrder([...items, created]));
+          this.bumpStageYears(stageId, 1);
+          this.selectYear(created.id);
         },
         error: (err) => this.failSave(this.savingYear, err, 'Failed to create education year.'),
       });
@@ -422,11 +426,13 @@ export class AdminEducationComponent implements OnInit {
         }),
       )
       .subscribe({
-        next: () => {
+        next: (updated) => {
           this.savingYear.set(false);
           this.success.set('yearUpdated');
           this.cancelEditYear();
-          this.loadYears(typeId, stageId);
+          this.years.update((items) =>
+            this.sortByOrder(items.map((item) => (item.id === updated.id ? updated : item))),
+          );
         },
         error: (err) => this.failSave(this.savingYear, err, 'Failed to update education year.'),
       });
@@ -443,13 +449,13 @@ export class AdminEducationComponent implements OnInit {
       successKey: 'yearDeleted',
       request: this.api.deleteYear(typeId, stageId, year.id),
       after: () => {
+        this.years.update((items) => items.filter((item) => item.id !== year.id));
+        this.bumpStageYears(stageId, -1);
         if (this.selectedYearId() === year.id) {
           this.selectedYearId.set(null);
           this.subjects.set([]);
         }
         if (this.editingYearId() === year.id) this.cancelEditYear();
-        this.loadStages(typeId);
-        this.loadYears(typeId, stageId);
       },
       fallback: 'Failed to delete education year.',
     });
@@ -479,12 +485,12 @@ export class AdminEducationComponent implements OnInit {
         }),
       )
       .subscribe({
-        next: () => {
+        next: (created) => {
           this.savingSubject.set(false);
           this.success.set('subjectCreated');
           this.subjectForm.reset({ nameAr: '', nameEn: '', sortOrder: 0 });
-          this.loadYears(typeId, stageId);
-          this.loadSubjects(typeId, stageId, yearId);
+          this.subjects.update((items) => this.sortByOrder([...items, created]));
+          this.bumpYearSubjects(yearId, 1);
         },
         error: (err) => this.failSave(this.savingSubject, err, 'Failed to create subject.'),
       });
@@ -512,11 +518,13 @@ export class AdminEducationComponent implements OnInit {
         }),
       )
       .subscribe({
-        next: () => {
+        next: (updated) => {
           this.savingSubject.set(false);
           this.success.set('subjectUpdated');
           this.cancelEditSubject();
-          this.loadSubjects(typeId, stageId, yearId);
+          this.subjects.update((items) =>
+            this.sortByOrder(items.map((item) => (item.id === updated.id ? updated : item))),
+          );
         },
         error: (err) => this.failSave(this.savingSubject, err, 'Failed to update subject.'),
       });
@@ -534,9 +542,9 @@ export class AdminEducationComponent implements OnInit {
       successKey: 'subjectDeleted',
       request: this.api.deleteSubject(typeId, stageId, yearId, subject.id),
       after: () => {
+        this.subjects.update((items) => items.filter((item) => item.id !== subject.id));
+        this.bumpYearSubjects(yearId, -1);
         if (this.editingSubjectId() === subject.id) this.cancelEditSubject();
-        this.loadYears(typeId, stageId);
-        this.loadSubjects(typeId, stageId, yearId);
       },
       fallback: 'Failed to delete subject.',
     });
@@ -594,6 +602,48 @@ export class AdminEducationComponent implements OnInit {
         this.error.set(this.apiError(err, 'Failed to load subjects.'));
       },
     });
+  }
+
+  private sortByOrder<T extends { sortOrder?: number; nameEn?: string }>(items: T[]): T[] {
+    return [...items].sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || (a.nameEn ?? '').localeCompare(b.nameEn ?? ''),
+    );
+  }
+
+  private bumpTypeStages(typeId: number, delta: number): void {
+    this.types.update((items) =>
+      items.map((item) =>
+        item.id === typeId
+          ? Object.assign(new EducationTypeDto(), item, {
+              stagesCount: Math.max(0, (item.stagesCount ?? 0) + delta),
+            })
+          : item,
+      ),
+    );
+  }
+
+  private bumpStageYears(stageId: number, delta: number): void {
+    this.stages.update((items) =>
+      items.map((item) =>
+        item.id === stageId
+          ? Object.assign(new EducationStageDto(), item, {
+              yearsCount: Math.max(0, (item.yearsCount ?? 0) + delta),
+            })
+          : item,
+      ),
+    );
+  }
+
+  private bumpYearSubjects(yearId: number, delta: number): void {
+    this.years.update((items) =>
+      items.map((item) =>
+        item.id === yearId
+          ? Object.assign(new EducationYearDto(), item, {
+              subjectsCount: Math.max(0, (item.subjectsCount ?? 0) + delta),
+            })
+          : item,
+      ),
+    );
   }
 
   private clearFromType(): void {

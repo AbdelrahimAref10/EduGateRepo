@@ -8,6 +8,7 @@
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:63016</SpaProxyServerUrl>
     <GenerateApiClient>true</GenerateApiClient>
+    <UserSecretsId>academy-server-ai-exam</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

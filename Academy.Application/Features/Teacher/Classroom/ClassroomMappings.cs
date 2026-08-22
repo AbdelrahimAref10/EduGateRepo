@@ -1,3 +1,4 @@
+using Academy.Application.Common.Images;
 using Academy.Domain.Entities;
 using Academy.Domain.Enums;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
@@ -32,6 +33,7 @@ internal static class ClassroomMappings
             Id = detail.Id,
             StudentId = detail.StudentId,
             StudentName = detail.Student.User.FullName,
+            PhotoUrl = ImageService.DisplayValue(detail.Student.User.ProfilePhoto),
             StudentCode = detail.Student.StudentCode,
             IsPresent = detail.IsPresent,
             IsPaid = detail.IsPaid,
@@ -41,6 +43,7 @@ internal static class ClassroomMappings
 
     public static TeacherClassroomDto ToTeacherClassroomDto(
         LessonGroupSession session,
+        int sessionNumber,
         IReadOnlyList<ClassroomStudentDetailDto> students,
         IReadOnlyList<ClassroomMaterialDto> materials)
     {
@@ -52,6 +55,7 @@ internal static class ClassroomMappings
             SessionId = session.Id,
             LessonId = lesson.Id,
             LessonGroupId = session.LessonGroupId,
+            SessionNumber = sessionNumber,
             GroupName = session.LessonGroup.Name,
             Subject = lesson.Subject,
             SessionDate = session.SessionDate,
@@ -63,6 +67,7 @@ internal static class ClassroomMappings
             StartedAtUtc = session.StartedAtUtc,
             EndedAtUtc = session.EndedAtUtc,
             TeacherName = teacherUser.FullName,
+            TeacherPhotoUrl = ImageService.DisplayValue(teacherUser.ProfilePhoto),
             Students = students,
             Materials = materials
         };

@@ -5,29 +5,41 @@ import {
   ClassroomClient,
   ClassroomMaterialDto,
   StudentClassroomDto,
+  StudentExamDto,
+  StudentReviewsClient,
+  TargetReviewDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
+import { TeacherReviewFormComponent } from '../../marketplace/teacher-review-form';
+import { StudentExamWorkspaceComponent } from './student-exam-workspace';
 
 type ClassroomTab = 'stream' | 'people';
 
 @Component({
   selector: 'app-student-classroom',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink],
+  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent, UserAvatarComponent, TeacherReviewFormComponent],
   templateUrl: './student-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom.css'],
 })
 export class StudentClassroomComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly classroomApi = inject(ClassroomClient);
+  private readonly reviewsApi = inject(StudentReviewsClient);
 
   readonly sessionId = signal(0);
   readonly loading = signal(false);
   readonly downloadingMaterialId = signal<number | null>(null);
   readonly openingMaterialId = signal<number | null>(null);
   readonly tab = signal<ClassroomTab>('stream');
+  readonly examWorkspaceOpen = signal(false);
   readonly error = signal<string | null>(null);
   readonly classroom = signal<StudentClassroomDto | null>(null);
+  readonly exam = signal<StudentExamDto | null>(null);
+  readonly loadingExam = signal(false);
+  readonly canReviewSession = signal(false);
+  readonly mySessionReview = signal<TargetReviewDto | null>(null);
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
@@ -48,6 +60,8 @@ export class StudentClassroomComponent implements OnInit {
       next: (data) => {
         this.classroom.set(data);
         this.loading.set(false);
+        this.loadExam();
+        this.loadSessionReview(id);
       },
       error: (err) => {
         this.loading.set(false);
@@ -58,6 +72,45 @@ export class StudentClassroomComponent implements OnInit {
 
   setTab(tab: ClassroomTab): void {
     this.tab.set(tab);
+  }
+
+  openExamWorkspace(): void {
+    this.examWorkspaceOpen.set(true);
+  }
+
+  closeExamWorkspace(): void {
+    this.examWorkspaceOpen.set(false);
+    this.loadExam();
+  }
+
+  loadExam(): void {
+    const id = this.sessionId();
+    if (!id) return;
+
+    this.loadingExam.set(true);
+    this.classroomApi.getExam2(id).subscribe({
+      next: (data) => {
+        this.exam.set(data?.id ? data : null);
+        this.loadingExam.set(false);
+      },
+      error: (err) => {
+        this.loadingExam.set(false);
+        this.error.set(err?.result?.detail || err?.message || 'Failed to load exam.');
+      },
+    });
+  }
+
+  examMinutes(seconds?: number | null): number {
+    const value = seconds && seconds > 0 ? seconds : 600;
+    return Math.max(1, Math.round(value / 60));
+  }
+
+  examActionLabel(): string {
+    const exam = this.exam();
+    if (!exam) return 'classroom.openExam';
+    if (exam.hasSubmitted) return 'classroom.viewResults';
+    if (exam.hasStarted) return 'classroom.continueExam';
+    return 'classroom.openExam';
   }
 
   initials(name?: string | null): string {
@@ -122,6 +175,22 @@ export class StudentClassroomComponent implements OnInit {
         this.error.set(err?.result?.detail || err?.message || 'Failed to download file.');
       },
     });
+  }
+
+  loadSessionReview(sessionId = this.sessionId()): void {
+    if (!sessionId) return;
+    this.reviewsApi.getMySessionReview(sessionId).subscribe({
+      next: (data) => {
+        this.canReviewSession.set(!!data.canReview);
+        this.mySessionReview.set(data.review ?? null);
+      },
+      error: () => this.canReviewSession.set(false),
+    });
+  }
+
+  onSessionReviewSaved(review: TargetReviewDto): void {
+    this.mySessionReview.set(review);
+    this.canReviewSession.set(true);
   }
 
   private saveBlob(blob: Blob, fileName: string): void {

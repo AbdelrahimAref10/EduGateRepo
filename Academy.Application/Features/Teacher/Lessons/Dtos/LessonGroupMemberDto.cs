@@ -8,6 +8,8 @@ public sealed class LessonGroupMemberDto
 
     public required string StudentName { get; init; }
 
+    public string? PhotoUrl { get; init; }
+
     public string? StudentCode { get; init; }
 
     public required DateTime AddedAtUtc { get; init; }

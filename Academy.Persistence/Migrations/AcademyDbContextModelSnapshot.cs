@@ -176,6 +176,9 @@ namespace Academy.Persistence.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<string>("ProfilePhoto")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -515,6 +518,176 @@ namespace Academy.Persistence.Migrations
                     b.ToTable("EducationYears", (string)null);
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.Exam", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LessonGroupSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SecondsPerQuestion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(600);
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("LessonGroupSessionId")
+                        .IsUnique();
+
+                    b.ToTable("Exams", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CurrentQuestionIndex")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CurrentQuestionStartedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("ExamId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("ExamId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("ExamAttempts", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamAttemptAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ExamAttemptId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExamQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("SelectedOptionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamAttemptId", "ExamQuestionId")
+                        .IsUnique();
+
+                    b.ToTable("ExamAttemptAnswers", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ExamId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamId", "SortOrder");
+
+                    b.ToTable("ExamQuestions", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamQuestionOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ExamQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamQuestionId", "SortOrder");
+
+                    b.ToTable("ExamQuestionOptions", (string)null);
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.Governorate", b =>
                 {
                     b.Property<int>("Id")
@@ -584,6 +757,13 @@ namespace Academy.Persistence.Migrations
                     b.Property<decimal?>("MonthlyPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RatingAverage")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("SessionPrice")
                         .HasPrecision(18, 2)
@@ -792,6 +972,13 @@ namespace Academy.Persistence.Migrations
                     b.Property<int>("LessonGroupId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("RatingAverage")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("int");
+
                     b.Property<DateOnly>("SessionDate")
                         .HasColumnType("date");
 
@@ -813,6 +1000,48 @@ namespace Academy.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("LessonGroupSessions", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.LessonReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("LessonId", "StudentId")
+                        .IsUnique();
+
+                    b.HasIndex("TeacherId", "CreatedAtUtc");
+
+                    b.ToTable("LessonReviews", (string)null);
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.LessonSessionMaterial", b =>
@@ -1051,6 +1280,48 @@ namespace Academy.Persistence.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.SessionReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LessonGroupSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("LessonGroupSessionId", "StudentId")
+                        .IsUnique();
+
+                    b.HasIndex("TeacherId", "CreatedAtUtc");
+
+                    b.ToTable("SessionReviews", (string)null);
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.Student", b =>
                 {
                     b.Property<int>("Id")
@@ -1117,6 +1388,13 @@ namespace Academy.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("RatingAverage")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -1126,6 +1404,43 @@ namespace Academy.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Teachers", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.TeacherReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TeacherId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("TeacherReviews", (string)null);
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.ApplicationRoleClaim", b =>
@@ -1254,6 +1569,77 @@ namespace Academy.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("EducationStage");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.Exam", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.LessonGroupSession", "LessonGroupSession")
+                        .WithOne("Exam")
+                        .HasForeignKey("Academy.Domain.Entities.Exam", "LessonGroupSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("LessonGroupSession");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamAttempt", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Exam", "Exam")
+                        .WithMany("Attempts")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany("ExamAttempts")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamAttemptAnswer", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.ExamAttempt", "Attempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("ExamAttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamQuestion", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Exam", "Exam")
+                        .WithMany("Questions")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exam");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamQuestionOption", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.ExamQuestion", "Question")
+                        .WithMany("Options")
+                        .HasForeignKey("ExamQuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Governorate", b =>
@@ -1413,6 +1799,33 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("LessonGroup");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.LessonReview", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithMany("Reviews")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany("LessonReviews")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Teacher", "Teacher")
+                        .WithMany("LessonReviews")
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.LessonSessionMaterial", b =>
                 {
                     b.HasOne("Academy.Domain.Entities.ApplicationUser", "CreatedByUser")
@@ -1491,6 +1904,33 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.SessionReview", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.LessonGroupSession", "LessonGroupSession")
+                        .WithMany("Reviews")
+                        .HasForeignKey("LessonGroupSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany("SessionReviews")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Teacher", "Teacher")
+                        .WithMany("SessionReviews")
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LessonGroupSession");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.Student", b =>
                 {
                     b.HasOne("Academy.Domain.Entities.ApplicationUser", "User")
@@ -1522,6 +1962,25 @@ namespace Academy.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.TeacherReview", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany("Reviews")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Teacher", "Teacher")
+                        .WithMany("Reviews")
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.ApplicationRole", b =>
@@ -1599,6 +2058,23 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Subjects");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.Exam", b =>
+                {
+                    b.Navigation("Attempts");
+
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamAttempt", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ExamQuestion", b =>
+                {
+                    b.Navigation("Options");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.Governorate", b =>
                 {
                     b.Navigation("Cities");
@@ -1609,6 +2085,8 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Bookings");
 
                     b.Navigation("Groups");
+
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.LessonGroup", b =>
@@ -1622,7 +2100,11 @@ namespace Academy.Persistence.Migrations
 
             modelBuilder.Entity("Academy.Domain.Entities.LessonGroupSession", b =>
                 {
+                    b.Navigation("Exam");
+
                     b.Navigation("Materials");
+
+                    b.Navigation("Reviews");
 
                     b.Navigation("StudentDetails");
                 });
@@ -1636,14 +2118,28 @@ namespace Academy.Persistence.Migrations
                 {
                     b.Navigation("Bookings");
 
+                    b.Navigation("ExamAttempts");
+
                     b.Navigation("GroupMemberships");
+
+                    b.Navigation("LessonReviews");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("SessionReviews");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Teacher", b =>
                 {
                     b.Navigation("Bookings");
 
+                    b.Navigation("LessonReviews");
+
                     b.Navigation("Lessons");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("SessionReviews");
                 });
 #pragma warning restore 612, 618
         }

@@ -45,9 +45,25 @@ public interface IApplicationDbContext
 
     DbSet<LessonSessionMaterial> LessonSessionMaterials { get; }
 
+    DbSet<Exam> Exams { get; }
+
+    DbSet<ExamQuestion> ExamQuestions { get; }
+
+    DbSet<ExamQuestionOption> ExamQuestionOptions { get; }
+
+    DbSet<ExamAttempt> ExamAttempts { get; }
+
+    DbSet<ExamAttemptAnswer> ExamAttemptAnswers { get; }
+
     DbSet<Notification> Notifications { get; }
 
     DbSet<NotificationDetail> NotificationDetails { get; }
+
+    DbSet<TeacherReview> TeacherReviews { get; }
+
+    DbSet<LessonReview> LessonReviews { get; }
+
+    DbSet<SessionReview> SessionReviews { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

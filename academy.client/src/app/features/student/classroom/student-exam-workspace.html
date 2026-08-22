@@ -1,0 +1,158 @@
+@if (sessionId()) {
+  <div class="exam-stage" role="dialog" aria-modal="true">
+    <header class="exam-stage-bar">
+      <button
+        type="button"
+        class="btn-ghost border-white/20 bg-white/10 text-white hover:bg-white/20"
+        (click)="close()"
+      >
+        {{ 'classroom.exitExam' | t }}
+      </button>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">{{ 'classroom.examTitle' | t }}</p>
+        <h2 class="truncate text-lg font-extrabold">{{ exam()?.title || ('classroom.exam' | t) }}</h2>
+      </div>
+      @if (exam()?.hasStarted && !exam()?.hasSubmitted) {
+        <div class="exam-timer" [class.is-low]="remainingSeconds() <= 30">
+          {{ 'classroom.examTimeLeft' | t }} {{ formatRemaining() }}
+        </div>
+      }
+    </header>
+
+    <div class="exam-stage-body">
+      @if (error()) {
+        <div class="exam-board mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger">
+          {{ error() }}
+        </div>
+      }
+
+      @if (loadingExam() && !exam()) {
+        <p class="text-center text-sm text-muted">{{ 'classroom.loading' | t }}</p>
+      } @else if (!exam()) {
+        <section class="exam-board card p-6 text-center">
+          <h3 class="text-xl font-extrabold text-ink">{{ 'classroom.examWaiting' | t }}</h3>
+        </section>
+      } @else if (exam()!.hasSubmitted) {
+        <div class="exam-board space-y-4">
+          <section class="rounded-2xl bg-white p-5 shadow-card">
+            <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-primary-700">
+              {{ 'classroom.examReviewTitle' | t }}
+            </p>
+            <p class="mt-2 text-3xl font-extrabold text-ink">
+              {{ exam()!.score }} / {{ exam()!.maxScore }}
+              <span class="text-lg font-semibold text-muted">({{ exam()!.percentage }}%)</span>
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs font-extrabold uppercase tracking-wide">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
+                {{ 'classroom.examCorrectCount' | t }} {{ correctCount() }}
+              </span>
+              <span class="rounded-full bg-rose-100 px-3 py-1 text-rose-800">
+                {{ 'classroom.examWrongCount' | t }} {{ wrongCount() }}
+              </span>
+            </div>
+          </section>
+
+          <ol class="space-y-3">
+            @for (question of exam()!.questions; track question.id; let i = $index) {
+              <li
+                class="review-q rounded-2xl p-4 shadow-card"
+                [class.is-correct]="questionOutcome(question) === 'correct'"
+                [class.is-wrong]="questionOutcome(question) === 'wrong'"
+                [class.is-skipped]="questionOutcome(question) === 'skipped'"
+              >
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p class="text-sm font-extrabold text-ink">{{ i + 1 }}. {{ question.text }}</p>
+                  <span
+                    class="review-badge"
+                    [class.is-correct]="questionOutcome(question) === 'correct'"
+                    [class.is-wrong]="questionOutcome(question) !== 'correct'"
+                  >
+                    @if (questionOutcome(question) === 'correct') {
+                      {{ 'classroom.correctAnswer' | t }}
+                    } @else if (questionOutcome(question) === 'skipped') {
+                      {{ 'classroom.skippedAnswer' | t }}
+                    } @else {
+                      {{ 'classroom.wrongAnswer' | t }}
+                    }
+                  </span>
+                </div>
+                <ul class="space-y-2">
+                  @for (option of question.options; track option.id) {
+                    <li
+                      class="review-option rounded-xl text-sm"
+                      [class.is-correct]="optionTone(question, option) === 'correct'"
+                      [class.is-wrong]="optionTone(question, option) === 'wrong'"
+                      [class.is-answer]="optionTone(question, option) === 'answer'"
+                    >
+                      <p class="font-semibold">{{ option.text }}</p>
+                      @if (optionTone(question, option) === 'correct') {
+                        <span class="review-badge is-correct">
+                          {{ 'classroom.yourAnswer' | t }} · {{ 'classroom.correctAnswer' | t }}
+                        </span>
+                      }
+                      @if (optionTone(question, option) === 'wrong') {
+                        <span class="review-badge is-wrong">
+                          {{ 'classroom.yourAnswer' | t }} · {{ 'classroom.wrongAnswer' | t }}
+                        </span>
+                      }
+                      @if (optionTone(question, option) === 'answer') {
+                        <span class="review-badge is-answer">{{ 'classroom.correctAnswer' | t }}</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              </li>
+            }
+          </ol>
+        </div>
+      } @else if (!exam()!.hasStarted) {
+        <section class="exam-board card p-6 text-center">
+          <h3 class="text-2xl font-extrabold text-ink">{{ 'classroom.examIntroTitle' | t }}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">{{ 'classroom.studentExamHint' | t }}</p>
+          <p class="mt-3 text-sm font-bold text-ink">
+            {{ exam()!.questionCount }} {{ 'classroom.examQuestionCount' | t }}
+            · {{ examMinutes(exam()!.secondsPerQuestion) }}
+            {{ 'classroom.examMinutesEach' | t }}
+          </p>
+          <button type="button" class="btn-primary mt-5" (click)="startExam()" [disabled]="startingExam()">
+            {{ startingExam() ? ('classroom.startingExam' | t) : ('classroom.startExam' | t) }}
+          </button>
+        </section>
+      } @else if (exam()!.currentQuestion; as question) {
+        <section class="exam-board space-y-4">
+          <p class="text-sm font-extrabold text-ink">
+            {{ 'classroom.examQuestionOf' | t }} {{ exam()!.currentQuestionNumber }} /
+            {{ exam()!.questionCount }}
+          </p>
+          <article class="rounded-2xl bg-white p-5 shadow-card">
+            <p class="text-lg font-extrabold leading-snug text-ink">{{ question.text }}</p>
+            <ul class="mt-4 space-y-2">
+              @for (option of question.options; track option.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="exam-choice rounded-xl"
+                    [class.is-selected]="selectedOptionId() === option.id"
+                    (click)="selectOption(option.id)"
+                  >
+                    <span
+                      class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-current text-[10px] font-extrabold"
+                    >
+                      @if (selectedOptionId() === option.id) {
+                        ●
+                      }
+                    </span>
+                    <span class="text-sm font-semibold">{{ option.text }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </article>
+          <button type="button" class="btn-primary" (click)="submitCurrent()" [disabled]="submittingExam()">
+            {{ submittingExam() ? ('classroom.submittingExam' | t) : ('classroom.nextQuestion' | t) }}
+          </button>
+        </section>
+      }
+    </div>
+  </div>
+}

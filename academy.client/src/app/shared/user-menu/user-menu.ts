@@ -2,11 +2,12 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { UserAvatarComponent } from '../user-avatar/user-avatar';
 
 @Component({
   selector: 'app-user-menu',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, UserAvatarComponent],
   templateUrl: './user-menu.html',
   styleUrl: './user-menu.css',
   host: {
@@ -18,6 +19,7 @@ export class UserMenuComponent {
 
   readonly open = signal(false);
   readonly fullName = this.auth.fullName;
+  readonly photoUrl = this.auth.photoUrl;
   readonly email = computed(() => this.auth.session()?.email ?? '');
   readonly initials = computed(() => {
     const name = this.fullName().trim();

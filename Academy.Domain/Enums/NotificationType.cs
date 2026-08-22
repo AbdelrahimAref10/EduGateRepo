@@ -8,4 +8,7 @@ public enum NotificationType
     StudentAddedToLesson = 4,
     LessonStarted = 5,
     LessonGroupEnded = 6
+    TeacherReviewReceived = 7,
+    LessonReviewReceived = 8,
+    SessionReviewReceived = 9
 }

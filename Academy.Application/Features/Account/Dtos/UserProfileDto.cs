@@ -14,6 +14,8 @@ public sealed class UserProfileDto
 
     public string? Bio { get; init; }
 
+    public string? PhotoUrl { get; init; }
+
     public required IReadOnlyList<string> Roles { get; init; }
 
     /// <summary>

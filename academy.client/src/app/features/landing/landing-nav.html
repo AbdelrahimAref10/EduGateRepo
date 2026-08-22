@@ -1,0 +1,22 @@
+<header class="landing-nav" [class.is-solid]="navSolid()">
+  <a routerLink="/" class="landing-brand">
+    <img src="assets/images/Logo2.png" alt="eduGate" />
+  </a>
+  <nav class="landing-links">
+    <a routerLink="/" fragment="platform">{{ 'landing.navPlatform' | t }}</a>
+    <a routerLink="/" fragment="how">{{ 'landing.navHow' | t }}</a>
+    <a routerLink="/" fragment="apps">{{ 'landing.navApps' | t }}</a>
+    <a routerLink="/" fragment="stories">{{ 'landing.navStories' | t }}</a>
+    <a routerLink="/" fragment="contact">{{ 'landing.navContact' | t }}</a>
+    <a routerLink="/discover" [class.is-current]="marketplaceOn()">{{ 'landing.navMarketplace' | t }}</a>
+  </nav>
+  <div class="landing-nav-actions">
+    <app-language-switcher [tone]="navSolid() ? 'default' : 'on-primary'" />
+    @if (isAuthenticated()) {
+      <a [routerLink]="homeLink()" class="btn-ghost landing-nav-btn">{{ 'common.dashboard' | t }}</a>
+    } @else {
+      <a routerLink="/login" class="btn-ghost landing-nav-btn">{{ 'auth.signIn' | t }}</a>
+      <button type="button" class="btn-primary landing-cta" (click)="startNow()">{{ 'landing.start' | t }}</button>
+    }
+  </div>
+</header>

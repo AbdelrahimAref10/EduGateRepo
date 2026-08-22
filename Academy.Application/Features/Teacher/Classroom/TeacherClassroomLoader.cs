@@ -101,8 +101,11 @@ internal static class TeacherClassroomLoader
                 .FirstAsync(x => x.Id == session.Id, cancellationToken))!;
         }
 
+        var sessionNumber = await SessionNumbers.RankAsync(dbContext, session, cancellationToken);
+
         return ClassroomMappings.ToTeacherClassroomDto(
             session,
+            sessionNumber,
             students,
             materials.Select(ClassroomMappings.ToMaterialDto).ToList());
     }

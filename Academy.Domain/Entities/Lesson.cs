@@ -58,7 +58,13 @@ public class Lesson : BaseEntity
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public decimal RatingAverage { get; set; }
+
+    public int RatingCount { get; set; }
+
     public ICollection<LessonBooking> Bookings { get; set; } = [];
 
     public ICollection<LessonGroup> Groups { get; set; } = [];
+
+    public ICollection<LessonReview> Reviews { get; set; } = [];
 }

@@ -34,13 +34,14 @@ export class TokenStorageService {
         ['SuperAdmin', 'Teacher', 'Student', 'Parent'].includes(role)),
       permissions: response.permissions ?? [],
       languageId: response.languageId || AppLanguageId.Arabic,
+      photoUrl: response.photoUrl ?? null,
     };
 
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
     return session;
   }
 
-  updateIdentity(patch: { email?: string; fullName?: string }): AuthSession | null {
+  updateIdentity(patch: { email?: string; fullName?: string; photoUrl?: string | null }): AuthSession | null {
     const current = this.getSession();
     if (!current) return null;
 
@@ -48,6 +49,7 @@ export class TokenStorageService {
       ...current,
       email: patch.email ?? current.email,
       fullName: patch.fullName ?? current.fullName,
+      photoUrl: patch.photoUrl === undefined ? current.photoUrl : patch.photoUrl,
     };
 
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));

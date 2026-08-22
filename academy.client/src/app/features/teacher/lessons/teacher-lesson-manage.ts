@@ -58,6 +58,7 @@ export class TeacherLessonManageComponent implements OnInit {
   readonly manage = signal<LessonManageDto | null>(null);
   readonly cityAreas = signal<AreaDto[]>([]);
   readonly editingGroupId = signal<number | null>(null);
+  readonly groupFormOpen = signal(false);
   readonly memberCodeDraft = signal<Record<number, string>>({});
   readonly lessonStudentCode = signal('');
 
@@ -174,11 +175,28 @@ export class TeacherLessonManageComponent implements OnInit {
       periodStartDate: this.toDateInput(group.periodStartDate),
       periodEndDate: this.toDateInput(group.periodEndDate),
     });
+    this.groupFormOpen.set(true);
+  }
+
+  toggleGroupForm(): void {
+    if (this.groupFormOpen()) {
+      this.closeGroupForm();
+      return;
+    }
+
+    this.editingGroupId.set(null);
+    this.resetGroupForm();
+    this.groupFormOpen.set(true);
+  }
+
+  closeGroupForm(): void {
+    this.groupFormOpen.set(false);
+    this.editingGroupId.set(null);
+    this.resetGroupForm();
   }
 
   cancelEditGroup(): void {
-    this.editingGroupId.set(null);
-    this.resetGroupForm();
+    this.closeGroupForm();
   }
 
   submitGroup(): void {
@@ -225,7 +243,7 @@ export class TeacherLessonManageComponent implements OnInit {
         next: () => {
           this.savingGroup.set(false);
           this.success.set('groupUpdated');
-          this.cancelEditGroup();
+          this.closeGroupForm();
           this.loadManage();
         },
         error: (err) => {
@@ -251,7 +269,7 @@ export class TeacherLessonManageComponent implements OnInit {
       next: () => {
         this.savingGroup.set(false);
         this.success.set('groupCreated');
-        this.resetGroupForm();
+        this.closeGroupForm();
         this.loadManage();
       },
       error: (err) => {

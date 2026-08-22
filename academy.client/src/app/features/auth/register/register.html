@@ -214,6 +214,7 @@
           {{ 'auth.haveAccount' | t }}
           <a
             routerLink="/login"
+            [queryParams]="loginQuery()"
             class="font-bold text-navy-700 underline decoration-primary-500/60 underline-offset-4 hover:text-primary-600"
           >
             {{ 'auth.signIn' | t }}

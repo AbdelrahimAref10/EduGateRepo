@@ -1,4 +1,5 @@
 using Academy.Application.Common.Localization;
+using Academy.Application.Common.Images;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Domain.Entities;
 using Academy.Domain.Enums;
@@ -124,6 +125,7 @@ internal static class LessonMappings
                         Id = x.Id,
                         StudentId = x.StudentId,
                         StudentName = x.Student.User.FullName,
+                        PhotoUrl = ImageService.DisplayValue(x.Student.User.ProfilePhoto),
                         StudentCode = x.Student.StudentCode,
                         AddedAtUtc = x.AddedAtUtc
                     })

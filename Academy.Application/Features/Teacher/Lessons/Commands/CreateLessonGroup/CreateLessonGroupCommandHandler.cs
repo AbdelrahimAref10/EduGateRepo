@@ -84,6 +84,6 @@ public sealed class CreateLessonGroupCommandHandler(
         group.Area = area;
 
         return Result<LessonGroupDto>.Success(
-            LessonMappings.ToGroupDto(group, requestLanguage.Current, includeSessions: true));
+            LessonMappings.ToGroupDto(group, requestLanguage.Current));
     }
 }

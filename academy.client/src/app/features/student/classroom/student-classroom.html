@@ -23,7 +23,11 @@
           <p class="mt-2 text-sm text-white/85">
             {{ room.sessionDate | date: 'yyyy-MM-dd' }}
             · {{ toTimeInput(room.startTime) }}
-            · {{ room.teacherName }}
+            ·
+            <span class="inline-flex items-center gap-1.5">
+              <app-user-avatar [src]="room.teacherPhotoUrl" [alt]="room.teacherName" size="sm" />
+              {{ room.teacherName }}
+            </span>
           </p>
           <div class="mt-4 flex flex-wrap gap-2">
             <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur-sm">
@@ -39,6 +43,39 @@
       </div>
     </header>
 
+    <article class="exam-launch rounded-2xl">
+      <div class="min-w-0">
+        <p class="exam-launch-kicker">{{ 'classroom.exam' | t }}</p>
+        @if (exam(); as currentExam) {
+          <h3 class="mt-1 text-lg font-extrabold tracking-tight text-ink">{{ currentExam.title }}</h3>
+          <p class="mt-1 text-sm text-muted">
+            @if (currentExam.hasSubmitted) {
+              {{ 'classroom.examYourScore' | t }}
+              {{ currentExam.score }} / {{ currentExam.maxScore }}
+              ({{ currentExam.percentage }}%)
+            } @else if (currentExam.hasStarted) {
+              {{ 'classroom.examInProgress' | t }}
+              · {{ 'classroom.examQuestionOf' | t }}
+              {{ currentExam.currentQuestionNumber }} / {{ currentExam.questionCount }}
+            } @else {
+              {{ currentExam.questionCount }} {{ 'classroom.examQuestionCount' | t }}
+              · {{ examMinutes(currentExam.secondsPerQuestion) }}
+              {{ 'classroom.examMinutesEach' | t }}
+              · {{ 'classroom.studentExamCardHint' | t }}
+            }
+          </p>
+        } @else {
+          <h3 class="mt-1 text-lg font-extrabold tracking-tight text-ink">{{ 'classroom.examWaiting' | t }}</h3>
+          <p class="mt-1 text-sm text-muted">{{ 'classroom.studentExamCardHint' | t }}</p>
+        }
+      </div>
+      @if (exam()) {
+        <button type="button" class="btn-primary" (click)="openExamWorkspace()">
+          {{ examActionLabel() | t }}
+        </button>
+      }
+    </article>
+
     <div class="flex gap-1 border-b border-line">
       <button
         type="button"
@@ -48,7 +85,7 @@
         [class.text-muted]="tab() !== 'stream'"
         (click)="setTab('stream')"
       >
-        {{ 'classroom.stream' | t }}
+        {{ 'classroom.sessionTab' | t }}
       </button>
       <button
         type="button"
@@ -58,11 +95,11 @@
         [class.text-muted]="tab() !== 'people'"
         (click)="setTab('people')"
       >
-        {{ 'classroom.people' | t }}
+        {{ 'classroom.studentsTab' | t }}
       </button>
     </div>
 
-    <div class="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+    <div class="grid gap-5">
       <div class="space-y-5" [class.room-panel-hidden]="tab() !== 'stream'">
         <section class="card overflow-hidden">
           <div class="border-b border-line px-5 py-4">
@@ -186,11 +223,7 @@
                   <li
                     class="flex items-center gap-3 rounded-xl border border-line px-3 py-2.5 transition hover:border-primary-200"
                   >
-                    <div
-                      class="flex size-9 items-center justify-center rounded-full bg-primary-50 text-[11px] font-extrabold text-primary-700"
-                    >
-                      {{ initials(mate.studentName) }}
-                    </div>
+                    <app-user-avatar [src]="mate.photoUrl" [alt]="mate.studentName" size="sm" />
                     <div class="min-w-0 flex-1">
                       <p class="truncate text-sm font-bold text-ink">{{ mate.studentName }}</p>
                       <p class="font-mono text-xs text-muted">{{ mate.studentCode || '—' }}</p>
@@ -203,5 +236,23 @@
         </section>
       </div>
     </div>
+
+    @if (canReviewSession()) {
+      <app-teacher-review-form
+        kind="session"
+        [targetId]="sessionId()"
+        [review]="mySessionReview()"
+        titleKey="reviews.writeSession"
+        editTitleKey="reviews.editSession"
+        hintKey="reviews.sessionHint"
+        (saved)="onSessionReviewSaved($any($event))"
+      />
+    }
   }
+
+  <app-student-exam-workspace
+    [sessionId]="examWorkspaceOpen() ? sessionId() : null"
+    (closed)="closeExamWorkspace()"
+    (completed)="loadExam()"
+  />
 </section>

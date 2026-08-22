@@ -3,6 +3,7 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
+using Academy.Application.Features.Marketplace;
 using Academy.Application.Features.Student.Lessons.Dtos;
 using Academy.Domain.Entities;
 using Academy.Domain.Enums;
@@ -43,6 +44,10 @@ public sealed class BookLessonCommandHandler(
 
         if (alreadyBooked)
             return Result<BookingDto>.Conflict("You already booked this lesson.");
+
+        var seats = await LessonSeatLookup.ForLessonsAsync(dbContext, [lesson.Id], cancellationToken);
+        if (seats.GetValueOrDefault(lesson.Id, LessonSeatAvailability.Open()).IsFull)
+            return Result<BookingDto>.Conflict("This lesson has no remaining seats.");
 
         var booking = new LessonBooking
         {

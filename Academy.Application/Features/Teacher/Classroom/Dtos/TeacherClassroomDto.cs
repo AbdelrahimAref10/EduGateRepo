@@ -8,6 +8,8 @@ public sealed class TeacherClassroomDto
 
     public required int LessonGroupId { get; init; }
 
+    public required int SessionNumber { get; init; }
+
     public required string GroupName { get; init; }
 
     public required string Subject { get; init; }
@@ -29,6 +31,8 @@ public sealed class TeacherClassroomDto
     public DateTime? EndedAtUtc { get; init; }
 
     public required string TeacherName { get; init; }
+
+    public string? TeacherPhotoUrl { get; init; }
 
     public IReadOnlyList<ClassroomStudentDetailDto> Students { get; init; } = [];
 

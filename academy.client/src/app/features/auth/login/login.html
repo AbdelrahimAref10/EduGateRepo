@@ -102,9 +102,15 @@
           {{ 'auth.newHere' | t }}
           <a
             routerLink="/register"
+            [queryParams]="registerQueryParams()"
             class="font-bold text-navy-700 underline decoration-primary-500/60 underline-offset-4 hover:text-primary-600"
           >
             {{ 'auth.createAccount' | t }}
+          </a>
+        </p>
+        <p class="text-center text-[0.9rem]">
+          <a routerLink="/discover" class="font-bold text-primary-700 hover:underline">
+            {{ 'marketplace.browse' | t }}
           </a>
         </p>
       </form>

@@ -79,7 +79,9 @@
         <p class="mt-1 text-sm text-muted">{{ 'lessons.manageGroupSessionsHint' | t }}</p>
       </div>
       <div class="p-5">
-        @if (!(g.sessions?.length)) {
+        @if (loadingSessions() && !sessions().length) {
+          <p class="text-center text-sm text-muted">{{ 'lessons.loadingManage' | t }}</p>
+        } @else if (!(sessions().length)) {
           <p class="text-center text-sm text-muted">{{ 'lessons.noSessions' | t }}</p>
         } @else {
           <div class="overflow-x-auto">
@@ -93,7 +95,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (session of g.sessions; track session.id) {
+                @for (session of sessions(); track session.id) {
                   <tr class="border-b border-line/70">
                     <td class="px-3 py-3 font-semibold">{{ session.sessionDate | date: 'yyyy-MM-dd' }}</td>
                     <td class="px-3 py-3">{{ toTimeInput(session.startTime) }}</td>
