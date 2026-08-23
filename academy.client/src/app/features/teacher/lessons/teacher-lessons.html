@@ -13,7 +13,7 @@
         <h1 class="tl-title">{{ 'lessons.title' | t }}</h1>
         <p class="tl-sub">{{ 'lessons.subtitle' | t }}</p>
       </div>
-      <button type="button" class="tl-btn-ghost" (click)="loadLessons()" [disabled]="loading()">
+      <button type="button" class="tl-btn-ghost" (click)="refresh()" [disabled]="loading()">
         {{ 'lessons.refresh' | t }}
       </button>
     </div>
@@ -21,11 +21,7 @@
     <div class="tl-stats">
       <div class="tl-stat">
         <span>{{ 'lessons.myLessons' | t }}</span>
-        <strong>{{ totalLessons() }}</strong>
-      </div>
-      <div class="tl-stat">
-        <span>{{ 'lessons.started' | t }}</span>
-        <strong>{{ startedLessons() }}</strong>
+        <strong>{{ allLessonsCount() }}</strong>
       </div>
       <div class="tl-stat">
         <span>{{ 'lessons.educationTypes' | t }}</span>
@@ -88,7 +84,7 @@
 
       @if (loading()) {
         <app-page-loader titleKey="lessons.loading" [compact]="true" />
-      } @else if (filteredLessons().length === 0) {
+      } @else if (lessons().length === 0) {
         <div class="tl-blank">
           <p>{{ 'lessons.emptyForType' | t }}</p>
           <button type="button" class="tl-btn-primary" (click)="openCreate()">
@@ -97,7 +93,7 @@
         </div>
       } @else {
         <div class="tl-lessons">
-          @for (lesson of filteredLessons(); track lesson.id) {
+          @for (lesson of lessons(); track lesson.id) {
             <article class="tl-card">
               <div class="tl-card-top">
                 <div class="min-w-0">
@@ -148,6 +144,14 @@
             </article>
           }
         </div>
+
+        <app-paginator
+          [page]="page()"
+          [pageSize]="pageSize"
+          [totalCount]="totalCount()"
+          [disabled]="loading()"
+          (pageChange)="onPageChange($event)"
+        />
       }
     </section>
   } @else if (!loadingTypes() && educationTypes().length) {
@@ -258,6 +262,13 @@
             <label>
               <span class="label-text">{{ 'lessons.sessionPrice' | t }}</span>
               <input class="field" type="number" min="1" step="0.01" formControlName="sessionPrice" />
+            </label>
+            <label class="flex items-start gap-2 rounded-xl border border-line bg-body/50 px-3 py-3 text-sm">
+              <input type="checkbox" class="mt-0.5" formControlName="chargeAbsentSessions" />
+              <span>
+                <strong class="block font-bold text-ink">{{ 'billing.chargeAbsent' | t }}</strong>
+                <span class="text-muted">{{ 'billing.chargeAbsentHint' | t }}</span>
+              </span>
             </label>
           } @else {
             <label>

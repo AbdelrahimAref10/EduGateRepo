@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -31,7 +31,6 @@ type QuestionOutcome = 'correct' | 'wrong' | 'skipped';
 
 interface StudentDraft {
   isPresent: boolean;
-  isPaid: boolean;
   teacherNotes: string;
 }
 
@@ -48,7 +47,15 @@ const EXAM_GEN_STEPS = [
 @Component({
   selector: 'app-teacher-classroom',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink, UserAvatarComponent, PageLoaderComponent],
+  imports: [
+    ReactiveFormsModule,
+    TranslatePipe,
+    DatePipe,
+    DecimalPipe,
+    RouterLink,
+    UserAvatarComponent,
+    PageLoaderComponent,
+  ],
   templateUrl: './teacher-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './teacher-classroom.css'],
 })
@@ -166,7 +173,6 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
         for (const student of data.students ?? []) {
           drafts[student.studentId] = {
             isPresent: student.isPresent,
-            isPaid: student.isPaid,
             teacherNotes: student.teacherNotes ?? '',
           };
         }
@@ -520,7 +526,6 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     return (
       this.studentDrafts()[studentId] ?? {
         isPresent: false,
-        isPaid: false,
         teacherNotes: '',
       }
     );
@@ -533,6 +538,40 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     }));
   }
 
+  billingTone(status?: string | null): string {
+    switch (status) {
+      case 'Paid':
+        return 'billing-pill is-paid';
+      case 'Partial':
+        return 'billing-pill is-partial';
+      case 'Open':
+        return 'billing-pill is-open';
+      default:
+        return 'billing-pill is-none';
+    }
+  }
+
+  billingSummary(status?: string | null, amount?: number | null): string {
+    const n = this.formatMoney(amount ?? 0);
+    switch (status) {
+      case 'Paid':
+        return this.i18n.t('billing.summaryPaid');
+      case 'Partial':
+        return this.i18n.t('billing.summaryPartial').replace('{amount}', n);
+      case 'Open':
+        return this.i18n.t('billing.summaryOpenSession').replace('{amount}', n);
+      default:
+        return this.i18n.t('billing.summaryNone');
+    }
+  }
+
+  private formatMoney(value: number): string {
+    return Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  }
+
   saveStudent(student: ClassroomStudentDetailDto): void {
     const draft = this.studentDraft(student.studentId);
     this.savingStudentId.set(student.studentId);
@@ -540,7 +579,6 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
 
     const request = new UpdateStudentSessionDetailRequest({
       isPresent: draft.isPresent,
-      isPaid: draft.isPaid,
       teacherNotes: draft.teacherNotes.trim() || undefined,
     });
 
@@ -554,6 +592,13 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
           );
           return TeacherClassroomDto.fromJS({ ...c.toJSON(), students });
         });
+        this.studentDrafts.update((map) => ({
+          ...map,
+          [updated.studentId]: {
+            isPresent: updated.isPresent,
+            teacherNotes: updated.teacherNotes ?? '',
+          },
+        }));
         this.success.set('studentSaved');
       },
       error: (err) => {

@@ -1,14 +1,21 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   AddGroupMemberRequest,
+  BillingClient,
+  ChargeSettlement,
+  CreateMakeupSessionRequest,
   DayOfWeek,
+  LedgerStudentRowDto,
   LessonGroupDto,
   LessonGroupSessionDto,
   LessonStudentDto,
   LessonsClient,
+  PaymentDto,
+  StudentLessonLedgerDto,
 } from '../../../core/api/academy-api.generated';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
@@ -16,19 +23,29 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
 
-type GroupPanel = 'sessions' | 'members' | 'booked';
+type GroupPanel = 'sessions' | 'members' | 'booked' | 'ledger';
 
 @Component({
   selector: 'app-teacher-group-manage',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, UserAvatarComponent, PageLoaderComponent],
+  imports: [
+    TranslatePipe,
+    DatePipe,
+    DecimalPipe,
+    ReactiveFormsModule,
+    RouterLink,
+    UserAvatarComponent,
+    PageLoaderComponent,
+  ],
   templateUrl: './teacher-group-manage.html',
   styleUrl: './teacher-group-manage.css',
 })
 export class TeacherGroupManageComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly lessonsApi = inject(LessonsClient);
+  private readonly billingApi = inject(BillingClient);
   private readonly i18n = inject(TranslationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
@@ -41,6 +58,8 @@ export class TeacherGroupManageComponent implements OnInit {
   readonly sessionsReady = signal(false);
   readonly loadingUnassigned = signal(false);
   readonly unassignedReady = signal(false);
+  readonly loadingLedger = signal(false);
+  readonly ledgerReady = signal(false);
   readonly endingGroup = signal(false);
   readonly deletingGroup = signal(false);
   readonly startingSessionId = signal<number | null>(null);
@@ -49,14 +68,64 @@ export class TeacherGroupManageComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly group = signal<LessonGroupDto | null>(null);
+  readonly lessonBillingType = signal<'PerSession' | 'Monthly' | null>(null);
+  readonly lessonSessionPrice = signal<number | null>(null);
+  readonly lessonMonthlyPrice = signal<number | null>(null);
   readonly sessions = signal<LessonGroupSessionDto[]>([]);
   readonly unassignedStudents = signal<LessonStudentDto[]>([]);
+  readonly ledgerRows = signal<LedgerStudentRowDto[]>([]);
   readonly panel = signal<GroupPanel | null>(null);
+
+  readonly studentLedger = signal<StudentLessonLedgerDto | null>(null);
+  readonly loadingStudentLedger = signal(false);
+  readonly makeupOpen = signal(false);
+  readonly savingMakeup = signal(false);
+  readonly selectedMakeupIds = signal<Set<number>>(new Set());
+
+  readonly settlements = [
+    { value: ChargeSettlement.Standalone, key: 'billing.settlementStandalone' },
+    { value: ChargeSettlement.CurrentCycle, key: 'billing.settlementCurrent' },
+    { value: ChargeSettlement.NextCycle, key: 'billing.settlementNext' },
+  ] as const;
+
+  readonly isMonthlyBilling = () => this.lessonBillingType() === 'Monthly';
+  readonly isPerSessionBilling = () => this.lessonBillingType() === 'PerSession';
+
+  readonly makeupForm = this.fb.nonNullable.group({
+    sessionDate: ['', Validators.required],
+    startTime: ['16:00', Validators.required],
+    topic: [''],
+    makeupForSessionId: [null as number | null],
+    isFree: [true],
+    amount: [null as number | null],
+    settlement: [ChargeSettlement.Standalone as ChargeSettlement],
+  });
 
   ngOnInit(): void {
     this.lessonId.set(Number(this.route.snapshot.paramMap.get('lessonId')));
     this.groupId.set(Number(this.route.snapshot.paramMap.get('groupId')));
+    this.makeupForm.controls.isFree.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((free) => this.onMakeupFreeChanged(!!free));
     this.loadGroup();
+    this.loadLessonBilling();
+  }
+
+  loadLessonBilling(): void {
+    const lessonId = this.lessonId();
+    if (!lessonId) return;
+    this.lessonsApi
+      .getLessonManage(lessonId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          const type = String(data.lesson?.billingType ?? '');
+          this.lessonBillingType.set(type === 'Monthly' ? 'Monthly' : type === 'PerSession' ? 'PerSession' : null);
+          this.lessonSessionPrice.set(data.lesson?.sessionPrice ?? null);
+          this.lessonMonthlyPrice.set(data.lesson?.monthlyPrice ?? null);
+        },
+        error: () => undefined,
+      });
   }
 
   loadGroup(): void {
@@ -75,6 +144,8 @@ export class TeacherGroupManageComponent implements OnInit {
     this.sessions.set([]);
     this.unassignedReady.set(false);
     this.unassignedStudents.set([]);
+    this.ledgerReady.set(false);
+    this.ledgerRows.set([]);
 
     this.lessonsApi.getGroup(lessonId, groupId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
@@ -83,6 +154,7 @@ export class TeacherGroupManageComponent implements OnInit {
         this.ready.set(true);
         if (this.panel() === 'sessions') this.ensureSessions(true);
         if (this.panel() === 'booked') this.ensureUnassignedStudents(true);
+        if (this.panel() === 'ledger') this.ensureLedger(true);
       },
       error: (err) => {
         this.loading.set(false);
@@ -102,6 +174,182 @@ export class TeacherGroupManageComponent implements OnInit {
     this.success.set(null);
     if (next === 'sessions') this.ensureSessions();
     if (next === 'booked') this.ensureUnassignedStudents();
+    if (next === 'ledger') this.ensureLedger();
+  }
+
+  ensureLedger(force = false): void {
+    if (!force && this.ledgerReady()) return;
+    const lessonId = this.lessonId();
+    const groupId = this.groupId();
+    if (!lessonId || !groupId || this.loadingLedger()) return;
+
+    this.loadingLedger.set(true);
+    this.billingApi
+      .getGroupLedger(lessonId, groupId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (rows) => {
+          this.ledgerRows.set(rows ?? []);
+          this.ledgerReady.set(true);
+          this.loadingLedger.set(false);
+        },
+        error: (err) => {
+          this.loadingLedger.set(false);
+          this.ledgerReady.set(true);
+          this.error.set(this.readApiError(err, 'Failed to load ledger.'));
+        },
+      });
+  }
+
+  openStudentLedger(studentId: number): void {
+    this.loadingStudentLedger.set(true);
+    this.studentLedger.set(null);
+    this.billingApi
+      .getStudentLedger(this.lessonId(), studentId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          this.studentLedger.set(data);
+          this.loadingStudentLedger.set(false);
+        },
+        error: (err) => {
+          this.loadingStudentLedger.set(false);
+          this.error.set(this.readApiError(err, 'Failed to load student ledger.'));
+        },
+      });
+  }
+
+  closeStudentLedger(): void {
+    this.studentLedger.set(null);
+  }
+
+  downloadReceipt(payment: PaymentDto): void {
+    this.billingApi.downloadReceipt(payment.id).subscribe({
+      next: (file) => this.saveBlob(file.data, file.fileName || `receipt-${payment.receiptNumber}.pdf`),
+      error: (err) => this.error.set(this.readApiError(err, 'Failed to download receipt.')),
+    });
+  }
+
+  openMakeup(): void {
+    this.ensureSessions();
+    const members = this.group()?.members ?? [];
+    this.selectedMakeupIds.set(new Set(members.map((m) => m.studentId)));
+    const sessionPrice = this.lessonSessionPrice();
+    this.makeupForm.reset({
+      sessionDate: '',
+      startTime: '16:00',
+      topic: '',
+      makeupForSessionId: null,
+      isFree: true,
+      amount: this.isPerSessionBilling() ? sessionPrice : null,
+      settlement: ChargeSettlement.Standalone,
+    });
+    this.makeupOpen.set(true);
+  }
+
+  private onMakeupFreeChanged(free: boolean): void {
+    if (free) {
+      this.makeupForm.controls.amount.setValue(null);
+      return;
+    }
+    if (this.isPerSessionBilling()) {
+      this.makeupForm.controls.amount.setValue(this.lessonSessionPrice());
+      this.makeupForm.controls.settlement.setValue(ChargeSettlement.Standalone);
+    }
+  }
+
+  closeMakeup(): void {
+    this.makeupOpen.set(false);
+  }
+
+  toggleMakeupStudent(studentId: number): void {
+    this.selectedMakeupIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(studentId)) next.delete(studentId);
+      else next.add(studentId);
+      return next;
+    });
+  }
+
+  isMakeupSelected(studentId: number): boolean {
+    return this.selectedMakeupIds().has(studentId);
+  }
+
+  submitMakeup(): void {
+    if (this.makeupForm.invalid) {
+      this.makeupForm.markAllAsTouched();
+      return;
+    }
+    const ids = [...this.selectedMakeupIds()];
+    if (!ids.length) {
+      this.error.set(this.i18n.t('billing.makeupHint'));
+      return;
+    }
+
+    const value = this.makeupForm.getRawValue();
+    this.savingMakeup.set(true);
+    this.error.set(null);
+
+    const perSession = this.isPerSessionBilling();
+    const amount = value.isFree
+      ? undefined
+      : perSession
+        ? this.lessonSessionPrice() ?? undefined
+        : value.amount ?? undefined;
+
+    const request = new CreateMakeupSessionRequest({
+      sessionDate: new Date(value.sessionDate),
+      startTime: value.startTime.length === 5 ? `${value.startTime}:00` : value.startTime,
+      topic: value.topic.trim() || undefined,
+      makeupForSessionId: value.makeupForSessionId || undefined,
+      studentIds: ids,
+      isFree: value.isFree,
+      amount,
+      settlement: value.isFree
+        ? ChargeSettlement.None
+        : perSession
+          ? ChargeSettlement.Standalone
+          : value.settlement,
+    });
+
+    this.billingApi
+      .createMakeup(this.lessonId(), this.groupId(), request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.savingMakeup.set(false);
+          this.closeMakeup();
+          this.success.set('makeupCreated');
+          this.sessionsReady.set(false);
+          this.ensureSessions(true);
+          this.ledgerReady.set(false);
+          if (this.panel() === 'ledger') this.ensureLedger(true);
+        },
+        error: (err) => {
+          this.savingMakeup.set(false);
+          this.error.set(this.readApiError(err, 'Failed to create makeup session.'));
+        },
+      });
+  }
+
+  chargeTypeKey(type?: string): string {
+    switch (type) {
+      case 'MonthlyCycle':
+        return 'billing.monthlyCycle';
+      case 'Makeup':
+        return 'billing.makeupCharge';
+      default:
+        return 'billing.sessionCharge';
+    }
+  }
+
+  private saveBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   selectStudent(student: LessonStudentDto): void {

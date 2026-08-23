@@ -90,7 +90,6 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
                 sessionId,
                 studentId,
                 request.IsPresent,
-                request.IsPaid,
                 request.TeacherNotes),
             cancellationToken);
 

@@ -1,22 +1,28 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ClassroomClient, StudentExamListItemDto } from '../../../core/api/academy-api.generated';
+import { StudentExamListItemDto } from '../../../core/api/academy-api.generated';
+import { DEFAULT_PAGE_SIZE } from '../../../core/api/paging';
+import { StudentExamsApi } from '../../../core/api/student-exams-api.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { PaginatorComponent } from '../../../shared/paginator/paginator';
 import { StudentExamWorkspaceComponent } from './student-exam-workspace';
 
 @Component({
   selector: 'app-student-exams',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, StudentExamWorkspaceComponent],
+  imports: [TranslatePipe, DatePipe, StudentExamWorkspaceComponent, PaginatorComponent],
   templateUrl: './student-exams.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom-list.css'],
 })
 export class StudentExamsComponent implements OnInit {
-  private readonly examsApi = inject(ClassroomClient);
+  private readonly examsApi = inject(StudentExamsApi);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly items = signal<StudentExamListItemDto[]>([]);
+  readonly page = signal(1);
+  readonly pageSize = DEFAULT_PAGE_SIZE;
+  readonly totalCount = signal(0);
   readonly openSessionId = signal<number | null>(null);
 
   ngOnInit(): void {
@@ -26,9 +32,11 @@ export class StudentExamsComponent implements OnInit {
   load(showSpinner = true): void {
     if (showSpinner) this.loading.set(true);
     this.error.set(null);
-    this.examsApi.getMyExams().subscribe({
+    this.examsApi.getMyExams(this.page(), this.pageSize).subscribe({
       next: (data) => {
-        this.items.set(data ?? []);
+        this.items.set(data.items ?? []);
+        this.totalCount.set(data.totalCount);
+        this.page.set(data.page);
         this.loading.set(false);
       },
       error: (err) => {
@@ -36,6 +44,13 @@ export class StudentExamsComponent implements OnInit {
         this.error.set(err?.error?.detail || err?.result?.detail || err?.message || 'Failed to load exams.');
       },
     });
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.page()) return;
+    this.page.set(page);
+    this.load();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   openExam(item: StudentExamListItemDto): void {

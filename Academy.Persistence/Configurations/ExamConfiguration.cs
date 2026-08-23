@@ -39,5 +39,7 @@ public sealed class ExamConfiguration : IEntityTypeConfiguration<Exam>
 
         builder.HasIndex(x => x.LessonGroupSessionId)
             .IsUnique();
+
+        builder.HasIndex(x => x.Status);
     }
 }

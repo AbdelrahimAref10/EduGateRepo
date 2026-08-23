@@ -46,6 +46,7 @@ public sealed class GetLessonManageQueryHandler(
                 BillingType = x.BillingType.ToString(),
                 SessionPrice = x.SessionPrice,
                 MonthlyPrice = x.MonthlyPrice,
+                ChargeAbsentSessions = x.ChargeAbsentSessions,
                 StartDate = x.StartDate,
                 CountryId = x.CountryId,
                 CountryName = isArabic ? x.Country.NameAr : x.Country.NameEn,

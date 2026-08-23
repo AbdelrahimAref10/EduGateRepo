@@ -86,6 +86,14 @@
         </article>
       }
     </div>
+
+    <app-paginator
+      [page]="page()"
+      [pageSize]="pageSize"
+      [totalCount]="totalCount()"
+      [disabled]="loading()"
+      (pageChange)="onPageChange($event)"
+    />
   }
 
   <app-student-exam-workspace

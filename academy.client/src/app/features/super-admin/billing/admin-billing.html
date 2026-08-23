@@ -1,0 +1,194 @@
+@if (!ready()) {
+  <app-page-loader titleKey="billing.title" />
+} @else {
+<section class="space-y-5 animate-fade-up">
+  <header class="billing-hero overflow-hidden rounded-2xl text-white shadow-card">
+    <div class="relative px-5 py-8 sm:px-8">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">
+        {{ 'auth.roleAdmin' | t }}
+      </p>
+      <h1 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
+        {{ 'billing.platformLedger' | t }}
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm text-white/85">{{ 'billing.platformHint' | t }}</p>
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  <section class="card overflow-hidden">
+    <div class="flex flex-wrap items-end justify-between gap-3 border-b border-line px-5 py-4">
+      <div>
+        <h2 class="section-title">{{ 'billing.debts' | t }}</h2>
+        <p class="mt-1 text-sm text-muted">{{ 'billing.subtitle' | t }}</p>
+      </div>
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="min-w-[10rem]">
+          <span class="label-text">{{ 'billing.filterLesson' | t }}</span>
+          <input
+            class="field"
+            type="number"
+            min="1"
+            [ngModel]="lessonFilter()"
+            (ngModelChange)="lessonFilter.set($event)"
+            placeholder="#"
+          />
+        </label>
+        <button type="button" class="btn-primary" (click)="loadDebts()" [disabled]="loading()">
+          {{ loading() ? ('classroom.loading' | t) : ('lessons.refresh' | t) }}
+        </button>
+      </div>
+    </div>
+
+    <div class="p-5">
+      @if (loading()) {
+        <app-page-loader titleKey="billing.title" [compact]="true" />
+      } @else if (!debts().length) {
+        <p class="text-center text-sm text-muted">{{ 'billing.noDebts' | t }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-center text-sm">
+            <thead>
+              <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                <th class="px-3 py-3">{{ 'billing.teacher' | t }}</th>
+                <th class="px-3 py-3">{{ 'billing.subject' | t }}</th>
+                <th class="px-3 py-3">{{ 'billing.student' | t }}</th>
+                <th class="px-3 py-3">{{ 'billing.outstanding' | t }}</th>
+                <th class="px-3 py-3">{{ 'billing.openCharges' | t }}</th>
+                <th class="px-3 py-3">{{ 'lessons.action' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of debts(); track row.lessonId + '-' + row.studentId) {
+                <tr
+                  class="cursor-pointer border-b border-line/70 transition hover:bg-body/70"
+                  (click)="openLedger(row)"
+                >
+                  <td class="px-3 py-3 font-semibold text-ink">{{ row.teacherName }}</td>
+                  <td class="px-3 py-3">{{ row.subject }}</td>
+                  <td class="px-3 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <app-user-avatar [src]="row.photoUrl" [alt]="row.studentName" size="sm" />
+                      <div class="text-start">
+                        <p class="font-semibold">{{ row.studentName }}</p>
+                        <p class="font-mono text-xs text-muted">{{ row.studentCode || '—' }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-3 py-3 font-extrabold text-amber-700">
+                    {{ row.outstandingAmount | number: '1.0-2' }}
+                  </td>
+                  <td class="px-3 py-3">
+                    <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                      {{ row.openChargesCount }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3">
+                    <button type="button" class="btn-ghost text-xs" (click)="openLedger(row); $event.stopPropagation()">
+                      {{ 'billing.viewLedger' | t }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+</section>
+}
+
+@if (ledgerOpen()) {
+  <div class="billing-panel-backdrop" (click)="closeLedger()">
+    <aside class="billing-panel animate-fade-up" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="billing-panel-head">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-primary-200">
+            {{ 'billing.studentLedger' | t }}
+          </p>
+          @if (ledger(); as led) {
+            <h3 class="mt-1 text-lg font-bold text-white">{{ led.studentName }}</h3>
+            <p class="mt-1 text-sm text-white/80">
+              {{ led.subject }} · {{ 'billing.outstanding' | t }}:
+              <strong>{{ led.outstandingAmount | number: '1.0-2' }}</strong>
+            </p>
+          } @else {
+            <h3 class="mt-1 text-lg font-bold text-white">{{ 'billing.ledger' | t }}</h3>
+          }
+        </div>
+        <button type="button" class="btn-ghost border-white/20 bg-white/10 text-white" (click)="closeLedger()">
+          ×
+        </button>
+      </header>
+
+      <div class="space-y-5 p-5">
+        @if (ledgerLoading()) {
+          <app-page-loader titleKey="billing.ledger" [compact]="true" />
+        } @else if (ledger(); as led) {
+          <section>
+            <h4 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">{{ 'billing.charges' | t }}</h4>
+            @if (!led.charges?.length) {
+              <p class="text-sm text-muted">—</p>
+            } @else {
+              <ul class="space-y-2">
+                @for (charge of led.charges; track charge.id) {
+                  <li class="rounded-xl border border-line px-3 py-3">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p class="font-bold text-ink">{{ chargeTypeKey(charge.type) | t }}</p>
+                        <p class="mt-1 text-xs text-muted">
+                          {{ charge.createdAtUtc | date: 'yyyy-MM-dd HH:mm' }}
+                          · {{ 'billing.remaining' | t }}: {{ charge.remaining | number: '1.0-2' }}
+                        </p>
+                      </div>
+                      <span [class]="chargeTone(charge)">{{ statusKey(charge.status) | t }}</span>
+                    </div>
+                    <p class="mt-2 text-sm font-semibold">{{ charge.amount | number: '1.0-2' }}</p>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section>
+            <h4 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">{{ 'billing.payments' | t }}</h4>
+            @if (!led.payments?.length) {
+              <p class="text-sm text-muted">—</p>
+            } @else {
+              <ul class="space-y-2">
+                @for (payment of led.payments; track payment.id) {
+                  <li class="rounded-xl border border-line px-3 py-3">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p class="font-bold text-ink">
+                          #{{ payment.receiptNumber }} · {{ payment.amount | number: '1.0-2' }}
+                        </p>
+                        <p class="mt-1 text-xs text-muted">
+                          {{ payment.paidAtUtc | date: 'yyyy-MM-dd HH:mm' }}
+                          · {{ methodKey(payment.method) | t }}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn-secondary text-xs"
+                        (click)="downloadReceipt(payment)"
+                        [disabled]="downloadingPaymentId() === payment.id"
+                      >
+                        {{ 'billing.downloadReceipt' | t }}
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      </div>
+    </aside>
+  </div>
+}

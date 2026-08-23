@@ -27,5 +27,9 @@ public sealed class LessonGroupSessionDto
     /// <summary>True after the session has been started — classroom can be opened.</summary>
     public required bool CanOpenClassroom { get; init; }
 
+    public required bool IsMakeup { get; init; }
+
+    public int? MakeupForSessionId { get; init; }
+
     public required DateTime CreatedAtUtc { get; init; }
 }

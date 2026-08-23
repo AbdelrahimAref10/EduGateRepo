@@ -1,1 +1,31 @@
 /* Shared Tailwind utilities handle layout. */
+
+.billing-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.billing-pill.is-paid {
+  background: color-mix(in srgb, #059669 12%, white);
+  color: #047857;
+}
+
+.billing-pill.is-partial {
+  background: color-mix(in srgb, var(--color-primary-500) 14%, white);
+  color: var(--color-primary-700);
+}
+
+.billing-pill.is-open {
+  background: color-mix(in srgb, #d97706 14%, white);
+  color: #b45309;
+}
+
+.billing-pill.is-none {
+  background: var(--color-body);
+  color: var(--color-muted);
+}

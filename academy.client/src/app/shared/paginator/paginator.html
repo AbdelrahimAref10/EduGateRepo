@@ -1,0 +1,55 @@
+@if (show()) {
+  <nav class="pager" [attr.aria-label]="'pagination.nav' | t" [class.is-disabled]="disabled()">
+    <p class="pager-meta">
+      <span>{{ 'pagination.showing' | t }}</span>
+      <strong>{{ rangeLabel() }}</strong>
+      <span>{{ 'pagination.of' | t }}</span>
+      <strong>{{ totalCount() }}</strong>
+    </p>
+
+    <div class="pager-controls">
+      <button
+        type="button"
+        class="pager-btn pager-nav"
+        (click)="prev()"
+        [disabled]="disabled() || page() <= 1"
+        [attr.aria-label]="'pagination.prev' | t"
+      >
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <div class="pager-pages">
+        @for (p of pages(); track $index) {
+          @if (p < 0) {
+            <span class="pager-ellipsis" aria-hidden="true">…</span>
+          } @else {
+            <button
+              type="button"
+              class="pager-btn"
+              [class.is-active]="p === page()"
+              (click)="go(p)"
+              [disabled]="disabled()"
+              [attr.aria-current]="p === page() ? 'page' : null"
+            >
+              {{ p }}
+            </button>
+          }
+        }
+      </div>
+
+      <button
+        type="button"
+        class="pager-btn pager-nav"
+        (click)="next()"
+        [disabled]="disabled() || page() >= totalPages()"
+        [attr.aria-label]="'pagination.next' | t"
+      >
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M7.5 4.5 13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+}

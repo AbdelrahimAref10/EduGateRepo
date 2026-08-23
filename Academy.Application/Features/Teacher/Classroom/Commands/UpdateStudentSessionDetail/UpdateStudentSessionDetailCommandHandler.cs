@@ -1,13 +1,19 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom;
+using Academy.Application.Features.Teacher.Billing;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
+using Academy.Domain.Entities;
+using Academy.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Teacher.Classroom.Commands.UpdateStudentSessionDetail;
 
-public sealed class UpdateStudentSessionDetailCommandHandler(IApplicationDbContext dbContext)
+public sealed class UpdateStudentSessionDetailCommandHandler(
+    IApplicationDbContext dbContext,
+    INotificationService notificationService)
     : IRequestHandler<UpdateStudentSessionDetailCommand, Result<ClassroomStudentDetailDto>>
 {
     public async Task<Result<ClassroomStudentDetailDto>> Handle(
@@ -30,10 +36,14 @@ public sealed class UpdateStudentSessionDetailCommandHandler(IApplicationDbConte
         if (session is null)
             return Result<ClassroomStudentDetailDto>.NotFound("الحصة غير موجودة.");
 
-        await ClassroomSeeding.EnsureStudentDetailsAsync(dbContext, session, cancellationToken);
+        if (!session.IsMakeup)
+            await ClassroomSeeding.EnsureStudentDetailsAsync(dbContext, session, cancellationToken);
 
-        var isMember = await dbContext.LessonGroupMembers
-            .AnyAsync(
+        var isMember = session.IsMakeup
+            ? await dbContext.LessonSessionStudentDetails.AnyAsync(
+                x => x.LessonGroupSessionId == session.Id && x.StudentId == request.StudentId,
+                cancellationToken)
+            : await dbContext.LessonGroupMembers.AnyAsync(
                 x => x.LessonGroupId == session.LessonGroupId && x.StudentId == request.StudentId,
                 cancellationToken);
 
@@ -50,7 +60,7 @@ public sealed class UpdateStudentSessionDetailCommandHandler(IApplicationDbConte
 
         if (detail is null)
         {
-            detail = new Domain.Entities.LessonSessionStudentDetail
+            detail = new LessonSessionStudentDetail
             {
                 LessonGroupSessionId = request.SessionId,
                 StudentId = request.StudentId,
@@ -60,13 +70,45 @@ public sealed class UpdateStudentSessionDetailCommandHandler(IApplicationDbConte
         }
 
         detail.IsPresent = request.IsPresent;
-        detail.IsPaid = request.IsPaid;
         detail.TeacherNotes = string.IsNullOrWhiteSpace(request.TeacherNotes)
             ? null
             : request.TeacherNotes.Trim();
         detail.UpdatedAtUtc = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var lesson = session.LessonGroup.Lesson;
+        Charge? createdCharge = null;
+
+        try
+        {
+            createdCharge = await SyncChargesForAttendanceAsync(
+                session,
+                lesson,
+                request.StudentId,
+                request.IsPresent,
+                request.UserId,
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("دفعات") || ex.Message.Contains("payment", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<ClassroomStudentDetailDto>.Conflict(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result<ClassroomStudentDetailDto>.Failure(ex.Message);
+        }
+
+        if (createdCharge is not null && detail.Student.UserId > 0)
+        {
+            await BillingNotifications.NotifyChargeCreatedAsync(
+                notificationService,
+                createdCharge,
+                detail.Student.User.FullName,
+                lesson.Subject,
+                detail.Student.UserId,
+                cancellationToken);
+        }
 
         if (detail.Student?.User is null)
         {
@@ -77,6 +119,117 @@ public sealed class UpdateStudentSessionDetailCommandHandler(IApplicationDbConte
                 .FirstAsync(x => x.Id == detail.Id, cancellationToken);
         }
 
-        return Result<ClassroomStudentDetailDto>.Success(ClassroomMappings.ToStudentDetailDto(detail));
+        var hintCharges = await ClassroomChargeQuery.ForStudentAsync(
+            dbContext,
+            lesson,
+            session,
+            request.StudentId,
+            cancellationToken);
+        var (outstanding, status) = Charge.Summarize(hintCharges);
+
+        return Result<ClassroomStudentDetailDto>.Success(
+            ClassroomMappings.ToStudentDetailDto(detail, outstanding, status));
+    }
+
+    private async Task<Charge?> SyncChargesForAttendanceAsync(
+        LessonGroupSession session,
+        Lesson lesson,
+        int studentId,
+        bool isPresent,
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        if (session.IsMakeup)
+            return null;
+
+        if (lesson.IsPerSession)
+            return await SyncPerSessionAsync(session, lesson, studentId, isPresent, userId, cancellationToken);
+
+        if (lesson.IsMonthly && isPresent)
+            return await SyncMonthlyAsync(session, lesson, studentId, userId, cancellationToken);
+
+        return null;
+    }
+
+    private async Task<Charge?> SyncPerSessionAsync(
+        LessonGroupSession session,
+        Lesson lesson,
+        int studentId,
+        bool isPresent,
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        var existing = await dbContext.Charges
+            .AsTracking()
+            .FirstOrDefaultAsync(
+                x => x.LessonGroupSessionId == session.Id
+                     && x.StudentId == studentId
+                     && x.Type == ChargeType.Session,
+                cancellationToken);
+
+        if (!lesson.ShouldCreateSessionCharge(isPresent))
+        {
+            if (existing is null)
+                return null;
+
+            if (!existing.CanBeRemoved)
+            {
+                throw new InvalidOperationException(
+                    "لا يمكن إلغاء الحضور/الغياب المحاسَب لأن هناك دفعات مسجّلة على هذه الفاتورة.");
+            }
+
+            dbContext.Charges.Remove(existing);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        if (existing is not null)
+            return null;
+
+        var charge = Charge.CreateSessionCharge(lesson, session, studentId, userId);
+        dbContext.Charges.Add(charge);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return charge;
+    }
+
+    private async Task<Charge?> SyncMonthlyAsync(
+        LessonGroupSession session,
+        Lesson lesson,
+        int studentId,
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        var active = await dbContext.Charges
+            .AsTracking()
+            .Where(x =>
+                x.LessonId == lesson.Id
+                && x.StudentId == studentId
+                && x.Type == ChargeType.MonthlyCycle)
+            .ToListAsync(cancellationToken);
+
+        if (active.Any(c => c.CoversDate(session.SessionDate)))
+            return null;
+
+        var charge = Charge.CreateMonthlyCycle(lesson, session, studentId, userId);
+        dbContext.Charges.Add(charge);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var deferred = await dbContext.Charges
+            .AsTracking()
+            .Where(x =>
+                x.LessonId == lesson.Id
+                && x.StudentId == studentId
+                && x.Type == ChargeType.Makeup
+                && x.Status == ChargeStatus.Deferred
+                && x.Settlement == ChargeSettlement.NextCycle)
+            .ToListAsync(cancellationToken);
+
+        foreach (var makeup in deferred)
+            makeup.ActivateDeferredAgainstCycle(charge);
+
+        if (deferred.Count > 0)
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+        return charge;
     }
 }

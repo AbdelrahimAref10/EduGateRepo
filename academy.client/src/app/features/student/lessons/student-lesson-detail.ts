@@ -1,9 +1,11 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
+  BillingClient,
   LessonsClient,
+  PaymentDto,
   StudentLessonDetailDto,
   StudentLessonSessionDto,
   StudentReviewsClient,
@@ -18,13 +20,14 @@ import { TeacherReviewFormComponent } from '../../marketplace/teacher-review-for
 @Component({
   selector: 'app-student-lesson-detail',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, TeacherReviewFormComponent, UserAvatarComponent],
+  imports: [TranslatePipe, DatePipe, DecimalPipe, RouterLink, TeacherReviewFormComponent, UserAvatarComponent],
   templateUrl: './student-lesson-detail.html',
   styleUrl: './student-lesson-detail.css',
 })
 export class StudentLessonDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly lessonsApi = inject(LessonsClient);
+  private readonly billingApi = inject(BillingClient);
   private readonly reviewsApi = inject(StudentTeacherReviewsClient);
   private readonly lessonReviewsApi = inject(StudentReviewsClient);
 
@@ -36,6 +39,9 @@ export class StudentLessonDetailComponent implements OnInit {
   readonly myReview = signal<TeacherReviewDto | null>(null);
   readonly canReviewLesson = signal(false);
   readonly myLessonReview = signal<TargetReviewDto | null>(null);
+  readonly payments = signal<PaymentDto[]>([]);
+  readonly loadingPayments = signal(false);
+  readonly downloadingPaymentId = signal<number | null>(null);
 
   ngOnInit(): void {
     this.lessonId.set(Number(this.route.snapshot.paramMap.get('lessonId')));
@@ -57,12 +63,59 @@ export class StudentLessonDetailComponent implements OnInit {
         this.detail.set(data);
         this.loading.set(false);
         this.loadReviews(id, data.teacherId, data.bookingStatus);
+        this.loadPayments(id);
       },
       error: (err) => {
         this.loading.set(false);
         this.error.set(err?.result?.detail || err?.message || 'Failed to load lesson.');
       },
     });
+  }
+
+  loadPayments(lessonId = this.lessonId()): void {
+    if (!lessonId) return;
+    this.loadingPayments.set(true);
+    this.billingApi.getMyPayments(lessonId).subscribe({
+      next: (rows) => {
+        this.payments.set(rows ?? []);
+        this.loadingPayments.set(false);
+      },
+      error: () => {
+        this.loadingPayments.set(false);
+        this.payments.set([]);
+      },
+    });
+  }
+
+  downloadReceipt(payment: PaymentDto): void {
+    if (!payment?.id) return;
+    this.downloadingPaymentId.set(payment.id);
+    this.billingApi.downloadReceipt2(payment.id).subscribe({
+      next: (file) => {
+        this.downloadingPaymentId.set(null);
+        this.saveBlob(file.data, file.fileName || `receipt-${payment.receiptNumber}.pdf`);
+      },
+      error: (err) => {
+        this.downloadingPaymentId.set(null);
+        this.error.set(err?.result?.detail || err?.message || 'Failed to download receipt.');
+      },
+    });
+  }
+
+  methodKey(method?: string | null): string {
+    switch (method) {
+      case 'Cash':
+      case '1':
+        return 'billing.methodCash';
+      case 'VodafoneCash':
+      case '2':
+        return 'billing.methodVodafone';
+      case 'InstaPay':
+      case '3':
+        return 'billing.methodInstaPay';
+      default:
+        return 'billing.methodOther';
+    }
   }
 
   statusKey(status?: string): string {
@@ -85,6 +138,17 @@ export class StudentLessonDetailComponent implements OnInit {
   toTime(value?: string): string {
     if (!value) return '—';
     return value.length >= 5 ? value.slice(0, 5) : value;
+  }
+
+  private saveBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   }
 
   private loadReviews(lessonId: number, teacherId?: number, bookingStatus?: string): void {

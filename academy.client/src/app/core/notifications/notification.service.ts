@@ -253,6 +253,8 @@ export class NotificationService {
       '12': 'ExamPublished',
       '13': 'StudentExamSubmitted',
       '14': 'ClassroomMaterialAdded',
+      '15': 'PaymentRecorded',
+      '16': 'ChargeCreated',
     };
     return aliases[actual] === expected;
   }

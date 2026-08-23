@@ -314,6 +314,84 @@ namespace Academy.Persistence.Migrations
                     b.ToTable("Areas", (string)null);
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.Charge", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AllocatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("CycleEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("CycleStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("LessonGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LessonGroupSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("ParentChargeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Settlement")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonGroupId");
+
+                    b.HasIndex("LessonGroupSessionId");
+
+                    b.HasIndex("ParentChargeId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TeacherId", "StudentId");
+
+                    b.HasIndex("LessonId", "StudentId", "Status");
+
+                    b.HasIndex("LessonId", "StudentId", "Type", "CycleStartDate");
+
+                    b.ToTable("Charges", (string)null);
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.City", b =>
                 {
                     b.Property<int>("Id")
@@ -558,6 +636,8 @@ namespace Academy.Persistence.Migrations
                     b.HasIndex("LessonGroupSessionId")
                         .IsUnique();
 
+                    b.HasIndex("Status");
+
                     b.ToTable("Exams", (string)null);
                 });
 
@@ -732,6 +812,11 @@ namespace Academy.Persistence.Migrations
 
                     b.Property<int>("BillingType")
                         .HasColumnType("int");
+
+                    b.Property<bool>("ChargeAbsentSessions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("CountryId")
                         .HasColumnType("int");
@@ -969,7 +1054,15 @@ namespace Academy.Persistence.Migrations
                     b.Property<DateTime?>("EndedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsMakeup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("LessonGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MakeupForSessionId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("RatingAverage")
@@ -995,6 +1088,8 @@ namespace Academy.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LessonGroupId");
+
+                    b.HasIndex("MakeupForSessionId");
 
                     b.HasIndex("LessonGroupId", "SessionDate", "StartTime")
                         .IsUnique();
@@ -1124,11 +1219,6 @@ namespace Academy.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsPaid")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("IsPresent")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -1243,6 +1333,87 @@ namespace Academy.Persistence.Migrations
                     b.HasIndex("UserId", "IsRead", "CreatedAtUtc");
 
                     b.ToTable("NotificationDetails", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("PaidAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReceiptNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaidAtUtc");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("LessonId", "StudentId");
+
+                    b.HasIndex("TeacherId", "ReceiptNumber")
+                        .IsUnique();
+
+                    b.ToTable("Payments", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.PaymentAllocation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ChargeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChargeId");
+
+                    b.HasIndex("PaymentId", "ChargeId");
+
+                    b.ToTable("PaymentAllocations", (string)null);
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.RefreshToken", b =>
@@ -1527,6 +1698,54 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("City");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.Charge", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.LessonGroup", "LessonGroup")
+                        .WithMany()
+                        .HasForeignKey("LessonGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Academy.Domain.Entities.LessonGroupSession", "LessonGroupSession")
+                        .WithMany()
+                        .HasForeignKey("LessonGroupSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Charge", "ParentCharge")
+                        .WithMany("ChildCharges")
+                        .HasForeignKey("ParentChargeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("LessonGroup");
+
+                    b.Navigation("LessonGroupSession");
+
+                    b.Navigation("ParentCharge");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.City", b =>
                 {
                     b.HasOne("Academy.Domain.Entities.Governorate", "Governorate")
@@ -1796,7 +2015,14 @@ namespace Academy.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Academy.Domain.Entities.LessonGroupSession", "MakeupForSession")
+                        .WithMany("MakeupSessions")
+                        .HasForeignKey("MakeupForSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("LessonGroup");
+
+                    b.Navigation("MakeupForSession");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.LessonReview", b =>
@@ -1891,6 +2117,52 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Notification");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.Payment", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.PaymentAllocation", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Charge", "Charge")
+                        .WithMany("Allocations")
+                        .HasForeignKey("ChargeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Payment", "Payment")
+                        .WithMany("Allocations")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Charge");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.RefreshToken", b =>
@@ -2020,6 +2292,13 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.Charge", b =>
+                {
+                    b.Navigation("Allocations");
+
+                    b.Navigation("ChildCharges");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.City", b =>
                 {
                     b.Navigation("Areas");
@@ -2102,6 +2381,8 @@ namespace Academy.Persistence.Migrations
                 {
                     b.Navigation("Exam");
 
+                    b.Navigation("MakeupSessions");
+
                     b.Navigation("Materials");
 
                     b.Navigation("Reviews");
@@ -2112,6 +2393,11 @@ namespace Academy.Persistence.Migrations
             modelBuilder.Entity("Academy.Domain.Entities.Notification", b =>
                 {
                     b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.Payment", b =>
+                {
+                    b.Navigation("Allocations");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Student", b =>

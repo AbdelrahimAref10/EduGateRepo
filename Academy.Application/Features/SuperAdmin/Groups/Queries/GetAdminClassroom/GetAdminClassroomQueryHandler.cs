@@ -7,6 +7,7 @@ using Academy.Application.Features.Classroom;
 using Academy.Application.Features.SuperAdmin.Groups.Dtos;
 using Academy.Application.Features.Teacher.Classroom;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
+using Academy.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,12 +53,24 @@ public sealed class GetAdminClassroomQueryHandler(
 
         var detailByStudentId = details.ToDictionary(x => x.StudentId);
 
-        var students = members.Select(member =>
+        var students = new List<ClassroomStudentDetailDto>();
+        foreach (var member in members)
         {
-            if (detailByStudentId.TryGetValue(member.StudentId, out var detail))
-                return ClassroomMappings.ToStudentDetailDto(detail);
+            var charges = await ClassroomChargeQuery.ForStudentAsync(
+                dbContext,
+                lesson,
+                session,
+                member.StudentId,
+                cancellationToken);
+            var (outstanding, status) = Charge.Summarize(charges);
 
-            return new ClassroomStudentDetailDto
+            if (detailByStudentId.TryGetValue(member.StudentId, out var detail))
+            {
+                students.Add(ClassroomMappings.ToStudentDetailDto(detail, outstanding, status));
+                continue;
+            }
+
+            students.Add(new ClassroomStudentDetailDto
             {
                 Id = 0,
                 StudentId = member.StudentId,
@@ -65,9 +78,10 @@ public sealed class GetAdminClassroomQueryHandler(
                 PhotoUrl = ImageService.DisplayValue(member.Student.User.ProfilePhoto),
                 StudentCode = member.Student.StudentCode,
                 IsPresent = false,
-                IsPaid = false
-            };
-        }).ToList();
+                OutstandingAmount = outstanding,
+                BillingStatus = status
+            });
+        }
 
         var materialRows = await dbContext.LessonSessionMaterials
             .AsNoTracking()

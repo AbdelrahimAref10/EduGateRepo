@@ -1,0 +1,115 @@
+:host {
+  display: block;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-line) 88%, #00152e);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
+    radial-gradient(420px 120px at 0% 0%, rgba(0, 165, 185, 0.08), transparent 60%);
+  box-shadow: 0 10px 28px rgba(0, 21, 46, 0.05);
+}
+
+.pager.is-disabled {
+  opacity: 0.72;
+}
+
+.pager-meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.pager-meta strong {
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.pager-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pager-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pager-btn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.pager-btn:hover:not(:disabled) {
+  background: rgba(0, 165, 185, 0.08);
+  border-color: rgba(0, 165, 185, 0.22);
+}
+
+.pager-btn.is-active {
+  background: linear-gradient(135deg, #00152e 0%, #0a3a66 58%, #00a5b9 140%);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(0, 21, 46, 0.18);
+}
+
+.pager-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pager-nav {
+  color: var(--color-navy-700, #0a3a66);
+}
+
+.pager-nav svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.pager-ellipsis {
+  min-width: 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 640px) {
+  .pager {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .pager-meta {
+    justify-content: center;
+    width: 100%;
+  }
+}

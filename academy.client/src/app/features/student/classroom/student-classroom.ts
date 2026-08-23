@@ -1,15 +1,18 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
+  BillingClient,
   ClassroomClient,
   ClassroomMaterialDto,
+  PaymentDto,
   StudentClassroomDto,
   StudentExamDto,
   StudentReviewsClient,
   TargetReviewDto,
 } from '../../../core/api/academy-api.generated';
 import { NotificationService } from '../../../core/notifications/notification.service';
+import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { TeacherReviewFormComponent } from '../../marketplace/teacher-review-form';
@@ -20,16 +23,27 @@ type ClassroomTab = 'stream' | 'people';
 @Component({
   selector: 'app-student-classroom',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, StudentExamWorkspaceComponent, UserAvatarComponent, TeacherReviewFormComponent],
+  imports: [
+    TranslatePipe,
+    DatePipe,
+    DecimalPipe,
+    RouterLink,
+    StudentExamWorkspaceComponent,
+    UserAvatarComponent,
+    TeacherReviewFormComponent,
+  ],
   templateUrl: './student-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom.css'],
 })
 export class StudentClassroomComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly classroomApi = inject(ClassroomClient);
+  private readonly billingApi = inject(BillingClient);
   private readonly reviewsApi = inject(StudentReviewsClient);
   private readonly notifications = inject(NotificationService);
+  private readonly i18n = inject(TranslationService);
   private stopLive?: () => void;
+  private stopBillingLive?: () => void;
 
   readonly sessionId = signal(0);
   readonly loading = signal(false);
@@ -43,6 +57,9 @@ export class StudentClassroomComponent implements OnInit, OnDestroy {
   readonly loadingExam = signal(false);
   readonly canReviewSession = signal(false);
   readonly mySessionReview = signal<TargetReviewDto | null>(null);
+  readonly payments = signal<PaymentDto[]>([]);
+  readonly loadingPayments = signal(false);
+  readonly downloadingPaymentId = signal<number | null>(null);
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
@@ -61,11 +78,20 @@ export class StudentClassroomComponent implements OnInit, OnDestroy {
         else this.load(true);
       },
     );
+    this.stopBillingLive = this.notifications.when(
+      ['PaymentRecorded', 'ChargeCreated'],
+      0,
+      () => {
+        this.load(true);
+        this.loadPayments(true);
+      },
+    );
     this.load();
   }
 
   ngOnDestroy(): void {
     this.stopLive?.();
+    this.stopBillingLive?.();
   }
 
   load(silent = false): void {
@@ -86,6 +112,7 @@ export class StudentClassroomComponent implements OnInit, OnDestroy {
           this.loadExam();
           this.loadSessionReview(id);
         }
+        this.loadPayments(silent);
         if (this.route.snapshot.queryParamMap.get('materials') === '1') {
           this.scrollToMaterials();
         }
@@ -94,6 +121,42 @@ export class StudentClassroomComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         if (silent) return;
         this.error.set(err?.result?.detail || err?.message || 'Failed to load classroom.');
+      },
+    });
+  }
+
+  loadPayments(silent = false): void {
+    const lessonId = this.classroom()?.lessonId;
+    if (!lessonId) {
+      this.payments.set([]);
+      return;
+    }
+
+    if (!silent) this.loadingPayments.set(true);
+    this.billingApi.getMyPayments(lessonId).subscribe({
+      next: (rows) => {
+        this.payments.set(rows ?? []);
+        this.loadingPayments.set(false);
+      },
+      error: (err) => {
+        this.loadingPayments.set(false);
+        if (silent) return;
+        this.error.set(err?.result?.detail || err?.message || 'Failed to load payments.');
+      },
+    });
+  }
+
+  downloadReceipt(payment: PaymentDto): void {
+    if (!payment?.id) return;
+    this.downloadingPaymentId.set(payment.id);
+    this.billingApi.downloadReceipt2(payment.id).subscribe({
+      next: (file) => {
+        this.downloadingPaymentId.set(null);
+        this.saveBlob(file.data, file.fileName || `receipt-${payment.receiptNumber}.pdf`);
+      },
+      error: (err) => {
+        this.downloadingPaymentId.set(null);
+        this.error.set(err?.result?.detail || err?.message || 'Failed to download receipt.');
       },
     });
   }
@@ -140,6 +203,52 @@ export class StudentClassroomComponent implements OnInit, OnDestroy {
     if (exam.hasSubmitted) return 'classroom.viewResults';
     if (exam.hasStarted) return 'classroom.continueExam';
     return 'classroom.openExam';
+  }
+
+  billingTone(status?: string | null): string {
+    switch (status) {
+      case 'Paid':
+        return 'billing-pill is-paid';
+      case 'Partial':
+        return 'billing-pill is-partial';
+      case 'Open':
+        return 'billing-pill is-open';
+      default:
+        return 'billing-pill is-none';
+    }
+  }
+
+  billingSummary(status?: string | null, amount?: number | null): string {
+    const n = Number(amount || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    switch (status) {
+      case 'Paid':
+        return this.i18n.t('billing.summaryPaid');
+      case 'Partial':
+        return this.i18n.t('billing.summaryPartial').replace('{amount}', n);
+      case 'Open':
+        return this.i18n.t('billing.summaryOpenSession').replace('{amount}', n);
+      default:
+        return this.i18n.t('billing.summaryNone');
+    }
+  }
+
+  methodKey(method?: string | null): string {
+    switch (method) {
+      case 'Cash':
+      case '1':
+        return 'billing.methodCash';
+      case 'VodafoneCash':
+      case '2':
+        return 'billing.methodVodafone';
+      case 'InstaPay':
+      case '3':
+        return 'billing.methodInstaPay';
+      default:
+        return 'billing.methodOther';
+    }
   }
 
   initials(name?: string | null): string {

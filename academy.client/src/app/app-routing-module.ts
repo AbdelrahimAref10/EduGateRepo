@@ -19,6 +19,7 @@ import { StudentMyLessonsComponent } from './features/student/lessons/student-my
 import { AdminEducationComponent } from './features/super-admin/education/admin-education';
 import { AdminCountriesComponent } from './features/super-admin/countries/admin-countries';
 
+import { AdminBillingComponent } from './features/super-admin/billing/admin-billing';
 import { AdminLessonsComponent } from './features/super-admin/lessons/admin-lessons';
 import { AdminClassroomComponent } from './features/super-admin/groups/admin-classroom';
 import { AdminGroupsComponent } from './features/super-admin/groups/admin-groups';
@@ -37,6 +38,7 @@ import { TeacherClassroomComponent } from './features/teacher/classroom/teacher-
 import { TeacherGroupManageComponent } from './features/teacher/lessons/teacher-group-manage';
 import { TeacherLessonManageComponent } from './features/teacher/lessons/teacher-lesson-manage';
 import { TeacherLessonsComponent } from './features/teacher/lessons/teacher-lessons';
+import { TeacherPaymentsComponent } from './features/teacher/payments/teacher-payments';
 
 const routes: Routes = [
   { path: '', pathMatch: 'full', component: LandingComponent },
@@ -74,6 +76,7 @@ const routes: Routes = [
       { path: 'lessons', component: AdminLessonsComponent },
       { path: 'groups', component: AdminGroupsComponent },
       { path: 'classroom/:sessionId', component: AdminClassroomComponent },
+      { path: 'billing', component: AdminBillingComponent },
       { path: 'education', component: AdminEducationComponent },
       { path: 'countries', component: AdminCountriesComponent },
       { path: 'profile', component: EditProfileComponent },
@@ -94,6 +97,7 @@ const routes: Routes = [
       { path: 'lessons/:lessonId', component: TeacherLessonManageComponent },
       { path: 'lessons/:lessonId/groups/:groupId', component: TeacherGroupManageComponent },
       { path: 'classroom/:sessionId', component: TeacherClassroomComponent },
+      { path: 'payments', component: TeacherPaymentsComponent },
       { path: 'bookings', component: TeacherBookingsComponent },
       { path: 'reviews', component: TeacherReviewsComponent },
       { path: 'profile', component: EditProfileComponent },

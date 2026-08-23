@@ -15,5 +15,8 @@ public enum NotificationType
     SessionStarted = 11,
     ExamPublished = 12,
     StudentExamSubmitted = 13,
-    ClassroomMaterialAdded = 14
+    ClassroomMaterialAdded = 14,
+    PaymentRecorded = 15,
+    ChargeCreated = 16,
+    MakeupSessionScheduled = 17
 }

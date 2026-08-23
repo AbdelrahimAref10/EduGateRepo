@@ -329,3 +329,119 @@
     transform: scale(1.08);
   }
 }
+
+.billing-student-card {
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  padding: 0.95rem 1rem;
+  background: var(--color-surface);
+}
+
+.billing-collect-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, #16a34a 28%, white);
+  background: linear-gradient(135deg, #ecfdf5, #f0fdf4 55%, #fff);
+}
+
+.billing-collect-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+.billing-collect-amount {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #14532d;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-collect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.55rem 1.15rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 55%, #22c55e 130%);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.28);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.billing-collect-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.billing-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.billing-pill.is-paid {
+  background: color-mix(in srgb, #059669 12%, white);
+  color: #047857;
+}
+
+.billing-pill.is-partial {
+  background: color-mix(in srgb, var(--color-primary-500) 14%, white);
+  color: var(--color-primary-700);
+}
+
+.billing-pill.is-open {
+  background: color-mix(in srgb, #d97706 14%, white);
+  color: #b45309;
+}
+
+.billing-pill.is-none {
+  background: var(--color-body);
+  color: var(--color-muted);
+}
+
+.billing-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.billing-modal {
+  width: min(24rem, 100%);
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: var(--color-surface);
+  box-shadow: 0 24px 60px rgba(0, 21, 46, 0.26);
+}
+
+.billing-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.15rem 1.25rem;
+  background: linear-gradient(135deg, var(--color-navy-800), var(--color-navy-700) 60%, var(--color-primary-600));
+}

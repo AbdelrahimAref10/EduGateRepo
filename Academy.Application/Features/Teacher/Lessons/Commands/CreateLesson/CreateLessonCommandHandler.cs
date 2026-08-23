@@ -79,6 +79,7 @@ public sealed class CreateLessonCommandHandler(
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         };
+        lesson.SetChargeAbsentSessions(request.ChargeAbsentSessions);
 
         dbContext.Lessons.Add(lesson);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -103,6 +104,7 @@ public sealed class CreateLessonCommandHandler(
             BillingType = lesson.BillingType.ToString(),
             SessionPrice = lesson.SessionPrice,
             MonthlyPrice = lesson.MonthlyPrice,
+            ChargeAbsentSessions = lesson.ChargeAbsentSessions,
             StartDate = lesson.StartDate,
             CountryId = lesson.CountryId,
             CountryName = LocalizedNames.Pick(countryNames.NameAr, countryNames.NameEn, language),

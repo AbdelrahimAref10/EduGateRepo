@@ -39,6 +39,11 @@ public class Lesson : BaseEntity
 
     public decimal? MonthlyPrice { get; set; }
 
+    /// <summary>
+    /// When true (PerSession only), marking a student absent still creates a session charge.
+    /// </summary>
+    public bool ChargeAbsentSessions { get; set; }
+
     public DateOnly StartDate { get; set; }
 
     public int CountryId { get; set; }
@@ -67,4 +72,30 @@ public class Lesson : BaseEntity
     public ICollection<LessonGroup> Groups { get; set; } = [];
 
     public ICollection<LessonReview> Reviews { get; set; } = [];
+
+    public bool IsPerSession => BillingType == BillingType.PerSession;
+
+    public bool IsMonthly => BillingType == BillingType.Monthly;
+
+    public bool ShouldCreateSessionCharge(bool isPresent) =>
+        IsPerSession && (isPresent || ChargeAbsentSessions);
+
+    public decimal RequireSessionPrice()
+    {
+        if (SessionPrice is null or <= 0)
+            throw new InvalidOperationException("سعر الحصة غير محدد على الدرس.");
+
+        return SessionPrice.Value;
+    }
+
+    public decimal RequireMonthlyPrice()
+    {
+        if (MonthlyPrice is null or <= 0)
+            throw new InvalidOperationException("السعر الشهري غير محدد على الدرس.");
+
+        return MonthlyPrice.Value;
+    }
+
+    public void SetChargeAbsentSessions(bool value) =>
+        ChargeAbsentSessions = IsPerSession && value;
 }

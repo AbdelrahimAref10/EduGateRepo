@@ -81,6 +81,7 @@ public sealed class UpdateLessonCommandHandler(
         lesson.BillingType = request.BillingType;
         lesson.SessionPrice = request.BillingType == BillingType.PerSession ? request.SessionPrice : null;
         lesson.MonthlyPrice = request.BillingType == BillingType.Monthly ? request.MonthlyPrice : null;
+        lesson.SetChargeAbsentSessions(request.ChargeAbsentSessions);
         lesson.StartDate = request.StartDate;
         lesson.CountryId = area.City.Governorate.CountryId;
         lesson.AreaId = area.Id;

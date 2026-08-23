@@ -31,6 +31,15 @@ public class LessonGroupSession : BaseEntity
 
     public int RatingCount { get; set; }
 
+    /// <summary>True when this session is a makeup class for selected students only.</summary>
+    public bool IsMakeup { get; set; }
+
+    public int? MakeupForSessionId { get; set; }
+
+    public LessonGroupSession? MakeupForSession { get; set; }
+
+    public ICollection<LessonGroupSession> MakeupSessions { get; set; } = [];
+
     public ICollection<LessonSessionStudentDetail> StudentDetails { get; set; } = [];
 
     public ICollection<LessonSessionMaterial> Materials { get; set; } = [];
@@ -38,4 +47,23 @@ public class LessonGroupSession : BaseEntity
     public ICollection<SessionReview> Reviews { get; set; } = [];
 
     public Exam? Exam { get; set; }
+
+    public static LessonGroupSession CreateMakeup(
+        int lessonGroupId,
+        DateOnly sessionDate,
+        TimeOnly startTime,
+        string? topic,
+        int? makeupForSessionId)
+    {
+        return new LessonGroupSession
+        {
+            LessonGroupId = lessonGroupId,
+            SessionDate = sessionDate,
+            StartTime = startTime,
+            Topic = string.IsNullOrWhiteSpace(topic) ? "حصة تعويض" : topic.Trim(),
+            IsMakeup = true,
+            MakeupForSessionId = makeupForSessionId,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+    }
 }

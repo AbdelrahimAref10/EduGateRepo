@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Academy.Application.Common.Models;
 using Academy.Application.Features.SuperAdmin.Countries.Dtos;
 using Academy.Application.Features.Teacher.Lessons.Commands.AddGroupMemberByCode;
 using Academy.Application.Features.Teacher.Lessons.Commands.AddLessonStudentByCode;
@@ -35,14 +36,20 @@ namespace Academy.Server.Controllers.Teacher;
 public sealed class LessonsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<LessonDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetMyLessons(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResult<LessonDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyLessons(
+        [FromQuery] int? educationTypeId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 9,
+        CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         if (userId is null)
             return Unauthorized();
 
-        var result = await sender.Send(new GetMyLessonsQuery(userId.Value), cancellationToken);
+        var result = await sender.Send(
+            new GetMyLessonsQuery(userId.Value, educationTypeId, page, pageSize),
+            cancellationToken);
         return result.ToActionResult();
     }
 
@@ -94,6 +101,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
                 request.BillingType,
                 request.SessionPrice,
                 request.MonthlyPrice,
+                request.ChargeAbsentSessions,
                 request.StartDate,
                 request.AreaId),
             cancellationToken);
@@ -126,6 +134,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
                 request.BillingType,
                 request.SessionPrice,
                 request.MonthlyPrice,
+                request.ChargeAbsentSessions,
                 request.StartDate,
                 request.AreaId),
             cancellationToken);

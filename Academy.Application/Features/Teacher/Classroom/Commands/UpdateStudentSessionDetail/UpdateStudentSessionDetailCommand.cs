@@ -9,5 +9,4 @@ public sealed record UpdateStudentSessionDetailCommand(
     int SessionId,
     int StudentId,
     bool IsPresent,
-    bool IsPaid,
     string? TeacherNotes) : IRequest<Result<ClassroomStudentDetailDto>>;

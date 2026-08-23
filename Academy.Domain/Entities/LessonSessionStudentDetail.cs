@@ -3,7 +3,8 @@ using Academy.Domain.Common;
 namespace Academy.Domain.Entities;
 
 /// <summary>
-/// Per-student attendance and payment tracking for a single session (classroom roster row).
+/// Per-student attendance and notes for a single session (classroom roster row).
+/// Payment state lives in Charge / Payment tables — not here.
 /// </summary>
 public class LessonSessionStudentDetail : BaseEntity
 {
@@ -16,8 +17,6 @@ public class LessonSessionStudentDetail : BaseEntity
     public Student Student { get; set; } = null!;
 
     public bool IsPresent { get; set; }
-
-    public bool IsPaid { get; set; }
 
     public string? TeacherNotes { get; set; }
 

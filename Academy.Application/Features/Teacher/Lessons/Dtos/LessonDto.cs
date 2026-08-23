@@ -28,6 +28,8 @@ public sealed class LessonDto
 
     public decimal? MonthlyPrice { get; init; }
 
+    public required bool ChargeAbsentSessions { get; init; }
+
     public required DateOnly StartDate { get; init; }
 
     public required int CountryId { get; init; }

@@ -194,9 +194,11 @@
               </p>
             </div>
             <div class="rounded-xl border border-line bg-body/40 px-3 py-3">
-              <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'classroom.paid' | t }}</p>
-              <p class="mt-1 text-sm font-bold">
-                {{ room.myDetail?.isPaid ? ('classroom.yes' | t) : ('classroom.no' | t) }}
+              <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'billing.outstanding' | t }}</p>
+              <p class="mt-1">
+                <span [class]="billingTone(room.myDetail?.billingStatus)">
+                  {{ billingSummary(room.myDetail?.billingStatus, room.myDetail?.outstandingAmount) }}
+                </span>
               </p>
             </div>
             @if (room.myDetail?.teacherNotes) {
@@ -206,6 +208,43 @@
                 </p>
                 <p class="mt-1 text-sm font-semibold">{{ room.myDetail?.teacherNotes }}</p>
               </div>
+            }
+          </div>
+        </section>
+
+        <section class="card overflow-hidden">
+          <div class="border-b border-line px-5 py-4">
+            <h3 class="section-title">{{ 'billing.myPayments' | t }}</h3>
+          </div>
+          <div class="p-5">
+            @if (loadingPayments()) {
+              <p class="text-center text-sm text-muted">{{ 'classroom.loading' | t }}</p>
+            } @else if (!payments().length) {
+              <p class="text-center text-sm text-muted">—</p>
+            } @else {
+              <ul class="space-y-2">
+                @for (payment of payments(); track payment.id) {
+                  <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-3 py-3">
+                    <div>
+                      <p class="text-sm font-bold text-ink">
+                        #{{ payment.receiptNumber }} · {{ payment.amount | number: '1.0-2' }}
+                      </p>
+                      <p class="mt-1 text-xs text-muted">
+                        {{ payment.paidAtUtc | date: 'yyyy-MM-dd HH:mm' }}
+                        · {{ methodKey(payment.method) | t }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-secondary text-xs"
+                      (click)="downloadReceipt(payment)"
+                      [disabled]="downloadingPaymentId() === payment.id"
+                    >
+                      {{ 'billing.downloadReceipt' | t }}
+                    </button>
+                  </li>
+                }
+              </ul>
             }
           </div>
         </section>

@@ -17,10 +17,6 @@ public sealed class LessonSessionStudentDetailConfiguration
             .IsRequired()
             .HasDefaultValue(false);
 
-        builder.Property(x => x.IsPaid)
-            .IsRequired()
-            .HasDefaultValue(false);
-
         builder.Property(x => x.TeacherNotes)
             .HasMaxLength(1000);
 

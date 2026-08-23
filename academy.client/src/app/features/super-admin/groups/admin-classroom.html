@@ -41,7 +41,7 @@
         <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'adminGroups.members' | t }}</p>
         <p class="mt-1 text-2xl font-extrabold">{{ room.students?.length || 0 }}</p>
         <p class="mt-1 text-xs text-muted">
-          {{ presentCount() }} {{ 'classroom.present' | t }} · {{ paidCount() }} {{ 'classroom.paid' | t }}
+          {{ presentCount() }} {{ 'classroom.present' | t }} · {{ owedCount() }} {{ 'billing.outstanding' | t }}
         </p>
       </article>
       <article class="card p-4">
@@ -87,7 +87,7 @@
                     <th class="px-3 py-3">{{ 'adminGroups.student' | t }}</th>
                     <th class="px-3 py-3">{{ 'adminGroups.code' | t }}</th>
                     <th class="px-3 py-3">{{ 'classroom.present' | t }}</th>
-                    <th class="px-3 py-3">{{ 'classroom.paid' | t }}</th>
+                    <th class="px-3 py-3">{{ 'billing.outstanding' | t }}</th>
                     <th class="px-3 py-3">{{ 'adminGroups.notes' | t }}</th>
                   </tr>
                 </thead>
@@ -110,11 +110,8 @@
                         </span>
                       </td>
                       <td class="px-3 py-3">
-                        <span
-                          class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold"
-                          [class]="student.isPaid ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'"
-                        >
-                          {{ student.isPaid ? ('classroom.paid' | t) : ('adminGroups.unpaid' | t) }}
+                        <span [class]="billingTone(student.billingStatus)">
+                          {{ billingSummary(student.billingStatus, student.outstandingAmount) }}
                         </span>
                       </td>
                       <td class="px-3 py-3 text-muted">{{ student.teacherNotes || '—' }}</td>

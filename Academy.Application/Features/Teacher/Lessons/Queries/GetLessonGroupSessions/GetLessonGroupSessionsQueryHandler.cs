@@ -55,6 +55,8 @@ public sealed class GetLessonGroupSessionsQueryHandler(IApplicationDbContext dbC
                     && x.EndedAtUtc == null
                     && x.LessonGroup.EndedAtUtc == null,
                 CanOpenClassroom = x.StartedAtUtc != null,
+                IsMakeup = x.IsMakeup,
+                MakeupForSessionId = x.MakeupForSessionId,
                 CreatedAtUtc = x.CreatedAtUtc
             })
             .ToListAsync(cancellationToken);

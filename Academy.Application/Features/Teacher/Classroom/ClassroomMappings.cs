@@ -27,16 +27,21 @@ internal static class ClassroomMappings
             CreatedByName = material.CreatedByUser?.FullName ?? string.Empty
         };
 
-    public static ClassroomStudentDetailDto ToStudentDetailDto(LessonSessionStudentDetail detail) =>
+    public static ClassroomStudentDetailDto ToStudentDetailDto(
+        LessonSessionStudentDetail detail,
+        decimal outstandingAmount = 0,
+        string billingStatus = "None") =>
         new()
         {
             Id = detail.Id,
             StudentId = detail.StudentId,
+            UserId = detail.Student.UserId,
             StudentName = detail.Student.User.FullName,
             PhotoUrl = ImageService.DisplayValue(detail.Student.User.ProfilePhoto),
             StudentCode = detail.Student.StudentCode,
             IsPresent = detail.IsPresent,
-            IsPaid = detail.IsPaid,
+            OutstandingAmount = outstandingAmount,
+            BillingStatus = billingStatus,
             TeacherNotes = detail.TeacherNotes,
             UpdatedAtUtc = detail.UpdatedAtUtc
         };

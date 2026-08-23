@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Academy.Application.Common.Models;
 using Academy.Application.Features.Student.Classroom.Commands.StartStudentSessionExam;
 using Academy.Application.Features.Student.Classroom.Commands.SubmitStudentSessionExam;
 using Academy.Application.Features.Student.Classroom.Dtos;
@@ -35,15 +36,20 @@ public sealed class ClassroomController(ISender sender) : ControllerBase
     }
 
     [HttpGet("exams")]
-    [ProducesResponseType(typeof(IReadOnlyList<StudentExamListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<StudentExamListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMyExams(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMyExams(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 9,
+        CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         if (userId is null)
             return Unauthorized();
 
-        var result = await sender.Send(new GetMyStudentExamsQuery(userId.Value), cancellationToken);
+        var result = await sender.Send(
+            new GetMyStudentExamsQuery(userId.Value, page, pageSize),
+            cancellationToken);
         return result.ToActionResult();
     }
 

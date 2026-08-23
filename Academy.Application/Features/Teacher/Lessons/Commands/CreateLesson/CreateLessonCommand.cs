@@ -14,5 +14,6 @@ public sealed record CreateLessonCommand(
     BillingType BillingType,
     decimal? SessionPrice,
     decimal? MonthlyPrice,
+    bool ChargeAbsentSessions,
     DateOnly StartDate,
     int AreaId) : IRequest<Result<LessonDto>>;

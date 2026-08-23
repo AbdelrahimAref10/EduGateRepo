@@ -25,6 +25,10 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.Property(x => x.MonthlyPrice)
             .HasPrecision(18, 2);
 
+        builder.Property(x => x.ChargeAbsentSessions)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(x => x.StartDate)
             .IsRequired()
             .HasColumnType("date");

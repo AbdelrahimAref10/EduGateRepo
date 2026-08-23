@@ -4,6 +4,7 @@ using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom;
 using Academy.Application.Features.Student.Classroom.Dtos;
 using Academy.Application.Features.Teacher.Classroom;
+using Academy.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,8 +34,11 @@ public sealed class GetStudentClassroomQueryHandler(IApplicationDbContext dbCont
         if (session is null)
             return Result<StudentClassroomDto>.NotFound("الحصة غير موجودة.");
 
-        var isMember = await dbContext.LessonGroupMembers
-            .AnyAsync(
+        var isMember = session.IsMakeup
+            ? await dbContext.LessonSessionStudentDetails.AnyAsync(
+                x => x.LessonGroupSessionId == session.Id && x.StudentId == student.Id,
+                cancellationToken)
+            : await dbContext.LessonGroupMembers.AnyAsync(
                 x => x.LessonGroupId == session.LessonGroupId && x.StudentId == student.Id,
                 cancellationToken);
 
@@ -44,15 +48,18 @@ public sealed class GetStudentClassroomQueryHandler(IApplicationDbContext dbCont
         if (!session.StartedAtUtc.HasValue)
             return Result<StudentClassroomDto>.Conflict("لم يتم بدء الحصة بعد.");
 
-        await ClassroomSeeding.EnsureStudentDetailsAsync(dbContext, session, cancellationToken);
+        if (!session.IsMakeup)
+            await ClassroomSeeding.EnsureStudentDetailsAsync(dbContext, session, cancellationToken);
 
-        var members = await dbContext.LessonGroupMembers
-            .AsNoTracking()
-            .Include(x => x.Student)
-                .ThenInclude(x => x.User)
-            .Where(x => x.LessonGroupId == session.LessonGroupId)
-            .OrderBy(x => x.AddedAtUtc)
-            .ToListAsync(cancellationToken);
+        var members = session.IsMakeup
+            ? []
+            : await dbContext.LessonGroupMembers
+                .AsNoTracking()
+                .Include(x => x.Student)
+                    .ThenInclude(x => x.User)
+                .Where(x => x.LessonGroupId == session.LessonGroupId)
+                .OrderBy(x => x.AddedAtUtc)
+                .ToListAsync(cancellationToken);
 
         var myDetailEntity = await dbContext.LessonSessionStudentDetails
             .AsNoTracking()
@@ -81,6 +88,18 @@ public sealed class GetStudentClassroomQueryHandler(IApplicationDbContext dbCont
             .ToList();
 
         var lesson = session.LessonGroup.Lesson;
+        decimal outstanding = 0;
+        var billingStatus = "None";
+        if (myDetailEntity is not null)
+        {
+            var charges = await ClassroomChargeQuery.ForStudentAsync(
+                dbContext,
+                lesson,
+                session,
+                student.Id,
+                cancellationToken);
+            (outstanding, billingStatus) = Charge.Summarize(charges);
+        }
 
         var dto = new StudentClassroomDto
         {
@@ -101,7 +120,7 @@ public sealed class GetStudentClassroomQueryHandler(IApplicationDbContext dbCont
             TeacherPhotoUrl = ImageService.DisplayValue(lesson.Teacher.User.ProfilePhoto),
             MyDetail = myDetailEntity is null
                 ? null
-                : ClassroomMappings.ToStudentDetailDto(myDetailEntity),
+                : ClassroomMappings.ToStudentDetailDto(myDetailEntity, outstanding, billingStatus),
             Classmates = classmates,
             Materials = materials.Select(ClassroomMappings.ToMaterialDto).ToList()
         };

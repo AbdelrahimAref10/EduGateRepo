@@ -12,6 +12,7 @@ import {
   TeacherStudentExamReviewDto,
 } from '../../../core/api/academy-api.generated';
 import { NotificationService } from '../../../core/notifications/notification.service';
+import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { RatingStarsComponent } from '../../marketplace/rating-stars';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
@@ -30,7 +31,14 @@ const CLASSROOM_TABS: { id: ClassroomTab; key: string }[] = [
 @Component({
   selector: 'app-admin-classroom',
   standalone: true,
-  imports: [DatePipe, RouterLink, TranslatePipe, RatingStarsComponent, UserAvatarComponent, PageLoaderComponent],
+  imports: [
+    DatePipe,
+    RouterLink,
+    TranslatePipe,
+    RatingStarsComponent,
+    UserAvatarComponent,
+    PageLoaderComponent,
+  ],
   templateUrl: './admin-classroom.html',
   styleUrl: './admin-classroom.css',
 })
@@ -39,6 +47,7 @@ export class AdminClassroomComponent implements OnInit {
   private readonly sessionsApi = inject(SuperAdminSessionsClient);
   private readonly overviewApi = inject(LessonsOverviewClient);
   private readonly notifications = inject(NotificationService);
+  private readonly i18n = inject(TranslationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly sessionId = signal(0);
@@ -65,8 +74,8 @@ export class AdminClassroomComponent implements OnInit {
   readonly presentCount = computed(
     () => (this.classroom()?.students ?? []).filter((x) => x.isPresent).length,
   );
-  readonly paidCount = computed(
-    () => (this.classroom()?.students ?? []).filter((x) => x.isPaid).length,
+  readonly owedCount = computed(
+    () => (this.classroom()?.students ?? []).filter((x) => (x.outstandingAmount ?? 0) > 0).length,
   );
   readonly openReview = computed(() => {
     const id = this.openStudentId();
@@ -143,6 +152,42 @@ export class AdminClassroomComponent implements OnInit {
 
   billingLabel(value?: string): string {
     return value === 'Monthly' ? 'lessons.monthly' : 'lessons.perSession';
+  }
+
+  billingTone(status?: string | null): string {
+    switch (status) {
+      case 'Paid':
+        return 'billing-pill is-paid';
+      case 'Partial':
+        return 'billing-pill is-partial';
+      case 'Open':
+        return 'billing-pill is-open';
+      default:
+        return 'billing-pill is-none';
+    }
+  }
+
+  billingSummary(status?: string | null, amount?: number | null): string {
+    const n = Number(amount || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    switch (status) {
+      case 'Paid':
+        return this.i18n.t('billing.summaryPaid');
+      case 'Partial':
+        return this.i18n.t('billing.summaryPartial').replace('{amount}', n);
+      case 'Open': {
+        const billing = this.classroom()?.billingType;
+        const key =
+          billing === 'Monthly'
+            ? 'billing.summaryOpenMonthly'
+            : 'billing.summaryOpenSession';
+        return this.i18n.t(key).replace('{amount}', n);
+      }
+      default:
+        return this.i18n.t('billing.summaryNone');
+    }
   }
 
   price(room: AdminClassroomDto): string | number {

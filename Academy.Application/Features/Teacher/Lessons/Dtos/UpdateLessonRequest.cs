@@ -18,6 +18,8 @@ public sealed class UpdateLessonRequest
 
     public decimal? MonthlyPrice { get; set; }
 
+    public bool ChargeAbsentSessions { get; set; }
+
     public DateOnly StartDate { get; set; }
 
     public int AreaId { get; set; }

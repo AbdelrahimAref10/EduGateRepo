@@ -29,6 +29,16 @@
       {{ 'lessons.memberAdded' | t }}
     </div>
   }
+  @if (success() === 'paymentRecorded') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'billing.paymentRecorded' | t }}
+    </div>
+  }
+  @if (success() === 'makeupCreated') {
+    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+      {{ 'billing.scheduleMakeup' | t }} ✓
+    </div>
+  }
 
   @if (group(); as g) {
     <header class="tgm-hero">
@@ -92,6 +102,18 @@
       >
         <span>{{ 'lessons.addStudentsToGroup' | t }}</span>
       </button>
+      <button
+        type="button"
+        class="tgm-tile"
+        [class.is-on]="panel() === 'ledger'"
+        (click)="togglePanel('ledger')"
+      >
+        <span>{{ panel() === 'ledger' ? ('billing.ledger' | t) : ('billing.groupLedger' | t) }}</span>
+        <strong>{{ ledgerRows().length || '—' }}</strong>
+      </button>
+      <button type="button" class="tgm-tile tgm-tile-accent" (click)="openMakeup()" [disabled]="!!g.hasEnded">
+        <span>{{ 'billing.scheduleMakeup' | t }}</span>
+      </button>
     </div>
 
     @if (panel() === 'sessions') {
@@ -118,6 +140,9 @@
                     {{ session.sessionDate | date: 'yyyy-MM-dd' }}
                     <span>{{ toTimeInput(session.startTime) }}</span>
                   </h3>
+                  @if (session.isMakeup) {
+                    <p class="tgm-makeup-tag">{{ 'billing.makeup' | t }}</p>
+                  }
                   @if (session.topic) {
                     <p class="tgm-topic">{{ session.topic }}</p>
                   }
@@ -229,6 +254,190 @@
         }
       </section>
     }
+
+    @if (panel() === 'ledger') {
+      <section class="tgm-panel">
+        <div class="tgm-panel-head">
+          <h2>{{ 'billing.groupLedger' | t }}</h2>
+          <p>{{ 'billing.peopleHint' | t }}</p>
+        </div>
+        @if (loadingLedger() && !ledgerReady()) {
+          <app-page-loader titleKey="billing.ledger" [compact]="true" />
+        } @else if (!ledgerRows().length) {
+          <p class="tgm-empty">{{ 'billing.noDebts' | t }}</p>
+        } @else {
+          <div class="tgm-ledger">
+            @for (row of ledgerRows(); track row.studentId) {
+              <article class="tgm-ledger-row">
+                <div class="flex min-w-0 items-center gap-3">
+                  <app-user-avatar [src]="row.photoUrl" [alt]="row.studentName" size="sm" />
+                  <div class="min-w-0">
+                    <p class="font-bold">{{ row.studentName }}</p>
+                    <p class="font-mono text-xs text-muted">{{ row.studentCode || '—' }}</p>
+                  </div>
+                </div>
+                <div class="tgm-ledger-meta">
+                  <strong>{{ row.outstandingAmount | number: '1.0-2' }}</strong>
+                  <span>{{ row.openChargesCount }} {{ 'billing.openCharges' | t }}</span>
+                </div>
+                <div class="tgm-session-actions">
+                  <button type="button" class="tgm-ghost-ink" (click)="openStudentLedger(row.studentId)">
+                    {{ 'billing.viewLedger' | t }}
+                  </button>
+                  @if (row.outstandingAmount > 0) {
+                    <a
+                      class="tgm-primary"
+                      [routerLink]="['/teacher/payments']"
+                      [queryParams]="{ lessonId: lessonId(), studentId: row.studentId }"
+                    >
+                      {{ 'billing.goToPayments' | t }}
+                    </a>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
   }
 </section>
+
+@if (studentLedger(); as ledger) {
+  <div class="tgm-modal-backdrop" (click)="closeStudentLedger()">
+    <div class="tgm-modal tgm-modal-wide" (click)="$event.stopPropagation()" role="dialog">
+      <header class="tgm-modal-head">
+        <div>
+          <p class="tgm-modal-kicker">{{ 'billing.studentLedger' | t }}</p>
+          <h3>{{ ledger.studentName }} · {{ ledger.subject }}</h3>
+          <p>{{ 'billing.outstanding' | t }}: {{ ledger.outstandingAmount | number: '1.0-2' }}</p>
+        </div>
+        <button type="button" class="tgm-ghost" (click)="closeStudentLedger()">×</button>
+      </header>
+      <div class="tgm-modal-body">
+        <h4>{{ 'billing.charges' | t }}</h4>
+        <div class="tgm-mini-list">
+          @for (c of ledger.charges; track c.id) {
+            <div class="tgm-mini-item">
+              <div>
+                <strong>{{ chargeTypeKey(c.type) | t }}</strong>
+                <span>{{ c.status }} · {{ c.createdAtUtc | date: 'yyyy-MM-dd' }}</span>
+              </div>
+              <strong>{{ c.remaining | number: '1.0-2' }} / {{ c.amount | number: '1.0-2' }}</strong>
+            </div>
+          }
+        </div>
+        <h4>{{ 'billing.payments' | t }}</h4>
+        <div class="tgm-mini-list">
+          @for (p of ledger.payments; track p.id) {
+            <div class="tgm-mini-item">
+              <div>
+                <strong>#{{ p.receiptNumber }} · {{ p.amount | number: '1.0-2' }}</strong>
+                <span>{{ p.method }} · {{ p.paidAtUtc | date: 'yyyy-MM-dd HH:mm' }}</span>
+              </div>
+              <button type="button" class="tgm-ghost-ink" (click)="downloadReceipt(p)">
+                {{ 'billing.downloadReceipt' | t }}
+              </button>
+            </div>
+          } @empty {
+            <p class="tgm-empty">—</p>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (makeupOpen()) {
+  <div class="tgm-modal-backdrop" (click)="closeMakeup()">
+    <div class="tgm-modal tgm-modal-wide" (click)="$event.stopPropagation()" role="dialog">
+      <header class="tgm-modal-head">
+        <div>
+          <p class="tgm-modal-kicker">{{ 'billing.makeup' | t }}</p>
+          <h3>{{ 'billing.scheduleMakeup' | t }}</h3>
+          <p>{{ 'billing.makeupHint' | t }}</p>
+        </div>
+        <button type="button" class="tgm-ghost" (click)="closeMakeup()">×</button>
+      </header>
+      <form class="tgm-modal-body space-y-3" [formGroup]="makeupForm" (ngSubmit)="submitMakeup()">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label>
+            <span class="label-text">{{ 'lessons.sessionDate' | t }}</span>
+            <input class="field" type="date" formControlName="sessionDate" />
+          </label>
+          <label>
+            <span class="label-text">{{ 'lessons.time' | t }}</span>
+            <input class="field" type="time" formControlName="startTime" />
+          </label>
+        </div>
+        <label>
+          <span class="label-text">{{ 'classroom.topic' | t }}</span>
+          <input class="field" type="text" formControlName="topic" />
+        </label>
+        <label>
+          <span class="label-text">{{ 'billing.makeup' | t }} ←</span>
+          <select class="field" formControlName="makeupForSessionId">
+            <option [ngValue]="null">—</option>
+            @for (s of sessions(); track s.id) {
+              <option [ngValue]="s.id">{{ s.sessionDate | date: 'yyyy-MM-dd' }} · {{ toTimeInput(s.startTime) }}</option>
+            }
+          </select>
+        </label>
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" formControlName="isFree" />
+          {{ 'billing.free' | t }}
+        </label>
+        @if (!makeupForm.controls.isFree.value) {
+          @if (isPerSessionBilling()) {
+            <div class="rounded-xl bg-body px-3 py-3 text-sm">
+              <p class="font-bold text-ink">{{ 'billing.paidMakeup' | t }}</p>
+              <p class="mt-1 text-muted">{{ 'billing.makeupPerSessionHint' | t }}</p>
+              <p class="mt-2 font-extrabold text-amber-700">
+                {{ 'billing.amount' | t }}:
+                {{ lessonSessionPrice() | number: '1.0-2' }}
+              </p>
+            </div>
+          } @else {
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label>
+                <span class="label-text">{{ 'billing.amount' | t }}</span>
+                <input class="field" type="number" min="0.01" step="0.01" formControlName="amount" />
+              </label>
+              <label>
+                <span class="label-text">{{ 'billing.settlement' | t }}</span>
+                <select class="field" formControlName="settlement">
+                  @for (s of settlements; track s.value) {
+                    <option [ngValue]="s.value">{{ s.key | t }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            <p class="text-xs text-muted">{{ 'billing.settlementMonthlyHint' | t }}</p>
+          }
+        }
+        <div>
+          <p class="label-text mb-2">{{ 'billing.student' | t }}</p>
+          <div class="tgm-makeup-students">
+            @for (m of group()?.members ?? []; track m.studentId) {
+              <label class="tgm-check">
+                <input
+                  type="checkbox"
+                  [checked]="isMakeupSelected(m.studentId)"
+                  (change)="toggleMakeupStudent(m.studentId)"
+                />
+                {{ m.studentName }}
+              </label>
+            }
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="tgm-ghost-ink" (click)="closeMakeup()">{{ 'common.cancel' | t }}</button>
+          <button type="submit" class="tgm-primary" [disabled]="savingMakeup()">
+            {{ savingMakeup() ? ('lessons.saving' | t) : ('billing.scheduleMakeup' | t) }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
 }

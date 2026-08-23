@@ -45,6 +45,7 @@ internal static class LessonMappings
             BillingType = lesson.BillingType.ToString(),
             SessionPrice = lesson.SessionPrice,
             MonthlyPrice = lesson.MonthlyPrice,
+            ChargeAbsentSessions = lesson.ChargeAbsentSessions,
             StartDate = lesson.StartDate,
             CountryId = lesson.CountryId,
             CountryName = LocalizedNames.Pick(
@@ -160,6 +161,8 @@ internal static class LessonMappings
             HasEnded = hasEnded,
             CanStart = !hasStarted && !hasEnded && !groupHasEnded,
             CanOpenClassroom = hasStarted,
+            IsMakeup = session.IsMakeup,
+            MakeupForSessionId = session.MakeupForSessionId,
             CreatedAtUtc = session.CreatedAtUtc
         };
     }

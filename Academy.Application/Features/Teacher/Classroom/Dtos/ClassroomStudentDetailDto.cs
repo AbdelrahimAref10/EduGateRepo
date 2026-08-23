@@ -16,7 +16,11 @@ public sealed class ClassroomStudentDetailDto
 
     public required bool IsPresent { get; init; }
 
-    public required bool IsPaid { get; init; }
+    /// <summary>Open remaining balance relevant to this classroom context.</summary>
+    public required decimal OutstandingAmount { get; init; }
+
+    /// <summary>None | Open | Partial | Paid</summary>
+    public required string BillingStatus { get; init; }
 
     public string? TeacherNotes { get; init; }
 

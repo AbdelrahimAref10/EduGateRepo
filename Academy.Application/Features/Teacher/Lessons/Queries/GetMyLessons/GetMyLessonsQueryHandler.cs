@@ -8,27 +8,50 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessons;
 
+public sealed record GetMyLessonsQuery(
+    int UserId,
+    int? EducationTypeId = null,
+    int? Page = null,
+    int? PageSize = null)
+    : IRequest<Result<PagedResult<LessonDto>>>;
+
 public sealed class GetMyLessonsQueryHandler(
     IApplicationDbContext dbContext,
     IRequestLanguage requestLanguage)
-    : IRequestHandler<GetMyLessonsQuery, Result<IReadOnlyList<LessonDto>>>
+    : IRequestHandler<GetMyLessonsQuery, Result<PagedResult<LessonDto>>>
 {
-    public async Task<Result<IReadOnlyList<LessonDto>>> Handle(
+    public async Task<Result<PagedResult<LessonDto>>> Handle(
         GetMyLessonsQuery request,
         CancellationToken cancellationToken)
     {
-        var teacher = await dbContext.Teachers
-            .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
+        var (page, pageSize, skip) = Paging.Normalize(request.Page, request.PageSize);
 
-        if (teacher is null)
-            return Result<IReadOnlyList<LessonDto>>.NotFound("Teacher profile was not found.");
+        var teacherId = await dbContext.Teachers
+            .AsNoTracking()
+            .Where(x => x.UserId == request.UserId)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (teacherId is null)
+            return Result<PagedResult<LessonDto>>.NotFound("Teacher profile was not found.");
 
         var language = requestLanguage.Current;
 
-        var lessons = await dbContext.Lessons
+        var query = dbContext.Lessons
             .AsNoTracking()
-            .Where(x => x.TeacherId == teacher.Id)
+            .Where(x => x.TeacherId == teacherId.Value);
+
+        if (request.EducationTypeId is int typeId && typeId > 0)
+            query = query.Where(x => x.EducationTypeId == typeId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        if (totalCount == 0)
+            return Result<PagedResult<LessonDto>>.Success(PagedResult<LessonDto>.Empty(page, pageSize));
+
+        var lessons = await query
             .OrderByDescending(x => x.CreatedAtUtc)
+            .Skip(skip)
+            .Take(pageSize)
             .Select(x => new LessonDto
             {
                 Id = x.Id,
@@ -52,6 +75,7 @@ public sealed class GetMyLessonsQueryHandler(
                 BillingType = x.BillingType.ToString(),
                 SessionPrice = x.SessionPrice,
                 MonthlyPrice = x.MonthlyPrice,
+                ChargeAbsentSessions = x.ChargeAbsentSessions,
                 StartDate = x.StartDate,
                 CountryId = x.CountryId,
                 CountryName = language == AppLanguage.Arabic
@@ -76,6 +100,7 @@ public sealed class GetMyLessonsQueryHandler(
             })
             .ToListAsync(cancellationToken);
 
-        return Result<IReadOnlyList<LessonDto>>.Success(lessons);
+        return Result<PagedResult<LessonDto>>.Success(
+            PagedResult<LessonDto>.Create(lessons, totalCount, page, pageSize));
     }
 }

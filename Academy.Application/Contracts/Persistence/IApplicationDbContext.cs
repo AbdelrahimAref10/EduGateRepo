@@ -65,5 +65,11 @@ public interface IApplicationDbContext
 
     DbSet<SessionReview> SessionReviews { get; }
 
+    DbSet<Charge> Charges { get; }
+
+    DbSet<Payment> Payments { get; }
+
+    DbSet<PaymentAllocation> PaymentAllocations { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

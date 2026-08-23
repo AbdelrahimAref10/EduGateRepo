@@ -66,7 +66,6 @@ internal static class TeacherClassroomLoader
                 StudentId = member.StudentId,
                 Student = member.Student,
                 IsPresent = false,
-                IsPaid = false,
                 CreatedAtUtc = now
             };
             dbContext.LessonSessionStudentDetails.Add(created);
@@ -77,9 +76,20 @@ internal static class TeacherClassroomLoader
         if (missingCreated)
             await dbContext.SaveChangesAsync(cancellationToken);
 
-        var students = members
-            .Select(m => ClassroomMappings.ToStudentDetailDto(detailByStudentId[m.StudentId]))
-            .ToList();
+        var lesson = session.LessonGroup.Lesson;
+        var students = new List<ClassroomStudentDetailDto>();
+        foreach (var member in members)
+        {
+            var detail = detailByStudentId[member.StudentId];
+            var charges = await ClassroomChargeQuery.ForStudentAsync(
+                dbContext,
+                lesson,
+                session,
+                member.StudentId,
+                cancellationToken);
+            var (outstanding, status) = Charge.Summarize(charges);
+            students.Add(ClassroomMappings.ToStudentDetailDto(detail, outstanding, status));
+        }
 
         var materials = await dbContext.LessonSessionMaterials
             .AsNoTracking()

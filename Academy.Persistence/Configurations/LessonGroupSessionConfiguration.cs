@@ -38,6 +38,15 @@ public sealed class LessonGroupSessionConfiguration : IEntityTypeConfiguration<L
         builder.HasIndex(x => new { x.LessonGroupId, x.SessionDate, x.StartTime })
             .IsUnique();
 
+        builder.Property(x => x.IsMakeup)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.HasOne(x => x.MakeupForSession)
+            .WithMany(x => x.MakeupSessions)
+            .HasForeignKey(x => x.MakeupForSessionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(x => x.RatingAverage)
             .HasPrecision(4, 2)
             .IsRequired();

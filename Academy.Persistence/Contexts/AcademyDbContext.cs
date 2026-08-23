@@ -82,6 +82,12 @@ public sealed class AcademyDbContext
 
     public DbSet<SessionReview> SessionReviews => Set<SessionReview>();
 
+    public DbSet<Charge> Charges => Set<Charge>();
+
+    public DbSet<Payment> Payments => Set<Payment>();
+
+    public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
