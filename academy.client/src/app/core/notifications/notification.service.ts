@@ -37,6 +37,11 @@ export class NotificationService {
   private readonly appRef = inject(ApplicationRef);
 
   private readonly itemsSignal = signal<AppNotification[]>([]);
+  private readonly liveListeners = new Set<{
+    type: string;
+    entityId: number;
+    onMatch: (item: AppNotification) => void;
+  }>();
   private hub?: signalR.HubConnection;
   private connecting = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -92,6 +97,23 @@ export class NotificationService {
     this.itemsSignal.update((items) => items.map((item) => ({ ...item, read: true })));
     this.notifyUi();
     this.api.markAllRead().subscribe({ error: () => this.pullFromApi(true) });
+  }
+
+  /**
+   * Run when a new notification of this type arrives (SignalR or poll).
+   * entityId 0 = any. Call the returned function in ngOnDestroy.
+   */
+  when(
+    type: string | readonly string[],
+    entityId: number,
+    onMatch: (item: AppNotification) => void,
+  ): () => void {
+    const types = typeof type === 'string' ? [type] : [...type];
+    const listeners = types.map((itemType) => ({ type: itemType, entityId, onMatch }));
+    for (const listener of listeners) this.liveListeners.add(listener);
+    return () => {
+      for (const listener of listeners) this.liveListeners.delete(listener);
+    };
   }
 
   markRead(id: number): void {
@@ -158,6 +180,7 @@ export class NotificationService {
     const brandNew = incoming.filter((item) => !previousIds.has(item.id) && !item.read);
     if (brandNew.length > 0) {
       this.playSound();
+      for (const item of brandNew) this.notifyLive(item);
     }
   }
 
@@ -207,9 +230,31 @@ export class NotificationService {
     this.itemsSignal.update((items) => [next, ...items].slice(0, 50));
     this.syncReady = true;
     this.notifyUi();
+    this.notifyLive(next);
     if (!next.read) {
       this.playSound();
     }
+  }
+
+  private notifyLive(item: AppNotification): void {
+    for (const listener of this.liveListeners) {
+      if (!this.sameType(listener.type, item.type)) continue;
+      if (listener.entityId > 0 && item.entityId !== listener.entityId) continue;
+      listener.onMatch(item);
+    }
+  }
+
+  private sameType(expected: string, actual: string): boolean {
+    if (expected === actual) return true;
+    const aliases: Record<string, string> = {
+      '7': 'TeacherReviewReceived',
+      '8': 'LessonReviewReceived',
+      '9': 'SessionReviewReceived',
+      '12': 'ExamPublished',
+      '13': 'StudentExamSubmitted',
+      '14': 'ClassroomMaterialAdded',
+    };
+    return aliases[actual] === expected;
   }
 
   private connectHub(): void {

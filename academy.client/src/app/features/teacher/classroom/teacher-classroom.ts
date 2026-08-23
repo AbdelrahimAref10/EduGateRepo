@@ -17,6 +17,7 @@ import {
   UpdateStudentSessionDetailRequest,
 } from '../../../core/api/academy-api.generated';
 import { ClassroomUploadService } from '../../../core/api/classroom-upload.service';
+import { NotificationService } from '../../../core/notifications/notification.service';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
@@ -56,6 +57,7 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly classroomApi = inject(ClassroomClient);
   private readonly uploadApi = inject(ClassroomUploadService);
+  private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(TranslationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
@@ -82,6 +84,7 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   readonly examGenSteps = EXAM_GEN_STEPS;
   private examGenTimer: ReturnType<typeof setInterval> | null = null;
   private examGenStartedAt = 0;
+  private stopLiveResults?: () => void;
   readonly examModalOpen = signal(false);
   readonly examWorkspaceOpen = signal(false);
   readonly examWorkspaceTab = signal<ExamWorkspaceTab>('questions');
@@ -113,10 +116,16 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
+    this.stopLiveResults = this.notifications.when(
+      'StudentExamSubmitted',
+      this.sessionId(),
+      () => this.loadExamResults(true),
+    );
     this.loadClassroom();
   }
 
   ngOnDestroy(): void {
+    this.stopLiveResults?.();
     this.stopExamGenProgress();
     this.unlockPage();
   }
@@ -275,19 +284,20 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadExamResults(): void {
+  loadExamResults(silent = false): void {
     const id = this.sessionId();
     if (!id) return;
 
-    this.loadingExamResults.set(true);
+    if (!silent) this.loadingExamResults.set(true);
     this.classroomApi.getExamResults(id).subscribe({
       next: (data) => {
         this.examResults.set(data);
         this.loadingExamResults.set(false);
       },
       error: (err) => {
-        this.examResults.set(null);
         this.loadingExamResults.set(false);
+        if (silent) return;
+        this.examResults.set(null);
         this.error.set(this.httpErrorMessage(err, 'Failed to load exam results.'));
       },
     });

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   ClassroomClient,
@@ -9,6 +9,7 @@ import {
   StudentReviewsClient,
   TargetReviewDto,
 } from '../../../core/api/academy-api.generated';
+import { NotificationService } from '../../../core/notifications/notification.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { TeacherReviewFormComponent } from '../../marketplace/teacher-review-form';
@@ -23,10 +24,12 @@ type ClassroomTab = 'stream' | 'people';
   templateUrl: './student-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './student-classroom.css'],
 })
-export class StudentClassroomComponent implements OnInit {
+export class StudentClassroomComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly classroomApi = inject(ClassroomClient);
   private readonly reviewsApi = inject(StudentReviewsClient);
+  private readonly notifications = inject(NotificationService);
+  private stopLive?: () => void;
 
   readonly sessionId = signal(0);
   readonly loading = signal(false);
@@ -46,28 +49,50 @@ export class StudentClassroomComponent implements OnInit {
     if (this.route.snapshot.queryParamMap.get('exam') === '1') {
       this.examWorkspaceOpen.set(true);
     }
+    if (this.route.snapshot.queryParamMap.get('materials') === '1') {
+      this.tab.set('stream');
+    }
+    const id = this.sessionId();
+    this.stopLive = this.notifications.when(
+      ['ExamPublished', 'ClassroomMaterialAdded'],
+      id,
+      (item) => {
+        if (item.type === 'ExamPublished' || item.type === '12') this.loadExam(true);
+        else this.load(true);
+      },
+    );
     this.load();
   }
 
-  load(): void {
+  ngOnDestroy(): void {
+    this.stopLive?.();
+  }
+
+  load(silent = false): void {
     const id = this.sessionId();
     if (!id) {
       this.error.set('Classroom not found.');
       return;
     }
 
-    this.loading.set(true);
+    if (!silent) this.loading.set(true);
     this.error.set(null);
 
     this.classroomApi.getClassroom2(id).subscribe({
       next: (data) => {
         this.classroom.set(data);
         this.loading.set(false);
-        this.loadExam();
-        this.loadSessionReview(id);
+        if (!silent) {
+          this.loadExam();
+          this.loadSessionReview(id);
+        }
+        if (this.route.snapshot.queryParamMap.get('materials') === '1') {
+          this.scrollToMaterials();
+        }
       },
       error: (err) => {
         this.loading.set(false);
+        if (silent) return;
         this.error.set(err?.result?.detail || err?.message || 'Failed to load classroom.');
       },
     });
@@ -86,11 +111,11 @@ export class StudentClassroomComponent implements OnInit {
     this.loadExam();
   }
 
-  loadExam(): void {
+  loadExam(silent = false): void {
     const id = this.sessionId();
     if (!id) return;
 
-    this.loadingExam.set(true);
+    if (!silent) this.loadingExam.set(true);
     this.classroomApi.getExam2(id).subscribe({
       next: (data) => {
         this.exam.set(data?.id ? data : null);
@@ -98,6 +123,7 @@ export class StudentClassroomComponent implements OnInit {
       },
       error: (err) => {
         this.loadingExam.set(false);
+        if (silent) return;
         this.error.set(err?.result?.detail || err?.message || 'Failed to load exam.');
       },
     });
@@ -194,6 +220,15 @@ export class StudentClassroomComponent implements OnInit {
   onSessionReviewSaved(review: TargetReviewDto): void {
     this.mySessionReview.set(review);
     this.canReviewSession.set(true);
+  }
+
+  private scrollToMaterials(): void {
+    queueMicrotask(() => {
+      document.getElementById('classroom-materials')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
   }
 
   private saveBlob(blob: Blob, fileName: string): void {

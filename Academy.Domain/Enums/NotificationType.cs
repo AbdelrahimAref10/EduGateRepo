@@ -14,5 +14,6 @@ public enum NotificationType
     StudentAddedToGroup = 10,
     SessionStarted = 11,
     ExamPublished = 12,
-    StudentExamSubmitted = 13
+    StudentExamSubmitted = 13,
+    ClassroomMaterialAdded = 14
 }

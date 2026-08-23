@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
 using Academy.Domain.Entities;
@@ -8,7 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Teacher.Classroom.Commands.CreateClassroomMaterial;
 
-public sealed class CreateClassroomMaterialCommandHandler(IApplicationDbContext dbContext)
+public sealed class CreateClassroomMaterialCommandHandler(
+    IApplicationDbContext dbContext,
+    INotificationService notificationService)
     : IRequestHandler<CreateClassroomMaterialCommand, Result<ClassroomMaterialDto>>
 {
     public async Task<Result<ClassroomMaterialDto>> Handle(
@@ -58,6 +61,13 @@ public sealed class CreateClassroomMaterialCommandHandler(IApplicationDbContext 
             .AsNoTracking()
             .Include(x => x.CreatedByUser)
             .FirstAsync(x => x.Id == material.Id, cancellationToken);
+
+        await ClassroomMaterialNotifier.NotifyGroupAsync(
+            dbContext,
+            notificationService,
+            session,
+            request.UserId,
+            cancellationToken);
 
         return Result<ClassroomMaterialDto>.Success(ClassroomMappings.ToMaterialDto(material));
     }

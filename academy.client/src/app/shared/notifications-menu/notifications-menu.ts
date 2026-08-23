@@ -85,6 +85,13 @@ export class NotificationsMenuComponent {
       };
     }
 
+    if (item.type === 'ClassroomMaterialAdded' && item.entityId && role === 'Student') {
+      return {
+        commands: ['/student/classroom', item.entityId],
+        queryParams: { materials: 1 },
+      };
+    }
+
     if (item.type === 'StudentExamSubmitted' && item.entityId && role === 'Teacher') {
       return {
         commands: ['/teacher/classroom', item.entityId],

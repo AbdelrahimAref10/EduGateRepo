@@ -11,6 +11,7 @@ import {
   TeacherExamResultsDto,
   TeacherStudentExamReviewDto,
 } from '../../../core/api/academy-api.generated';
+import { NotificationService } from '../../../core/notifications/notification.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { RatingStarsComponent } from '../../marketplace/rating-stars';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
@@ -37,6 +38,7 @@ export class AdminClassroomComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sessionsApi = inject(SuperAdminSessionsClient);
   private readonly overviewApi = inject(LessonsOverviewClient);
+  private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly sessionId = signal(0);
@@ -74,6 +76,9 @@ export class AdminClassroomComponent implements OnInit {
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
+    this.destroyRef.onDestroy(
+      this.notifications.when('StudentExamSubmitted', this.sessionId(), () => this.reloadExamResults()),
+    );
     this.loadClassroom();
   }
 
@@ -207,9 +212,14 @@ export class AdminClassroomComponent implements OnInit {
 
   private ensureExamResults(): void {
     if (this.examResults() || this.loadingExam()) return;
-    if (!this.classroom()?.hasExam) return;
+    this.reloadExamResults();
+  }
 
-    this.loadingExam.set(true);
+  private reloadExamResults(): void {
+    if (!this.classroom()?.hasExam && !this.examResults()) return;
+
+    const silent = !!this.examResults();
+    if (!silent) this.loadingExam.set(true);
     this.sessionsApi.getExamResults(this.sessionId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.examResults.set(data);
@@ -217,6 +227,7 @@ export class AdminClassroomComponent implements OnInit {
       },
       error: (err) => {
         this.loadingExam.set(false);
+        if (silent) return;
         this.error.set(this.apiError(err, 'Failed to load exam results.'));
       },
     });

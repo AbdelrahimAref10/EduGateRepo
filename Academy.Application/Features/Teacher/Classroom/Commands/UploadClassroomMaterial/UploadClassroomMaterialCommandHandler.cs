@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Contracts.Storage;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
@@ -11,7 +12,8 @@ namespace Academy.Application.Features.Teacher.Classroom.Commands.UploadClassroo
 
 public sealed class UploadClassroomMaterialCommandHandler(
     IApplicationDbContext dbContext,
-    IClassroomFileStorage fileStorage)
+    IClassroomFileStorage fileStorage,
+    INotificationService notificationService)
     : IRequestHandler<UploadClassroomMaterialCommand, Result<ClassroomMaterialDto>>
 {
     public async Task<Result<ClassroomMaterialDto>> Handle(
@@ -77,6 +79,13 @@ public sealed class UploadClassroomMaterialCommandHandler(
             .AsNoTracking()
             .Include(x => x.CreatedByUser)
             .FirstAsync(x => x.Id == material.Id, cancellationToken);
+
+        await ClassroomMaterialNotifier.NotifyGroupAsync(
+            dbContext,
+            notificationService,
+            session,
+            request.UserId,
+            cancellationToken);
 
         return Result<ClassroomMaterialDto>.Success(ClassroomMappings.ToMaterialDto(material));
     }

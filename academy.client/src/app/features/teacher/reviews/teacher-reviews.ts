@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   ReviewInboxKind,
@@ -8,6 +8,7 @@ import {
   TeacherReviewsClient,
   TeacherReviewSummaryDto,
 } from '../../../core/api/academy-api.generated';
+import { NotificationService } from '../../../core/notifications/notification.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { RatingStarsComponent } from '../../marketplace/rating-stars';
@@ -20,8 +21,10 @@ type InboxTab = 'all' | 'teacher' | 'lesson' | 'session';
   imports: [DatePipe, DecimalPipe, RouterLink, TranslatePipe, UserAvatarComponent, RatingStarsComponent],
   templateUrl: './teacher-reviews.html',
 })
-export class TeacherReviewsComponent implements OnInit {
+export class TeacherReviewsComponent implements OnInit, OnDestroy {
   private readonly reviewsApi = inject(TeacherReviewsClient);
+  private readonly notifications = inject(NotificationService);
+  private stopLive?: () => void;
 
   readonly loadingSummary = signal(false);
   readonly loadingList = signal(false);
@@ -35,8 +38,17 @@ export class TeacherReviewsComponent implements OnInit {
   private readonly pageSize = 20;
 
   ngOnInit(): void {
+    this.stopLive = this.notifications.when(
+      ['TeacherReviewReceived', 'LessonReviewReceived', 'SessionReviewReceived'],
+      0,
+      () => this.refresh(true),
+    );
     this.loadSummary();
     this.loadList(true);
+  }
+
+  ngOnDestroy(): void {
+    this.stopLive?.();
   }
 
   setTab(tab: InboxTab): void {
@@ -45,9 +57,9 @@ export class TeacherReviewsComponent implements OnInit {
     this.loadList(true);
   }
 
-  refresh(): void {
-    this.loadSummary();
-    this.loadList(true);
+  refresh(silent = false): void {
+    this.loadSummary(silent);
+    this.loadList(true, silent);
   }
 
   loadMore(): void {
@@ -107,8 +119,8 @@ export class TeacherReviewsComponent implements OnInit {
     }
   }
 
-  private loadSummary(): void {
-    this.loadingSummary.set(true);
+  private loadSummary(silent = false): void {
+    if (!silent) this.loadingSummary.set(true);
     this.reviewsApi.getSummary().subscribe({
       next: (data) => {
         this.summary.set(data);
@@ -116,16 +128,19 @@ export class TeacherReviewsComponent implements OnInit {
       },
       error: (err) => {
         this.loadingSummary.set(false);
+        if (silent) return;
         this.error.set(err?.result?.detail || err?.message || 'Failed to load reviews.');
       },
     });
   }
 
-  private loadList(reset: boolean): void {
+  private loadList(reset: boolean, silent = false): void {
     const skip = reset ? 0 : this.items().length;
-    if (reset) this.loadingList.set(true);
-    else this.loadingMore.set(true);
-    this.error.set(null);
+    if (!silent) {
+      if (reset) this.loadingList.set(true);
+      else this.loadingMore.set(true);
+      this.error.set(null);
+    }
 
     this.reviewsApi.getInbox(this.kindValue(), skip, this.pageSize).subscribe({
       next: (data) => {
@@ -137,6 +152,7 @@ export class TeacherReviewsComponent implements OnInit {
       error: (err) => {
         this.loadingList.set(false);
         this.loadingMore.set(false);
+        if (silent) return;
         this.error.set(err?.result?.detail || err?.message || 'Failed to load reviews.');
       },
     });
