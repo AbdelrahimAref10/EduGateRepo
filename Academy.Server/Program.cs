@@ -1,4 +1,5 @@
 using System.Reflection;
+using Academy.Application.Contracts.Ai;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.DependencyInjection;
 using Academy.Infrastructure.DependencyInjection;
@@ -12,7 +13,7 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 8 * 1024 * 1024;
+    options.Limits.MaxRequestBodySize = 32 * 1024 * 1024;
 });
 
 builder.Services.AddApplication();
@@ -22,6 +23,7 @@ builder.Services.AddSingleton<IUserIdProvider, AcademyUserIdProvider>();
 builder.Services.AddSignalR();
 // Override Application null publisher with SignalR push.
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
+builder.Services.AddSingleton<IExamGenerationProgress, SignalRExamGenerationProgress>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 

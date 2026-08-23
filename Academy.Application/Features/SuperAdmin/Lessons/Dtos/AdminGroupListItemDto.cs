@@ -18,6 +18,14 @@ public sealed class AdminGroupListItemDto
 
     public required string CityName { get; init; }
 
+    public required string BillingType { get; init; }
+
+    public decimal? SessionPrice { get; init; }
+
+    public decimal? MonthlyPrice { get; init; }
+
+    public required int SessionsCount { get; init; }
+
     public DateTime? StartedAtUtc { get; init; }
 
     public DateTime? EndedAtUtc { get; init; }

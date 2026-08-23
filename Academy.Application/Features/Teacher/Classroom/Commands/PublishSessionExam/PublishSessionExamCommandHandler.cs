@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom.Exams;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
@@ -8,7 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Teacher.Classroom.Commands.PublishSessionExam;
 
-public sealed class PublishSessionExamCommandHandler(IApplicationDbContext dbContext)
+public sealed class PublishSessionExamCommandHandler(
+    IApplicationDbContext dbContext,
+    INotificationService notificationService)
     : IRequestHandler<PublishSessionExamCommand, Result<TeacherExamDto>>
 {
     public async Task<Result<TeacherExamDto>> Handle(
@@ -16,6 +19,7 @@ public sealed class PublishSessionExamCommandHandler(IApplicationDbContext dbCon
         CancellationToken cancellationToken)
     {
         var teacher = await dbContext.Teachers
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
 
         if (teacher is null)
@@ -47,6 +51,30 @@ public sealed class PublishSessionExamCommandHandler(IApplicationDbContext dbCon
             exam.Status = ExamStatus.Published;
             exam.PublishedAtUtc = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            var studentUserIds = await dbContext.LessonGroupMembers
+                .Where(x => x.LessonGroupId == session.LessonGroupId)
+                .Select(x => x.Student.UserId)
+                .ToListAsync(cancellationToken);
+
+            if (studentUserIds.Count > 0)
+            {
+                await notificationService.CreateAsync(
+                    new NotificationCreateRequest
+                    {
+                        RecipientUserIds = studentUserIds,
+                        UserTargetId = request.UserId,
+                        Type = NotificationType.ExamPublished,
+                        EntityType = NotificationEntityType.Session,
+                        EntityId = request.SessionId,
+                        TitleAr = "امتحان جديد",
+                        TitleEn = "New exam",
+                        BodyAr = $"المعلم {teacher.User.FullName} أنشأ امتحان «{exam.Title}». ادخل وحله.",
+                        BodyEn = $"Teacher {teacher.User.FullName} created the exam '{exam.Title}'. Open it and start.",
+                        IncludeSuperAdmins = false
+                    },
+                    cancellationToken);
+            }
         }
 
         return Result<TeacherExamDto>.Success(ExamMappings.ToTeacherDto(exam));

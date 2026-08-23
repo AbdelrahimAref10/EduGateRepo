@@ -1,53 +1,13 @@
-<section class="space-y-5">
-  <header class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <a
-        [routerLink]="['/teacher/lessons', lessonId()]"
-        class="text-sm font-semibold text-primary-700 hover:underline"
-      >
-        ← {{ 'lessons.backToManage' | t }}
-      </a>
-      <h2 class="page-title mt-2">
-        {{ group()?.name || ('lessons.manageGroupTitle' | t) }}
-      </h2>
-      @if (group(); as g) {
-        <p class="mt-1 text-sm text-muted">
-          {{ g.periodStartDate | date: 'yyyy-MM-dd' }}
-          → {{ g.periodEndDate | date: 'yyyy-MM-dd' }}
-          · {{ formatSchedule(g) }}
-        </p>
-        <p class="mt-1 text-sm text-muted">
-          {{ g.areaName }} · {{ g.address }}
-          · {{ groupStatusKey(g) | t }}
-        </p>
-      }
-    </div>
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn-ghost" (click)="loadGroup()" [disabled]="loading()">
-        {{ 'lessons.refresh' | t }}
-      </button>
-      @if (group()?.hasStarted && !group()?.hasEnded) {
-        <button
-          type="button"
-          class="rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800"
-          (click)="endGroup()"
-          [disabled]="endingGroup()"
-        >
-          {{ endingGroup() ? ('lessons.ending' | t) : ('lessons.endGroup' | t) }}
-        </button>
-      }
-      @if (group()?.canDelete) {
-        <button
-          type="button"
-          class="rounded-lg bg-rose-50 px-3 py-2 text-sm font-bold text-danger"
-          (click)="deleteGroup()"
-          [disabled]="deletingGroup()"
-        >
-          {{ deletingGroup() ? ('lessons.deleting' | t) : ('lessons.delete' | t) }}
-        </button>
-      }
-    </div>
-  </header>
+@if (!ready()) {
+  <app-page-loader titleKey="lessons.loadingManage" />
+} @else {
+<section class="tgm animate-fade-up">
+  <a
+    [routerLink]="['/teacher/lessons', lessonId()]"
+    class="inline-flex text-sm font-semibold text-primary-700 hover:underline"
+  >
+    ← {{ 'lessons.backToManage' | t }}
+  </a>
 
   @if (error()) {
     <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
@@ -70,180 +30,205 @@
     </div>
   }
 
-  @if (loading() && !group()) {
-    <p class="text-center text-sm text-muted">{{ 'lessons.loadingManage' | t }}</p>
-  } @else if (group(); as g) {
-    <section class="card overflow-hidden">
-      <div class="border-b border-line px-5 py-4">
-        <h3 class="section-title">{{ 'lessons.sessions' | t }}</h3>
-        <p class="mt-1 text-sm text-muted">{{ 'lessons.manageGroupSessionsHint' | t }}</p>
+  @if (group(); as g) {
+    <header class="tgm-hero">
+      <div class="tgm-hero-copy">
+        <p class="tgm-kicker">{{ g.cityName }} · {{ g.areaName }}</p>
+        <h1>{{ g.name }}</h1>
+        <p>
+          {{ g.periodStartDate | date: 'yyyy-MM-dd' }}
+          → {{ g.periodEndDate | date: 'yyyy-MM-dd' }}
+          · {{ formatSchedule(g) }}
+        </p>
+        <p>{{ g.address }}</p>
+        <div class="tgm-chips">
+          <span>{{ groupStatusKey(g) | t }}</span>
+          @if (g.maxCapacity) {
+            <span>{{ g.membersCount }} / {{ g.maxCapacity }}</span>
+          }
+        </div>
       </div>
-      <div class="p-5">
-        @if (loadingSessions() && !sessions().length) {
-          <p class="text-center text-sm text-muted">{{ 'lessons.loadingManage' | t }}</p>
-        } @else if (!(sessions().length)) {
-          <p class="text-center text-sm text-muted">{{ 'lessons.noSessions' | t }}</p>
-        } @else {
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-center text-sm">
-              <thead>
-                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
-                  <th class="px-3 py-3">{{ 'lessons.sessionDate' | t }}</th>
-                  <th class="px-3 py-3">{{ 'lessons.time' | t }}</th>
-                  <th class="px-3 py-3">{{ 'lessons.status' | t }}</th>
-                  <th class="px-3 py-3">{{ 'lessons.action' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (session of sessions(); track session.id) {
-                  <tr class="border-b border-line/70">
-                    <td class="px-3 py-3 font-semibold">{{ session.sessionDate | date: 'yyyy-MM-dd' }}</td>
-                    <td class="px-3 py-3">{{ toTimeInput(session.startTime) }}</td>
-                    <td class="px-3 py-3">{{ sessionStatusKey(session) | t }}</td>
-                    <td class="px-3 py-3">
-                      <div class="flex flex-wrap items-center justify-center gap-1.5">
-                        @if (session.canStart) {
-                          <button
-                            type="button"
-                            class="rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-bold text-white"
-                            (click)="startSession(session)"
-                            [disabled]="startingSessionId() === session.id"
-                          >
-                            {{
-                              startingSessionId() === session.id
-                                ? ('lessons.starting' | t)
-                                : ('lessons.startSession' | t)
-                            }}
-                          </button>
-                        }
-                        @if (session.hasStarted && !session.hasEnded) {
-                          <button
-                            type="button"
-                            class="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"
-                            (click)="endSession(session)"
-                            [disabled]="endingSessionId() === session.id"
-                          >
-                            {{
-                              endingSessionId() === session.id
-                                ? ('lessons.ending' | t)
-                                : ('lessons.endSession' | t)
-                            }}
-                          </button>
-                        }
-                        @if (session.canOpenClassroom) {
-                          <button
-                            type="button"
-                            class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700"
-                            (click)="openClassroom(session)"
-                          >
-                            {{ 'classroom.open' | t }}
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+      <div class="tgm-hero-actions">
+        <button type="button" class="tgm-ghost" (click)="loadGroup()" [disabled]="loading()">
+          {{ 'lessons.refresh' | t }}
+        </button>
+        @if (g.hasStarted && !g.hasEnded) {
+          <button type="button" class="tgm-warn" (click)="endGroup()" [disabled]="endingGroup()">
+            {{ endingGroup() ? ('lessons.ending' | t) : ('lessons.endGroup' | t) }}
+          </button>
+        }
+        @if (g.canDelete) {
+          <button type="button" class="tgm-danger" (click)="deleteGroup()" [disabled]="deletingGroup()">
+            {{ deletingGroup() ? ('lessons.deleting' | t) : ('lessons.delete' | t) }}
+          </button>
         }
       </div>
-    </section>
+    </header>
 
-    <section class="card overflow-hidden">
-      <div class="border-b border-line px-5 py-4">
-        <h3 class="section-title">{{ 'lessons.bookedStudents' | t }}</h3>
-        <p class="mt-1 text-sm text-muted">{{ 'lessons.selectMembersHint' | t }}</p>
-      </div>
-      <div class="p-5">
-        @if (!(selectableStudents().length)) {
-          <p class="text-center text-sm text-muted">{{ 'lessons.noBookedStudents' | t }}</p>
-        } @else {
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-center text-sm">
-              <thead>
-                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
-                  <th class="px-3 py-3">{{ 'lessons.studentName' | t }}</th>
-                  <th class="px-3 py-3">{{ 'lessons.studentCode' | t }}</th>
-                  <th class="px-3 py-3">{{ 'lessons.action' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (student of selectableStudents(); track student.studentId) {
-                  <tr class="border-b border-line/70">
-                    <td class="px-3 py-3 font-semibold">{{ student.studentName }}</td>
-                    <td class="px-3 py-3 font-mono text-xs">{{ student.studentCode || '—' }}</td>
-                    <td class="px-3 py-3">
-                      @if (isMember(student)) {
-                        <span
-                          class="inline-flex size-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"
-                          [attr.title]="'lessons.selected' | t"
-                        >
-                          <svg class="size-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="m6.5 12.5 3.5 3.5 7.5-8"
-                              stroke="currentColor"
-                              stroke-width="2.2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        </span>
-                      } @else if (!g.hasEnded) {
-                        <button
-                          type="button"
-                          class="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-bold text-white"
-                          (click)="selectStudent(student)"
-                          [disabled]="selectingStudentId() === student.studentId"
-                        >
-                          {{
-                            selectingStudentId() === student.studentId
-                              ? ('lessons.saving' | t)
-                              : ('lessons.selectStudent' | t)
-                          }}
-                        </button>
-                      } @else {
-                        <span class="text-xs font-semibold text-muted">—</span>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </div>
-    </section>
+    <div class="tgm-actions">
+      <button
+        type="button"
+        class="tgm-tile"
+        [class.is-on]="panel() === 'sessions'"
+        (click)="togglePanel('sessions')"
+      >
+        <span>{{ panel() === 'sessions' ? ('lessons.hideSessions' | t) : ('lessons.showSessions' | t) }}</span>
+        <strong>{{ g.sessionsCount }}</strong>
+      </button>
+      <button
+        type="button"
+        class="tgm-tile"
+        [class.is-on]="panel() === 'members'"
+        (click)="togglePanel('members')"
+      >
+        <span>{{ panel() === 'members' ? ('lessons.hideMembers' | t) : ('lessons.showMembers' | t) }}</span>
+        <strong>{{ g.membersCount }}</strong>
+      </button>
+      <button
+        type="button"
+        class="tgm-tile tgm-tile-label"
+        [class.is-on]="panel() === 'booked'"
+        (click)="togglePanel('booked')"
+      >
+        <span>{{ 'lessons.addStudentsToGroup' | t }}</span>
+      </button>
+    </div>
 
-    <section class="card overflow-hidden">
-      <div class="border-b border-line px-5 py-4">
-        <h3 class="section-title">{{ 'lessons.members' | t }}</h3>
-        <p class="mt-1 text-sm text-muted">{{ 'lessons.membersTableHint' | t }}</p>
-      </div>
-      <div class="p-5">
-        @if (!(g.members?.length)) {
-          <p class="text-center text-sm text-muted">{{ 'lessons.noMembers' | t }}</p>
+    @if (panel() === 'sessions') {
+      <section class="tgm-panel">
+        <div class="tgm-panel-head">
+          <h2>{{ 'lessons.sessions' | t }}</h2>
+          <p>{{ 'lessons.manageGroupSessionsHint' | t }}</p>
+        </div>
+        @if (loadingSessions() && !sessionsReady()) {
+          <app-page-loader titleKey="lessons.loadingSessions" [compact]="true" />
+        } @else if (!sessions().length) {
+          <p class="tgm-empty">{{ 'lessons.noSessions' | t }}</p>
         } @else {
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-center text-sm">
-              <thead>
-                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
-                  <th class="px-3 py-3">{{ 'lessons.studentName' | t }}</th>
-                  <th class="px-3 py-3">{{ 'lessons.studentCode' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (member of g.members; track member.id) {
-                  <tr class="border-b border-line/70">
-                    <td class="px-3 py-3 font-semibold">{{ member.studentName }}</td>
-                    <td class="px-3 py-3 font-mono text-xs">{{ member.studentCode || '—' }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="tgm-sessions">
+            @for (session of sessions(); track session.id; let i = $index) {
+              <article
+                class="tgm-session"
+                [class.is-live]="session.hasStarted && !session.hasEnded"
+                [class.is-done]="session.hasEnded"
+              >
+                <div>
+                  <p class="tgm-session-no">{{ 'myExams.session' | t }} {{ i + 1 }}</p>
+                  <h3>
+                    {{ session.sessionDate | date: 'yyyy-MM-dd' }}
+                    <span>{{ toTimeInput(session.startTime) }}</span>
+                  </h3>
+                  @if (session.topic) {
+                    <p class="tgm-topic">{{ session.topic }}</p>
+                  }
+                </div>
+                <span class="tgm-status">{{ sessionStatusKey(session) | t }}</span>
+                <div class="tgm-session-actions">
+                  @if (session.canStart) {
+                    <button
+                      type="button"
+                      class="tgm-primary"
+                      (click)="startSession(session)"
+                      [disabled]="startingSessionId() === session.id"
+                    >
+                      {{
+                        startingSessionId() === session.id
+                          ? ('lessons.starting' | t)
+                          : ('lessons.startSession' | t)
+                      }}
+                    </button>
+                  }
+                  @if (session.hasStarted && !session.hasEnded) {
+                    <button
+                      type="button"
+                      class="tgm-warn"
+                      (click)="endSession(session)"
+                      [disabled]="endingSessionId() === session.id"
+                    >
+                      {{
+                        endingSessionId() === session.id
+                          ? ('lessons.ending' | t)
+                          : ('lessons.endSession' | t)
+                      }}
+                    </button>
+                  }
+                  @if (session.canOpenClassroom) {
+                    <button type="button" class="tgm-ghost-ink" (click)="openClassroom(session)">
+                      {{ 'classroom.open' | t }}
+                    </button>
+                  }
+                </div>
+              </article>
+            }
           </div>
         }
-      </div>
-    </section>
+      </section>
+    }
+
+    @if (panel() === 'members') {
+      <section class="tgm-panel">
+        <div class="tgm-panel-head">
+          <h2>{{ 'lessons.members' | t }}</h2>
+          <p>{{ 'lessons.membersTableHint' | t }}</p>
+        </div>
+        @if (!g.members?.length) {
+          <p class="tgm-empty">{{ 'lessons.noMembers' | t }}</p>
+        } @else {
+          <div class="tgm-people">
+            @for (member of g.members; track member.id) {
+              <article class="tgm-person">
+                <div>
+                  <p class="font-bold">{{ member.studentName }}</p>
+                  <p class="font-mono text-xs text-muted">{{ member.studentCode || '—' }}</p>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (panel() === 'booked') {
+      <section class="tgm-panel">
+        <div class="tgm-panel-head">
+          <h2>{{ 'lessons.addStudentsToGroup' | t }}</h2>
+          <p>{{ 'lessons.selectMembersHint' | t }}</p>
+        </div>
+        @if (loadingUnassigned() && !unassignedReady()) {
+          <app-page-loader titleKey="lessons.loadingUnassignedStudents" [compact]="true" />
+        } @else if (!unassignedStudents().length) {
+          <p class="tgm-empty">{{ 'lessons.noBookedStudents' | t }}</p>
+        } @else {
+          <div class="tgm-people">
+            @for (student of unassignedStudents(); track student.studentId) {
+              <article class="tgm-person">
+                <div class="flex min-w-0 items-center gap-3">
+                  <app-user-avatar [src]="student.photoUrl" [alt]="student.studentName || ''" size="sm" />
+                  <div class="min-w-0">
+                    <p class="font-bold">{{ student.studentName }}</p>
+                    <p class="font-mono text-xs text-muted">{{ student.studentCode || '—' }}</p>
+                  </div>
+                </div>
+                @if (!g.hasEnded) {
+                  <button
+                    type="button"
+                    class="tgm-primary"
+                    (click)="selectStudent(student)"
+                    [disabled]="selectingStudentId() === student.studentId"
+                  >
+                    {{
+                      selectingStudentId() === student.studentId
+                        ? ('lessons.saving' | t)
+                        : ('lessons.selectStudent' | t)
+                    }}
+                  </button>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
   }
 </section>
+}

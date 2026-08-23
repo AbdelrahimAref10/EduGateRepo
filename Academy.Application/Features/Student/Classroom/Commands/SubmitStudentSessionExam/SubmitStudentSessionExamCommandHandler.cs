@@ -1,4 +1,5 @@
 using Academy.Application.Common.Models;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Student.Classroom.Dtos;
 using Academy.Application.Features.Student.Classroom.Queries.GetStudentSessionExam;
@@ -9,7 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Student.Classroom.Commands.SubmitStudentSessionExam;
 
-public sealed class SubmitStudentSessionExamCommandHandler(IApplicationDbContext dbContext)
+public sealed class SubmitStudentSessionExamCommandHandler(
+    IApplicationDbContext dbContext,
+    INotificationService notificationService)
     : IRequestHandler<SubmitStudentSessionExamCommand, Result<StudentExamDto>>
 {
     public async Task<Result<StudentExamDto>> Handle(
@@ -35,16 +38,25 @@ public sealed class SubmitStudentSessionExamCommandHandler(IApplicationDbContext
         if (attempt is null)
             return Result<StudentExamDto>.Conflict("ابدأ الامتحان أولاً.");
 
+        var alreadySubmitted = attempt.SubmittedAtUtc.HasValue;
+
         await StudentExamProgress.ApplyExpiredQuestionsAsync(dbContext, exam, attempt, cancellationToken);
 
         if (attempt.SubmittedAtUtc.HasValue)
+        {
+            if (!alreadySubmitted)
+                await NotifyTeacherAsync(access.Value!.StudentId, exam, attempt, cancellationToken);
+
             return Result<StudentExamDto>.Success(StudentExamProgress.ToDto(exam, attempt));
+        }
 
         var questions = exam.Questions.OrderBy(q => q.SortOrder).ThenBy(q => q.Id).ToList();
         if (attempt.CurrentQuestionIndex < 0 || attempt.CurrentQuestionIndex >= questions.Count)
         {
             StudentExamProgress.Complete(attempt, questions);
             await dbContext.SaveChangesAsync(cancellationToken);
+            if (!alreadySubmitted)
+                await NotifyTeacherAsync(access.Value!.StudentId, exam, attempt, cancellationToken);
             return Result<StudentExamDto>.Success(StudentExamProgress.ToDto(exam, attempt));
         }
 
@@ -72,6 +84,49 @@ public sealed class SubmitStudentSessionExamCommandHandler(IApplicationDbContext
             StudentExamProgress.Complete(attempt, questions);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (!alreadySubmitted && attempt.SubmittedAtUtc.HasValue)
+            await NotifyTeacherAsync(access.Value!.StudentId, exam, attempt, cancellationToken);
+
         return Result<StudentExamDto>.Success(StudentExamProgress.ToDto(exam, attempt));
+    }
+
+    private async Task NotifyTeacherAsync(
+        int studentId,
+        Exam exam,
+        ExamAttempt attempt,
+        CancellationToken cancellationToken)
+    {
+        var teacherUserId = await dbContext.Exams
+            .Where(x => x.Id == exam.Id)
+            .Select(x => x.LessonGroupSession.LessonGroup.Lesson.Teacher.UserId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var student = await dbContext.Students
+            .Where(x => x.Id == studentId)
+            .Select(x => new { x.UserId, Name = x.User.FullName })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (teacherUserId <= 0 || student is null)
+            return;
+
+        var max = attempt.MaxScore > 0 ? attempt.MaxScore : 0;
+        var percent = max > 0 ? Math.Round(attempt.Score * 100m / max, 1) : 0;
+
+        await notificationService.CreateAsync(
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [teacherUserId],
+                UserTargetId = student.UserId,
+                Type = NotificationType.StudentExamSubmitted,
+                EntityType = NotificationEntityType.Session,
+                EntityId = exam.LessonGroupSessionId,
+                TitleAr = "طالب أنهى الامتحان",
+                TitleEn = "Student finished an exam",
+                BodyAr = $"الطالب {student.Name} أنهى امتحان «{exam.Title}» بنتيجة {attempt.Score}/{max} ({percent}%).",
+                BodyEn = $"Student {student.Name} finished the exam '{exam.Title}' with {attempt.Score}/{max} ({percent}%).",
+                IncludeSuperAdmins = false
+            },
+            cancellationToken);
     }
 }

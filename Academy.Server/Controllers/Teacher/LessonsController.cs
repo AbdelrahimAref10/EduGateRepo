@@ -8,17 +8,17 @@ using Academy.Application.Features.Teacher.Lessons.Commands.DeleteLesson;
 using Academy.Application.Features.Teacher.Lessons.Commands.DeleteLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Commands.EndLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Commands.EndLessonGroupSession;
-using Academy.Application.Features.Teacher.Lessons.Commands.RemoveGroupMember;
-using Academy.Application.Features.Teacher.Lessons.Commands.StartLesson;
-using Academy.Application.Features.Teacher.Lessons.Commands.StartLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Commands.StartLessonGroupSession;
 using Academy.Application.Features.Teacher.Lessons.Commands.UpdateLesson;
 using Academy.Application.Features.Teacher.Lessons.Commands.UpdateLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroupSessions;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroups;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonManage;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonStudents;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyCityAreas;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetUnassignedLessonStudents;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessons;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
@@ -59,6 +59,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
+    // call when teacher click on lessons (to get te basic data for the lesson)
     [HttpGet("{lessonId:int}")]
     [ProducesResponseType(typeof(LessonManageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -146,16 +147,43 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpPost("{lessonId:int}/start")]
-    [ProducesResponseType(typeof(LessonDto), StatusCodes.Status200OK)]
+    [HttpGet("{lessonId:int}/students")]
+    [ProducesResponseType(typeof(IReadOnlyList<LessonStudentDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> StartLesson(int lessonId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetLessonStudents(int lessonId, CancellationToken cancellationToken)
     {
         var userId = GetUserId();
         if (userId is null)
             return Unauthorized();
 
-        var result = await sender.Send(new StartLessonCommand(userId.Value, lessonId), cancellationToken);
+        var result = await sender.Send(new GetLessonStudentsQuery(userId.Value, lessonId), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{lessonId:int}/unassigned-students")]
+    [ProducesResponseType(typeof(IReadOnlyList<LessonStudentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUnassignedLessonStudents(int lessonId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(new GetUnassignedLessonStudentsQuery(userId.Value, lessonId), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    // call when teacher click on groups in lessons page
+    [HttpGet("{lessonId:int}/groups")]
+    [ProducesResponseType(typeof(IReadOnlyList<LessonGroupDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLessonGroups(int lessonId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(new GetLessonGroupsQuery(userId.Value, lessonId), cancellationToken);
         return result.ToActionResult();
     }
 
@@ -211,7 +239,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
     }
 
     [HttpGet("{lessonId:int}/groups/{groupId:int}")]
-    [ProducesResponseType(typeof(LessonGroupManageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LessonGroupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetGroup(
         int lessonId,
@@ -321,26 +349,6 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpPost("{lessonId:int}/groups/{groupId:int}/start")]
-    [ProducesResponseType(typeof(LessonGroupDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> StartGroup(
-        int lessonId,
-        int groupId,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetUserId();
-        if (userId is null)
-            return Unauthorized();
-
-        var result = await sender.Send(
-            new StartLessonGroupCommand(userId.Value, lessonId, groupId),
-            cancellationToken);
-
-        return result.ToActionResult();
-    }
-
     [HttpPost("{lessonId:int}/groups/{groupId:int}/sessions/{sessionId:int}/start")]
     [ProducesResponseType(typeof(LessonGroupSessionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -407,27 +415,6 @@ public sealed class LessonsController(ISender sender) : ControllerBase
                 groupId,
                 request.StudentId,
                 request.StudentCode),
-            cancellationToken);
-
-        return result.ToActionResult();
-    }
-
-    [HttpDelete("{lessonId:int}/groups/{groupId:int}/members/{studentId:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RemoveGroupMember(
-        int lessonId,
-        int groupId,
-        int studentId,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetUserId();
-        if (userId is null)
-            return Unauthorized();
-
-        var result = await sender.Send(
-            new RemoveGroupMemberCommand(userId.Value, lessonId, groupId, studentId),
             cancellationToken);
 
         return result.ToActionResult();

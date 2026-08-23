@@ -1,4 +1,7 @@
-<section class="space-y-5">
+@if (!ready()) {
+  <app-page-loader titleKey="adminLessons.loading" />
+} @else {
+<section class="space-y-5 animate-fade-up">
   <header class="flex flex-wrap items-start justify-between gap-3">
     <div>
       <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleAdmin' | t }}</p>
@@ -24,7 +27,7 @@
 
     <div class="p-5">
       @if (loading()) {
-        <p class="text-center text-sm text-muted">{{ 'adminLessons.loading' | t }}</p>
+        <app-page-loader titleKey="adminLessons.loading" [compact]="true" />
       } @else if (lessons().length === 0) {
         <p class="text-center text-sm text-muted">{{ 'adminLessons.empty' | t }}</p>
       } @else {
@@ -133,3 +136,4 @@
     </section>
   }
 </section>
+}

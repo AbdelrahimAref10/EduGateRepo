@@ -6,6 +6,8 @@ public sealed class ClassroomStudentDetailDto
 
     public required int StudentId { get; init; }
 
+    public int? UserId { get; init; }
+
     public required string StudentName { get; init; }
 
     public string? PhotoUrl { get; init; }

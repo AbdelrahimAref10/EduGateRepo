@@ -1,4 +1,7 @@
-<section class="space-y-5">
+@if (!ready()) {
+  <app-page-loader titleKey="classroom.loading" />
+} @else {
+<section class="space-y-5 animate-fade-up">
   @if (error()) {
     <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
       {{ error() }}
@@ -40,9 +43,7 @@
     </div>
   }
 
-  @if (loading() && !classroom()) {
-    <p class="text-center text-sm text-muted">{{ 'classroom.loading' | t }}</p>
-  } @else if (classroom(); as room) {
+  @if (classroom(); as room) {
     <a
       [routerLink]="['/teacher/lessons', room.lessonId, 'groups', room.lessonGroupId]"
       class="inline-flex text-sm font-semibold text-primary-700 hover:underline"
@@ -533,7 +534,7 @@
               <section class="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
                 <div class="overflow-x-auto p-4">
                   @if (loadingExamResults()) {
-                    <p class="text-sm text-muted">{{ 'classroom.loading' | t }}</p>
+                    <app-page-loader titleKey="classroom.loading" [compact]="true" />
                   } @else if (!(examResults()?.students?.length)) {
                     <p class="text-sm text-muted">{{ 'classroom.examNoStudents' | t }}</p>
                   } @else {
@@ -644,11 +645,17 @@
 
   @if (examModalOpen()) {
     <div class="exam-create-overlay" (click)="closeExamModal()" role="presentation">
-      <div class="exam-create-dialog" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div
+        class="exam-create-dialog"
+        [class.is-generating]="generatingExam()"
+        role="dialog"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+      >
         <header class="exam-create-head">
           <div class="min-w-0">
             <p class="exam-create-kicker">{{ 'classroom.exam' | t }}</p>
-            <h3>{{ 'classroom.createExam' | t }}</h3>
+            <h3>{{ generatingExam() ? ('classroom.examGeneratingTitle' | t) : ('classroom.createExam' | t) }}</h3>
           </div>
           <button
             type="button"
@@ -662,6 +669,43 @@
         </header>
 
         <form class="exam-create-body" [formGroup]="examForm" (ngSubmit)="generateExam()">
+          @if (generatingExam()) {
+            <div class="exam-gen" aria-live="polite">
+              <div class="exam-gen-ring-wrap">
+                <svg class="exam-gen-ring" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="exam-gen-track" cx="60" cy="60" r="46" />
+                  <circle
+                    class="exam-gen-bar"
+                    cx="60"
+                    cy="60"
+                    r="46"
+                    [attr.stroke-dasharray]="examGenRing()"
+                  />
+                </svg>
+                <div class="exam-gen-count">
+                  <strong>{{ examProgress()?.percent ?? 8 }}%</strong>
+                  <span>{{ examProgress()?.current ?? 1 }} / {{ examProgress()?.total ?? 5 }}</span>
+                </div>
+              </div>
+              <p class="exam-gen-kicker">{{ 'classroom.examGeneratingTitle' | t }}</p>
+              <h4>{{ examGenStepLabel() }}</h4>
+              <p class="exam-gen-wait">{{ 'classroom.examGenWait' | t }}</p>
+              <ol class="exam-gen-steps">
+                @for (step of examGenSteps; track step.key) {
+                  <li [class]="'is-' + examGenStepState(step.key)">
+                    <span class="exam-gen-dot">
+                      @if (examGenStepState(step.key) === 'done') {
+                        ✓
+                      } @else {
+                        {{ $index + 1 }}
+                      }
+                    </span>
+                    <span>{{ step.labelKey | t }}</span>
+                  </li>
+                }
+              </ol>
+            </div>
+          } @else {
           @if (error()) {
             <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger">
               {{ error() }}
@@ -722,8 +766,10 @@
               {{ 'common.cancel' | t }}
             </button>
           </div>
+          }
         </form>
       </div>
     </div>
   }
 </section>
+}

@@ -95,7 +95,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<Ai.AiOptions>(configuration.GetSection(Ai.AiOptions.SectionName));
         services.AddHttpClient<Academy.Application.Contracts.Ai.IAiExamGenerator, Ai.GeminiExamGenerator>(client =>
         {
-            client.Timeout = TimeSpan.FromMinutes(3);
+            client.Timeout = TimeSpan.FromSeconds(90);
         });
         services.AddScoped<Academy.Application.Contracts.Ai.IClassroomExamMaterialReader, Ai.ClassroomExamMaterialReader>();
 

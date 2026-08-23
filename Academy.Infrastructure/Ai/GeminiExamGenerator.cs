@@ -12,6 +12,7 @@ namespace Academy.Infrastructure.Ai;
 public sealed class GeminiExamGenerator(
     HttpClient httpClient,
     IOptions<AiOptions> options,
+    IExamGenerationProgress progress,
     ILogger<GeminiExamGenerator> logger) : IAiExamGenerator
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -31,16 +32,17 @@ public sealed class GeminiExamGenerator(
         if (request.Materials.Count == 0)
             return Result<GeneratedExam>.Failure("لا توجد مواد كافية لتوليد الامتحان.");
 
+        await progress.ReportAsync(request.UserId, ExamGenerationSteps.Generate(), cancellationToken);
+
         var payload = BuildPayload(request);
         var models = DistinctModels(settings.Model);
         string? lastError = null;
-        var sawRetryable = false;
 
         using var gate = await GeminiFreeTierGate.EnterAsync(cancellationToken);
 
         foreach (var model in models)
         {
-            for (var attempt = 1; attempt <= 3; attempt++)
+            for (var attempt = 1; attempt <= 2; attempt++)
             {
                 var url = $"{settings.BaseUrl.TrimEnd('/')}/models/{model}:generateContent";
                 using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
@@ -54,14 +56,8 @@ public sealed class GeminiExamGenerator(
                 }
                 catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
-                    lastError = "انتهت مهلة الاتصال بـ Gemini.";
-                    sawRetryable = true;
-                    if (attempt < 3)
-                    {
-                        await Task.Delay(Backoff(attempt, TimeSpan.FromSeconds(3)), cancellationToken);
-                        continue;
-                    }
-
+                    lastError = "انتهت مهلة الاتصال بـ Gemini. جرّب ملفات أقل أو أصغر.";
+                    logger.LogWarning("Gemini exam generate timed out on model {Model}.", model);
                     break;
                 }
                 catch (Exception ex)
@@ -82,14 +78,14 @@ public sealed class GeminiExamGenerator(
                         status, model, attempt, body);
 
                     if (IsDailyQuota(status, body, lastError))
-                        return Result<GeneratedExam>.Failure("تعذر إنشاء الامتحان حالياً. حاول مرة أخرى.");
+                        return Result<GeneratedExam>.Failure(
+                            "تم استهلاك حد Gemini اليومي. حاول لاحقاً اليوم أو غداً.");
 
                     if (IsRetryable(status, body, lastError))
                     {
-                        sawRetryable = true;
                         var delay = RetryDelay(body, attempt);
                         GeminiFreeTierGate.Cooldown(delay);
-                        if (attempt < 3)
+                        if (attempt < 2)
                         {
                             await Task.Delay(delay, cancellationToken);
                             continue;
@@ -101,7 +97,7 @@ public sealed class GeminiExamGenerator(
                     if (status is 404 or 400)
                         break;
 
-                    return Result<GeneratedExam>.Failure(lastError);
+                    return Result<GeneratedExam>.Failure(MapUserError(lastError));
                 }
 
                 GeminiResponse? parsed;
@@ -137,28 +133,43 @@ public sealed class GeminiExamGenerator(
             }
         }
 
-        if (sawRetryable)
-            return Result<GeneratedExam>.Failure("تعذر إنشاء الامتحان حالياً. حاول مرة أخرى.");
+        return Result<GeneratedExam>.Failure(MapUserError(lastError) ?? "فشل توليد الامتحان من Gemini.");
+    }
 
-        return Result<GeneratedExam>.Failure(lastError ?? "فشل توليد الامتحان من Gemini.");
+    private static string MapUserError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return "تعذر إنشاء الامتحان حالياً. حاول مرة أخرى.";
+
+        if (error.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("quota", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("high demand", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("overloaded", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase))
+        {
+            return "الخدمة مشغولة الآن. انتظر دقيقة ثم حاول مرة أخرى.";
+        }
+
+        if (error.StartsWith("Gemini HTTP", StringComparison.OrdinalIgnoreCase))
+            return "تعذر إنشاء الامتحان حالياً. حاول مرة أخرى.";
+
+        return error.Length > 180 ? error[..180] : error;
     }
 
     private static string[] DistinctModels(string configured)
     {
         var list = new[]
         {
-            "gemini-2.5-flash-lite",
-            "gemini-2.0-flash-lite",
             configured,
-            "gemini-2.0-flash",
-            "gemini-flash-latest",
-            "gemini-2.5-flash"
+            "gemini-3.6-flash",
+            "gemini-2.5-flash-lite"
         };
 
         return list
             .Where(m => !string.IsNullOrWhiteSpace(m))
+            .Where(m => !m.Equals("gemini-2.0-flash", StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(4)
+            .Take(2)
             .ToArray();
     }
 
@@ -202,8 +213,8 @@ public sealed class GeminiExamGenerator(
         var delay = parsed ?? fallback;
         if (delay < TimeSpan.FromSeconds(2))
             delay = TimeSpan.FromSeconds(2);
-        if (delay > TimeSpan.FromSeconds(12))
-            delay = TimeSpan.FromSeconds(12);
+        if (delay > TimeSpan.FromSeconds(6))
+            delay = TimeSpan.FromSeconds(6);
         return delay;
     }
 
@@ -316,22 +327,28 @@ public sealed class GeminiExamGenerator(
             new { text = BuildPrompt(request) }
         };
 
+        var attached = 0L;
+        const long maxInlineBytes = 6 * 1024 * 1024;
         foreach (var material in request.Materials)
         {
-            if (material.FileBytes is { Length: > 0 } bytes
-                && bytes.Length <= 4 * 1024 * 1024
-                && !string.IsNullOrWhiteSpace(material.MimeType)
-                && IsGeminiInlineType(material.MimeType))
+            if (material.FileBytes is not { Length: > 0 } bytes
+                || bytes.Length > 4 * 1024 * 1024
+                || attached + bytes.Length > maxInlineBytes
+                || string.IsNullOrWhiteSpace(material.MimeType)
+                || !IsGeminiInlineType(material.MimeType))
             {
-                parts.Add(new Dictionary<string, object>
-                {
-                    ["inlineData"] = new Dictionary<string, string>
-                    {
-                        ["mimeType"] = material.MimeType,
-                        ["data"] = Convert.ToBase64String(bytes)
-                    }
-                });
+                continue;
             }
+
+            attached += bytes.Length;
+            parts.Add(new Dictionary<string, object>
+            {
+                ["inlineData"] = new Dictionary<string, string>
+                {
+                    ["mimeType"] = material.MimeType,
+                    ["data"] = Convert.ToBase64String(bytes)
+                }
+            });
         }
 
         return new

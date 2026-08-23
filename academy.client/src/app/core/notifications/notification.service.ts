@@ -4,6 +4,13 @@ import { NotificationsClient } from '../api/academy-api.generated';
 import { TokenStorageService } from '../auth/token-storage.service';
 import { TranslationService } from '../i18n/translation.service';
 
+export interface ExamGenerationProgress {
+  step: string;
+  current: number;
+  total: number;
+  percent: number;
+}
+
 export interface AppNotification {
   id: number;
   notificationId: number;
@@ -39,7 +46,10 @@ export class NotificationService {
   private audioUnlocked = false;
   private unlockBound = false;
 
+  private readonly examProgressSignal = signal<ExamGenerationProgress | null>(null);
+
   readonly items = this.itemsSignal.asReadonly();
+  readonly examGenerationProgress = this.examProgressSignal.asReadonly();
   readonly unreadCount = computed(
     () => this.itemsSignal().filter((item) => !item.read).length,
   );
@@ -61,10 +71,19 @@ export class NotificationService {
     this.pullFromApi(true);
   }
 
+  setExamProgress(progress: ExamGenerationProgress): void {
+    this.examProgressSignal.set(progress);
+  }
+
+  clearExamProgress(): void {
+    this.examProgressSignal.set(null);
+  }
+
   clear(): void {
     this.syncReady = false;
     this.seenIds.clear();
     this.itemsSignal.set([]);
+    this.examProgressSignal.set(null);
     this.stopPolling();
     void this.stopHub();
   }
@@ -142,6 +161,23 @@ export class NotificationService {
     }
   }
 
+  private ingestExamProgress(raw: unknown): void {
+    if (!raw || typeof raw !== 'object') return;
+    const p = raw as Record<string, unknown>;
+    const current = Number(p['current'] ?? p['Current'] ?? 0);
+    const total = Number(p['total'] ?? p['Total'] ?? 0);
+    const percent = Number(p['percent'] ?? p['Percent'] ?? 0);
+    const step = String(p['step'] ?? p['Step'] ?? '');
+    if (!step || !Number.isFinite(current) || !Number.isFinite(total)) return;
+
+    this.examProgressSignal.set({
+      step,
+      current,
+      total: Math.max(1, total),
+      percent: Math.max(0, Math.min(100, percent)),
+    });
+  }
+
   private ingestPush(raw: unknown): void {
     const payload = this.normalizePayload(raw);
     if (!payload?.id) return;
@@ -198,6 +234,10 @@ export class NotificationService {
 
       this.hub.on('notificationReceived', (payload: unknown) => {
         this.zone.run(() => this.ingestPush(payload));
+      });
+
+      this.hub.on('examGenerationProgress', (payload: unknown) => {
+        this.zone.run(() => this.ingestExamProgress(payload));
       });
 
       this.hub.onreconnected(() => {

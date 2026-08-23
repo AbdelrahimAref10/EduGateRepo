@@ -20,6 +20,7 @@ import { AdminEducationComponent } from './features/super-admin/education/admin-
 import { AdminCountriesComponent } from './features/super-admin/countries/admin-countries';
 
 import { AdminLessonsComponent } from './features/super-admin/lessons/admin-lessons';
+import { AdminClassroomComponent } from './features/super-admin/groups/admin-classroom';
 import { AdminGroupsComponent } from './features/super-admin/groups/admin-groups';
 import { AdminUsersComponent } from './features/super-admin/users/admin-users';
 
@@ -72,6 +73,7 @@ const routes: Routes = [
       { path: 'users', canActivate: [manageUsersGuard], component: AdminUsersComponent },
       { path: 'lessons', component: AdminLessonsComponent },
       { path: 'groups', component: AdminGroupsComponent },
+      { path: 'classroom/:sessionId', component: AdminClassroomComponent },
       { path: 'education', component: AdminEducationComponent },
       { path: 'countries', component: AdminCountriesComponent },
       { path: 'profile', component: EditProfileComponent },

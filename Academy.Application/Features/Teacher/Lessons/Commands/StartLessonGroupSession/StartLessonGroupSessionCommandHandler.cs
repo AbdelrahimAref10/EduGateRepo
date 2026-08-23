@@ -46,10 +46,12 @@ public sealed class StartLessonGroupSessionCommandHandler(
             return Result<LessonGroupSessionDto>.Conflict("هذه الحصة منتهية بالفعل.");
 
         var lessonJustStarted = false;
+        var sessionJustStarted = false;
         if (!session.StartedAtUtc.HasValue)
         {
             var now = DateTime.UtcNow;
             session.StartedAtUtc = now;
+            sessionJustStarted = true;
 
             if (!session.LessonGroup.StartedAtUtc.HasValue)
                 session.LessonGroup.StartedAtUtc = now;
@@ -63,10 +65,39 @@ public sealed class StartLessonGroupSessionCommandHandler(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
+        var teacherName = teacher.User.FullName;
+        var subject = session.LessonGroup.Lesson.Subject;
+        var groupName = session.LessonGroup.Name;
+
+        if (sessionJustStarted)
+        {
+            var studentUserIds = await dbContext.LessonGroupMembers
+                .Where(x => x.LessonGroupId == session.LessonGroupId)
+                .Select(x => x.Student.UserId)
+                .ToListAsync(cancellationToken);
+
+            if (studentUserIds.Count > 0)
+            {
+                await notificationService.CreateAsync(
+                    new NotificationCreateRequest
+                    {
+                        RecipientUserIds = studentUserIds,
+                        UserTargetId = teacher.UserId,
+                        Type = NotificationType.SessionStarted,
+                        EntityType = NotificationEntityType.Session,
+                        EntityId = session.Id,
+                        TitleAr = "بدأت الحصة",
+                        TitleEn = "Session started",
+                        BodyAr = $"المعلم {teacherName} بدأ حصة مجموعة «{groupName}» في درس «{subject}».",
+                        BodyEn = $"Teacher {teacherName} started a session for group '{groupName}' in '{subject}'.",
+                        IncludeSuperAdmins = false
+                    },
+                    cancellationToken);
+            }
+        }
+
         if (lessonJustStarted)
         {
-            var teacherName = teacher.User.FullName;
-            var subject = session.LessonGroup.Lesson.Subject;
             await notificationService.CreateAsync(
                 new NotificationCreateRequest
                 {

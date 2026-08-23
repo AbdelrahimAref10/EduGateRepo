@@ -1,3 +1,6 @@
+using Academy.Application.Features.SuperAdmin.Groups.Dtos;
+using Academy.Application.Features.SuperAdmin.Groups.Queries.GetAdminGroupSessions;
+using Academy.Application.Features.SuperAdmin.Groups.Queries.GetAdminLessonReviews;
 using Academy.Application.Features.SuperAdmin.Lessons.Dtos;
 using Academy.Application.Features.SuperAdmin.Lessons.Queries.GetAllGroups;
 using Academy.Application.Features.SuperAdmin.Lessons.Queries.GetAllLessons;
@@ -28,6 +31,24 @@ public sealed class LessonsOverviewController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetAllGroups(CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetAllGroupsQuery(), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("groups/{groupId:int}/sessions")]
+    [ProducesResponseType(typeof(AdminGroupSessionsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetGroupSessions(int groupId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetAdminGroupSessionsQuery(groupId), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("lessons/{lessonId:int}/reviews")]
+    [ProducesResponseType(typeof(AdminReviewsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLessonReviews(int lessonId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetAdminLessonReviewsQuery(lessonId), cancellationToken);
         return result.ToActionResult();
     }
 }

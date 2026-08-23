@@ -1,6 +1,7 @@
 ﻿using Academy.Application.Behaviors;
 using Academy.Application.Common.Images;
 using Academy.Application.Common.Localization;
+using Academy.Application.Contracts.Ai;
 using Academy.Application.Contracts.Images;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Notifications;
@@ -19,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
 
         services.AddScoped<IRequestLanguage, RequestLanguage>();
         services.AddScoped<INotificationRealtimePublisher, NullNotificationRealtimePublisher>();
+        services.AddScoped<IExamGenerationProgress, NullExamGenerationProgress>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<IImageService, ImageService>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));

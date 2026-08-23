@@ -1,5 +1,6 @@
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
+using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Domain.Entities;
@@ -12,6 +13,7 @@ namespace Academy.Application.Features.Teacher.Lessons.Commands.AddGroupMemberBy
 
 public sealed class AddGroupMemberByCodeCommandHandler(
     IApplicationDbContext dbContext,
+    INotificationService notificationService,
     IRequestLanguage requestLanguage)
     : IRequestHandler<AddGroupMemberByCodeCommand, Result<LessonGroupDto>>
 {
@@ -20,6 +22,7 @@ public sealed class AddGroupMemberByCodeCommandHandler(
         CancellationToken cancellationToken)
     {
         var teacher = await dbContext.Teachers
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken);
 
         if (teacher is null)
@@ -80,6 +83,22 @@ public sealed class AddGroupMemberByCodeCommandHandler(
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await notificationService.CreateAsync(
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [student.UserId],
+                UserTargetId = teacher.UserId,
+                Type = NotificationType.StudentAddedToGroup,
+                EntityType = NotificationEntityType.Lesson,
+                EntityId = group.LessonId,
+                TitleAr = "تمت إضافتك لمجموعة",
+                TitleEn = "Added to a group",
+                BodyAr = $"المعلم {teacher.User.FullName} أضافك لمجموعة «{group.Name}» في درس «{group.Lesson.Subject}».",
+                BodyEn = $"Teacher {teacher.User.FullName} added you to group '{group.Name}' in '{group.Lesson.Subject}'.",
+                IncludeSuperAdmins = true
+            },
+            cancellationToken);
 
         var refreshed = await dbContext.LessonGroups
             .Include(x => x.Area)

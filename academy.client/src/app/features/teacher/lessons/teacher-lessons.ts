@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -17,11 +17,12 @@ import {
 } from '../../../core/api/academy-api.generated';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
 
 @Component({
   selector: 'app-teacher-lessons',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink, PageLoaderComponent],
   templateUrl: './teacher-lessons.html',
   styleUrl: './teacher-lessons.css',
 })
@@ -32,7 +33,8 @@ export class TeacherLessonsComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly BillingType = BillingType;
-  readonly loading = signal(false);
+  readonly loading = signal(true);
+  readonly ready = signal(false);
   readonly loadingTypes = signal(false);
   readonly loadingStages = signal(false);
   readonly loadingYears = signal(false);
@@ -51,12 +53,19 @@ export class TeacherLessonsComponent implements OnInit {
   readonly cityAreas = signal<AreaDto[]>([]);
   readonly selectedTypeId = signal<number | null>(null);
   readonly editingLessonId = signal<number | null>(null);
+  readonly formOpen = signal(false);
 
   readonly filteredLessons = computed(() => {
     const typeId = this.selectedTypeId();
     if (!typeId) return [];
     return this.lessons().filter((lesson) => lesson.educationTypeId === typeId);
   });
+
+  readonly totalLessons = computed(() => this.lessons().length);
+  readonly startedLessons = computed(() => this.lessons().filter((lesson) => lesson.hasStarted).length);
+  readonly selectedType = computed(
+    () => this.educationTypes().find((item) => item.id === this.selectedTypeId()) ?? null,
+  );
 
   readonly form = this.fb.nonNullable.group({
     educationStageId: [0, [Validators.required, Validators.min(1)]],
@@ -88,25 +97,44 @@ export class TeacherLessonsComponent implements OnInit {
       next: (items) => {
         this.lessons.set(items ?? []);
         this.loading.set(false);
+        this.ready.set(true);
       },
       error: (err) => {
         this.loading.set(false);
+        this.ready.set(true);
         this.error.set(this.apiError(err, 'Failed to load lessons.'));
       },
     });
   }
 
   selectType(typeId: number): void {
+    if (this.selectedTypeId() === typeId && !this.formOpen()) return;
+
     this.selectedTypeId.set(typeId);
     this.success.set(null);
     this.error.set(null);
-    this.cancelEdit();
+    this.closeForm();
     this.resetCurriculum();
     this.loadStages(typeId);
   }
 
-  selectedTypeName(): string {
-    return this.educationTypes().find((item) => item.id === this.selectedTypeId())?.name ?? '';
+  openCreate(): void {
+    if (!this.selectedTypeId()) return;
+    this.error.set(null);
+    this.success.set(null);
+    this.cancelEdit();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    if (this.saving()) return;
+    this.formOpen.set(false);
+    this.cancelEdit();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.formOpen()) this.closeForm();
   }
 
   lessonsCountForType(typeId: number): number {
@@ -138,6 +166,7 @@ export class TeacherLessonsComponent implements OnInit {
     this.success.set(null);
     this.editingLessonId.set(lesson.id);
     this.selectedTypeId.set(lesson.educationTypeId);
+    this.formOpen.set(true);
 
     const billingType =
       lesson.billingType === 'Monthly' ? BillingType.Monthly : BillingType.PerSession;
@@ -222,6 +251,7 @@ export class TeacherLessonsComponent implements OnInit {
           this.saving.set(false);
           this.success.set('updated');
           this.lessons.update((items) => items.map((item) => (item.id === updated.id ? updated : item)));
+          this.formOpen.set(false);
           this.cancelEdit();
         },
         error: (err) => this.failSave(err, 'Failed to update lesson.'),
@@ -233,20 +263,11 @@ export class TeacherLessonsComponent implements OnInit {
       next: (created) => {
         this.saving.set(false);
         this.success.set('created');
-        const keptAreaId = value.areaId;
-        this.form.reset({
-          educationStageId: 0,
-          educationYearId: 0,
-          educationSubjectId: 0,
-          areaId: keptAreaId,
-          billingType: BillingType.PerSession,
-          sessionPrice: null,
-          monthlyPrice: null,
-          startDate: '',
-        });
+        this.lessons.update((items) => [created, ...items]);
         this.educationYears.set([]);
         this.educationSubjects.set([]);
-        this.lessons.update((items) => [created, ...items]);
+        this.formOpen.set(false);
+        this.cancelEdit();
       },
       error: (err) => this.failSave(err, 'Failed to create lesson.'),
     });

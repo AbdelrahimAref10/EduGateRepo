@@ -29,7 +29,7 @@ internal static class GeminiFreeTierGate
     {
         public void Dispose()
         {
-            Cooldown(TimeSpan.FromSeconds(4));
+            Cooldown(TimeSpan.FromSeconds(1));
             Mutex.Release();
         }
     }

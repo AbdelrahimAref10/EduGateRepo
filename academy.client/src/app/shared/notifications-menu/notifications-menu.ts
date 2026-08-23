@@ -46,9 +46,11 @@ export class NotificationsMenuComponent {
     this.notifications.markRead(item.id);
     this.open.set(false);
 
-    const commands = this.resolveRoute(item);
-    if (commands) {
-      void this.router.navigate(commands);
+    const target = this.resolveTarget(item);
+    if (target) {
+      void this.router.navigate(target.commands, {
+        queryParams: target.queryParams,
+      });
     }
   }
 
@@ -57,46 +59,70 @@ export class NotificationsMenuComponent {
     this.open.set(false);
   }
 
-  private resolveRoute(item: AppNotification): (string | number)[] | null {
+  private resolveTarget(
+    item: AppNotification,
+  ): { commands: (string | number)[]; queryParams?: Record<string, string | number> } | null {
     const role = this.auth.primaryRole();
     if (!role) return null;
 
     if (role === 'SuperAdmin') {
       if (item.type === 'LessonGroupEnded') {
-        return ['/super-admin/groups'];
+        return { commands: ['/super-admin/groups'] };
+      }
+      if (item.type === 'SessionStarted' && item.entityId) {
+        return { commands: ['/super-admin/classroom', item.entityId] };
       }
       if (item.entityType === 'Lesson') {
-        return ['/super-admin/lessons'];
+        return { commands: ['/super-admin/lessons'] };
       }
-      return ['/super-admin'];
+      return { commands: ['/super-admin'] };
+    }
+
+    if (item.type === 'ExamPublished' && item.entityId && role === 'Student') {
+      return {
+        commands: ['/student/classroom', item.entityId],
+        queryParams: { exam: 1 },
+      };
+    }
+
+    if (item.type === 'StudentExamSubmitted' && item.entityId && role === 'Teacher') {
+      return {
+        commands: ['/teacher/classroom', item.entityId],
+        queryParams: item.userTargetId ? { reviewUser: item.userTargetId } : undefined,
+      };
     }
 
     if (item.entityType === 'Lesson' && item.entityId) {
       if (role === 'Teacher') {
         if (item.type === 'LessonBookingRequested') {
-          return ['/teacher/bookings'];
+          return { commands: ['/teacher/bookings'] };
         }
-        return ['/teacher/lessons', item.entityId];
+        return { commands: ['/teacher/lessons', item.entityId] };
       }
       if (role === 'Student') {
-        return ['/student/lessons', item.entityId];
+        return { commands: ['/student/lessons', item.entityId] };
       }
     }
 
     if (item.entityType === 'Booking') {
-      if (role === 'Teacher') return ['/teacher/bookings'];
-      if (role === 'Student') return ['/student/lessons'];
+      if (role === 'Teacher') return { commands: ['/teacher/bookings'] };
+      if (role === 'Student') return { commands: ['/student/lessons'] };
     }
 
-    if (item.type === 'StudentAddedToLesson' && item.entityId) {
-      if (role === 'Student') return ['/student/lessons', item.entityId];
-      if (role === 'Teacher') return ['/teacher/lessons', item.entityId];
+    if ((item.type === 'StudentAddedToLesson' || item.type === 'StudentAddedToGroup') && item.entityId) {
+      if (role === 'Student') return { commands: ['/student/lessons', item.entityId] };
+      if (role === 'Teacher') return { commands: ['/teacher/lessons', item.entityId] };
+    }
+
+    if (item.type === 'SessionStarted' && item.entityId) {
+      if (role === 'Student') return { commands: ['/student/classroom', item.entityId] };
+      if (role === 'Teacher') return { commands: ['/teacher/classroom', item.entityId] };
     }
 
     if (item.type === 'TeacherReviewReceived'
       || item.type === 'LessonReviewReceived'
       || item.type === 'SessionReviewReceived') {
-      if (role === 'Teacher') return ['/teacher/reviews'];
+      if (role === 'Teacher') return { commands: ['/teacher/reviews'] };
     }
 
     return null;

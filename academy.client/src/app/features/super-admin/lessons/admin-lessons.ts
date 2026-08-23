@@ -4,18 +4,20 @@ import {
   LessonsOverviewClient,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
 
 @Component({
   selector: 'app-admin-lessons',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, PageLoaderComponent],
   templateUrl: './admin-lessons.html',
   styleUrl: './admin-lessons.css',
 })
 export class AdminLessonsComponent implements OnInit {
   private readonly api = inject(LessonsOverviewClient);
 
-  readonly loading = signal(false);
+  readonly loading = signal(true);
+  readonly ready = signal(false);
   readonly error = signal<string | null>(null);
   readonly lessons = signal<AdminLessonListItemDto[]>([]);
   readonly selectedLessonId = signal<number | null>(null);
@@ -37,6 +39,7 @@ export class AdminLessonsComponent implements OnInit {
       next: (items) => {
         this.lessons.set(items ?? []);
         this.loading.set(false);
+        this.ready.set(true);
         const selected = this.selectedLessonId();
         if (selected && !(items ?? []).some((x) => x.id === selected)) {
           this.selectedLessonId.set(null);
@@ -44,6 +47,7 @@ export class AdminLessonsComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
+        this.ready.set(true);
         this.error.set(err?.detail || err?.title || 'Failed to load lessons.');
       },
     });

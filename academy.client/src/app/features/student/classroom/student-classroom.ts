@@ -43,6 +43,9 @@ export class StudentClassroomComponent implements OnInit {
 
   ngOnInit(): void {
     this.sessionId.set(Number(this.route.snapshot.paramMap.get('sessionId')));
+    if (this.route.snapshot.queryParamMap.get('exam') === '1') {
+      this.examWorkspaceOpen.set(true);
+    }
     this.load();
   }
 

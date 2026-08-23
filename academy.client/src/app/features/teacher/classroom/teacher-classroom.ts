@@ -21,6 +21,7 @@ import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
+import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
 
 type ClassroomTab = 'stream' | 'people';
 type ExamWorkspaceTab = 'questions' | 'results' | 'review';
@@ -35,11 +36,18 @@ interface StudentDraft {
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
 const EXAM_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.webp'];
+const EXAM_GEN_STEPS = [
+  { key: 'read', labelKey: 'classroom.examGenRead' },
+  { key: 'prepare', labelKey: 'classroom.examGenPrepare' },
+  { key: 'generate', labelKey: 'classroom.examGenGenerate' },
+  { key: 'save', labelKey: 'classroom.examGenSave' },
+  { key: 'done', labelKey: 'classroom.examGenDone' },
+] as const;
 
 @Component({
   selector: 'app-teacher-classroom',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink, UserAvatarComponent],
+  imports: [ReactiveFormsModule, TranslatePipe, DatePipe, RouterLink, UserAvatarComponent, PageLoaderComponent],
   templateUrl: './teacher-classroom.html',
   styleUrls: ['../../classroom/classroom-theme.css', './teacher-classroom.css'],
 })
@@ -52,7 +60,8 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly sessionId = signal(0);
-  readonly loading = signal(false);
+  readonly loading = signal(true);
+  readonly ready = signal(false);
   readonly savingInfo = signal(false);
   readonly savingStudentId = signal<number | null>(null);
   readonly savingMaterial = signal(false);
@@ -69,6 +78,10 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   readonly exam = signal<TeacherExamDto | null>(null);
   readonly examResults = signal<TeacherExamResultsDto | null>(null);
   readonly generatingExam = signal(false);
+  readonly examProgress = signal({ step: 'read', current: 1, total: 5, percent: 3 });
+  readonly examGenSteps = EXAM_GEN_STEPS;
+  private examGenTimer: ReturnType<typeof setInterval> | null = null;
+  private examGenStartedAt = 0;
   readonly examModalOpen = signal(false);
   readonly examWorkspaceOpen = signal(false);
   readonly examWorkspaceTab = signal<ExamWorkspaceTab>('questions');
@@ -104,6 +117,7 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopExamGenProgress();
     this.unlockPage();
   }
 
@@ -123,6 +137,8 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
   loadClassroom(): void {
     const id = this.sessionId();
     if (!id) {
+      this.loading.set(false);
+      this.ready.set(true);
       this.error.set('Classroom not found.');
       return;
     }
@@ -147,13 +163,25 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
         }
         this.studentDrafts.set(drafts);
         this.loading.set(false);
+        this.ready.set(true);
         this.loadExam();
+        this.openFromNotificationQuery();
       },
       error: (err) => {
         this.loading.set(false);
+        this.ready.set(true);
         this.error.set(err?.result?.detail || err?.message || 'Failed to load classroom.');
       },
     });
+  }
+
+  private openFromNotificationQuery(): void {
+    const reviewUser = Number(this.route.snapshot.queryParamMap.get('reviewUser'));
+    if (!reviewUser) return;
+
+    this.openExamWorkspace();
+    const student = (this.classroom()?.students ?? []).find((item) => item.userId === reviewUser);
+    if (student?.studentId) this.openStudentReview(student.studentId);
   }
 
   setTab(tab: ClassroomTab): void {
@@ -313,6 +341,7 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.success.set(null);
     this.generatingExam.set(true);
+    this.startExamGenProgress();
 
     this.uploadApi.generateExam(
       this.sessionId(),
@@ -321,6 +350,7 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
       files,
     ).subscribe({
       next: (data) => {
+        this.finishExamGenProgress();
         this.exam.set(data);
         this.generatingExam.set(false);
         this.examModalOpen.set(false);
@@ -332,10 +362,75 @@ export class TeacherClassroomComponent implements OnInit, OnDestroy {
         this.loadExamResults();
       },
       error: (err) => {
+        this.stopExamGenProgress();
         this.generatingExam.set(false);
         this.error.set(this.httpErrorMessage(err, 'Failed to generate exam.'));
       },
     });
+  }
+
+  private startExamGenProgress(): void {
+    this.stopExamGenProgress();
+    this.examGenStartedAt = Date.now();
+    this.examProgress.set({ step: 'read', current: 1, total: 5, percent: 3 });
+    this.examGenTimer = setInterval(() => this.tickExamGenProgress(), 160);
+  }
+
+  private tickExamGenProgress(): void {
+    const elapsed = Date.now() - this.examGenStartedAt;
+    let step = 'read';
+    let current = 1;
+    let percent = 3;
+
+    if (elapsed < 1800) {
+      percent = 3 + Math.round((elapsed / 1800) * 16);
+    } else if (elapsed < 4200) {
+      step = 'prepare';
+      current = 2;
+      percent = 20 + Math.round(((elapsed - 1800) / 2400) * 14);
+    } else {
+      step = 'generate';
+      current = 3;
+      const generateElapsed = elapsed - 4200;
+      percent = 38 + Math.round((1 - Math.exp(-generateElapsed / 18000)) * 46);
+      percent = Math.min(84, percent);
+    }
+
+    this.examProgress.set({ step, current, total: 5, percent });
+  }
+
+  private finishExamGenProgress(): void {
+    this.stopExamGenProgress();
+    this.examProgress.set({ step: 'done', current: 5, total: 5, percent: 100 });
+  }
+
+  private stopExamGenProgress(): void {
+    if (this.examGenTimer != null) {
+      clearInterval(this.examGenTimer);
+      this.examGenTimer = null;
+    }
+  }
+
+  examGenStepState(key: string): 'done' | 'current' | 'wait' {
+    const order = EXAM_GEN_STEPS.map((step) => step.key);
+    const current = this.examProgress()?.step ?? 'read';
+    const index = order.indexOf(key as (typeof EXAM_GEN_STEPS)[number]['key']);
+    const currentIndex = Math.max(0, order.indexOf(current as (typeof EXAM_GEN_STEPS)[number]['key']));
+    if (index < currentIndex) return 'done';
+    if (index === currentIndex) return 'current';
+    return 'wait';
+  }
+
+  examGenRing(): string {
+    const percent = this.examProgress()?.percent ?? 8;
+    const circumference = 2 * Math.PI * 46;
+    return `${(percent / 100) * circumference} ${circumference}`;
+  }
+
+  examGenStepLabel(): string {
+    const step = this.examProgress()?.step ?? 'read';
+    const match = EXAM_GEN_STEPS.find((item) => item.key === step);
+    return this.i18n.t(match?.labelKey ?? 'classroom.examGenRead');
   }
 
   initials(name?: string | null): string {

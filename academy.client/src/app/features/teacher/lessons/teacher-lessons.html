@@ -1,119 +1,186 @@
-<section class="space-y-5">
-  <header>
-    <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary-600">{{ 'auth.roleTeacher' | t }}</p>
-    <h2 class="page-title mt-1">{{ 'lessons.title' | t }}</h2>
-    <p class="mt-1 text-sm text-muted">{{ 'lessons.subtitle' | t }}</p>
-  </header>
+@if (!ready()) {
+  <app-page-loader titleKey="lessons.loading" />
+} @else {
+<section class="tl-page animate-fade-up">
+  <header class="tl-hero">
+    <div class="tl-hero-orb tl-hero-orb-a"></div>
+    <div class="tl-hero-orb tl-hero-orb-b"></div>
+    <div class="tl-hero-grid"></div>
 
-  @if (error()) {
-    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">{{ error() }}</div>
-  }
-  @if (success() === 'created') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'lessons.created' | t }}
-    </div>
-  }
-  @if (success() === 'updated') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'lessons.updated' | t }}
-    </div>
-  }
-  @if (success() === 'deleted') {
-    <div class="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700" role="status">
-      {{ 'lessons.deleted' | t }}
-    </div>
-  }
-
-  <section class="card overflow-hidden">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-      <div>
-        <h3 class="section-title">{{ 'lessons.educationTypes' | t }}</h3>
-        <p class="mt-1 text-sm text-muted">{{ 'lessons.educationTypesHint' | t }}</p>
+    <div class="tl-hero-top">
+      <div class="min-w-0">
+        <p class="tl-kicker">{{ 'auth.roleTeacher' | t }}</p>
+        <h1 class="tl-title">{{ 'lessons.title' | t }}</h1>
+        <p class="tl-sub">{{ 'lessons.subtitle' | t }}</p>
       </div>
-      <button type="button" class="btn-ghost" (click)="loadLessons()" [disabled]="loading()">
+      <button type="button" class="tl-btn-ghost" (click)="loadLessons()" [disabled]="loading()">
         {{ 'lessons.refresh' | t }}
       </button>
     </div>
 
-    <div class="p-5">
-      @if (loadingTypes()) {
-        <p class="text-center text-sm text-muted">{{ 'lessons.loadingTypes' | t }}</p>
-      } @else if (educationTypes().length === 0) {
-        <p class="text-center text-sm text-muted">{{ 'lessons.emptyTypes' | t }}</p>
-      } @else {
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-center text-sm">
-            <thead>
-              <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
-                <th class="px-3 py-3 text-center">#</th>
-                <th class="px-3 py-3 text-center">{{ 'lessons.educationType' | t }}</th>
-                <th class="px-3 py-3 text-center">{{ 'lessons.myCount' | t }}</th>
-                <th class="px-3 py-3 text-center">{{ 'lessons.action' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (type of educationTypes(); track type.id) {
-                <tr
-                  class="border-b border-line/70 transition"
-                  [class]="selectedTypeId() === type.id ? 'bg-primary-50' : 'hover:bg-body/70'"
-                >
-                  <td class="px-3 py-3 text-center text-muted">#{{ type.id }}</td>
-                  <td class="px-3 py-3 text-center font-semibold text-ink">
-                    {{ type.name }}
-                  </td>
-                  <td class="px-3 py-3 text-center">
-                    <span class="inline-flex rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
-                      {{ lessonsCountForType(type.id) }}
-                    </span>
-                  </td>
-                  <td class="px-3 py-3 text-center">
-                    <button
-                      type="button"
-                      class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
-                      [class]="
-                        selectedTypeId() === type.id
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-body text-primary-700 hover:bg-primary-100'
-                      "
-                      (click)="selectType(type.id)"
-                    >
-                      {{
-                        selectedTypeId() === type.id
-                          ? ('lessons.selected' | t)
-                          : ('lessons.manageLessons' | t)
-                      }}
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
+    <div class="tl-stats">
+      <div class="tl-stat">
+        <span>{{ 'lessons.myLessons' | t }}</span>
+        <strong>{{ totalLessons() }}</strong>
+      </div>
+      <div class="tl-stat">
+        <span>{{ 'lessons.started' | t }}</span>
+        <strong>{{ startedLessons() }}</strong>
+      </div>
+      <div class="tl-stat">
+        <span>{{ 'lessons.educationTypes' | t }}</span>
+        <strong>{{ educationTypes().length }}</strong>
+      </div>
     </div>
+  </header>
+
+  @if (error() && !formOpen()) {
+    <div class="tl-alert tl-alert-danger" role="alert">{{ error() }}</div>
+  }
+  @if (success() === 'created') {
+    <div class="tl-alert tl-alert-ok" role="status">{{ 'lessons.created' | t }}</div>
+  }
+  @if (success() === 'updated') {
+    <div class="tl-alert tl-alert-ok" role="status">{{ 'lessons.updated' | t }}</div>
+  }
+  @if (success() === 'deleted') {
+    <div class="tl-alert tl-alert-ok" role="status">{{ 'lessons.deleted' | t }}</div>
+  }
+
+  <section class="tl-board">
+    <div class="tl-board-head">
+      <h2>{{ 'lessons.educationTypes' | t }}</h2>
+    </div>
+
+    @if (loadingTypes()) {
+      <app-page-loader titleKey="lessons.loadingTypes" [compact]="true" />
+    } @else if (educationTypes().length === 0) {
+      <p class="tl-empty">{{ 'lessons.emptyTypes' | t }}</p>
+    } @else {
+      <div class="tl-types">
+        @for (type of educationTypes(); track type.id) {
+          <button
+            type="button"
+            class="tl-type"
+            [class.is-on]="selectedTypeId() === type.id"
+            (click)="selectType(type.id)"
+          >
+            <span class="tl-type-name">{{ type.name }}</span>
+            <strong>{{ lessonsCountForType(type.id) }}</strong>
+            <em>{{ 'lessons.myCount' | t }}</em>
+          </button>
+        }
+      </div>
+    }
   </section>
 
-  <section class="card overflow-hidden">
-    <div class="border-b border-line px-5 py-4">
-      <h3 class="section-title">{{ 'lessons.myLessons' | t }}</h3>
-      @if (selectedTypeId()) {
-        <p class="mt-1 text-sm text-muted">
-          {{ 'lessons.lessonsForType' | t }}:
-          <strong class="text-primary-700">{{ selectedTypeName() }}</strong>
-        </p>
-      } @else {
-        <p class="mt-1 text-sm text-muted">{{ 'lessons.selectTypeFirst' | t }}</p>
-      }
-    </div>
+  @if (selectedType(); as type) {
+    <section class="tl-board">
+      <div class="tl-board-head">
+        <div class="min-w-0">
+          <p class="tl-kicker tl-kicker-ink">{{ type.name }}</p>
+          <h2>{{ 'lessons.myLessons' | t }}</h2>
+        </div>
+        <button type="button" class="tl-btn-primary" (click)="openCreate()">
+          {{ 'lessons.addLesson' | t }}
+        </button>
+      </div>
 
-    @if (!selectedTypeId()) {
-      <div class="p-8 text-center text-sm text-muted">{{ 'lessons.selectTypeHint' | t }}</div>
-    } @else {
-      <div class="border-b border-line bg-body/50 px-5 py-4">
-        <p class="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
-          {{ editingLessonId() ? ('lessons.editTitle' | t) : ('lessons.createTitle' | t) }}
-        </p>
-        <form class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
+      @if (loading()) {
+        <app-page-loader titleKey="lessons.loading" [compact]="true" />
+      } @else if (filteredLessons().length === 0) {
+        <div class="tl-blank">
+          <p>{{ 'lessons.emptyForType' | t }}</p>
+          <button type="button" class="tl-btn-primary" (click)="openCreate()">
+            {{ 'lessons.addFirstLesson' | t }}
+          </button>
+        </div>
+      } @else {
+        <div class="tl-lessons">
+          @for (lesson of filteredLessons(); track lesson.id) {
+            <article class="tl-card">
+              <div class="tl-card-top">
+                <div class="min-w-0">
+                  <h3>{{ lesson.subject }}</h3>
+                  <p>
+                    {{ lesson.educationStageName }}
+                    · {{ lesson.educationYearName }}
+                    · {{ lesson.areaName }}
+                  </p>
+                </div>
+                <span class="tl-chip" [class.is-live]="lesson.hasStarted">
+                  {{ lesson.hasStarted ? ('lessons.started' | t) : ('lessons.notStarted' | t) }}
+                </span>
+              </div>
+
+              <div class="tl-meta">
+                <span>{{ lesson.startDate | date: 'yyyy-MM-dd' }}</span>
+                <span>{{ billingLabel(lesson.billingType) | t }}</span>
+                <span>
+                  @if (lesson.billingType === 'Monthly') {
+                    {{ lesson.monthlyPrice }}
+                  } @else {
+                    {{ lesson.sessionPrice }}
+                  }
+                </span>
+                <span>{{ lesson.groupsCount }} {{ 'lessons.groupsShort' | t }}</span>
+              </div>
+
+              <div class="tl-card-actions">
+                <a class="tl-btn-primary" [routerLink]="['/teacher/lessons', lesson.id]">
+                  {{ 'lessons.manage' | t }}
+                </a>
+                @if (lesson.canEdit) {
+                  <button type="button" class="tl-btn-soft" (click)="startEdit(lesson)">
+                    {{ 'lessons.edit' | t }}
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="tl-btn-danger"
+                  [disabled]="deletingId() === lesson.id || !lesson.canEdit"
+                  (click)="deleteLesson(lesson)"
+                  [title]="!lesson.canEdit ? ('lessons.deleteLocked' | t) : ''"
+                >
+                  {{ deletingId() === lesson.id ? ('lessons.deleting' | t) : ('lessons.delete' | t) }}
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  } @else if (!loadingTypes() && educationTypes().length) {
+    <section class="tl-blank tl-blank-board">
+      <p>{{ 'lessons.pickType' | t }}</p>
+    </section>
+  }
+</section>
+
+  @if (formOpen() && selectedType(); as type) {
+    <div class="tl-overlay" (click)="closeForm()">
+      <aside class="tl-drawer" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <header class="tl-drawer-head">
+          <div>
+            <p class="tl-kicker tl-kicker-ink">{{ type.name }}</p>
+            <h2>{{ editingLessonId() ? ('lessons.editTitle' | t) : ('lessons.createTitle' | t) }}</h2>
+          </div>
+          <button
+            type="button"
+            class="tl-icon-btn"
+            (click)="closeForm()"
+            [disabled]="saving()"
+            [attr.aria-label]="'lessons.cancel' | t"
+          >
+            ×
+          </button>
+        </header>
+
+        @if (error()) {
+          <div class="tl-alert tl-alert-danger" role="alert">{{ error() }}</div>
+        }
+
+        <form class="tl-form" [formGroup]="form" (ngSubmit)="submit()">
           <label>
             <span class="label-text">{{ 'lessons.educationStage' | t }}</span>
             <select class="field" formControlName="educationStageId" (change)="onStagePicked()">
@@ -128,11 +195,7 @@
 
           <label>
             <span class="label-text">{{ 'lessons.educationYear' | t }}</span>
-            <select
-              class="field"
-              formControlName="educationYearId"
-              (change)="onYearPicked()"
-            >
+            <select class="field" formControlName="educationYearId" (change)="onYearPicked()">
               <option [ngValue]="0" disabled>
                 {{ loadingYears() ? ('lessons.loadingYears' | t) : ('lessons.selectEducationYear' | t) }}
               </option>
@@ -144,10 +207,7 @@
 
           <label>
             <span class="label-text">{{ 'lessons.subject' | t }}</span>
-            <select
-              class="field"
-              formControlName="educationSubjectId"
-            >
+            <select class="field" formControlName="educationSubjectId">
               <option [ngValue]="0" disabled>
                 {{ loadingSubjects() ? ('lessons.loadingSubjects' | t) : ('lessons.selectSubject' | t) }}
               </option>
@@ -180,16 +240,16 @@
             <input class="field" type="date" formControlName="startDate" />
           </label>
 
-          <fieldset class="md:col-span-2 xl:col-span-1">
+          <fieldset>
             <legend class="label-text">{{ 'lessons.billingType' | t }}</legend>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
+            <div class="tl-billing">
+              <label [class.is-on]="form.controls.billingType.value === BillingType.PerSession">
                 <input type="radio" formControlName="billingType" [value]="BillingType.PerSession" />
-                <span class="text-sm font-semibold">{{ 'lessons.perSession' | t }}</span>
+                <span>{{ 'lessons.perSession' | t }}</span>
               </label>
-              <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
+              <label [class.is-on]="form.controls.billingType.value === BillingType.Monthly">
                 <input type="radio" formControlName="billingType" [value]="BillingType.Monthly" />
-                <span class="text-sm font-semibold">{{ 'lessons.monthly' | t }}</span>
+                <span>{{ 'lessons.monthly' | t }}</span>
               </label>
             </div>
           </fieldset>
@@ -206,10 +266,13 @@
             </label>
           }
 
-          <div class="flex flex-wrap items-end gap-2 md:col-span-2 xl:col-span-1">
+          <div class="tl-drawer-actions">
+            <button type="button" class="btn-ghost" (click)="closeForm()" [disabled]="saving()">
+              {{ 'lessons.cancel' | t }}
+            </button>
             <button
               type="submit"
-              class="btn-primary flex-1"
+              class="tl-btn-primary"
               [disabled]="saving() || loadingStages() || loadingYears() || loadingSubjects() || loadingAreas() || cityAreas().length === 0"
             >
               {{
@@ -220,90 +283,9 @@
                     : ('lessons.create' | t)
               }}
             </button>
-            @if (editingLessonId()) {
-              <button type="button" class="btn-ghost" (click)="cancelEdit()" [disabled]="saving()">
-                {{ 'lessons.cancel' | t }}
-              </button>
-            }
           </div>
         </form>
-      </div>
-
-      <div class="p-5">
-        @if (loading()) {
-          <p class="text-center text-sm text-muted">{{ 'lessons.loading' | t }}</p>
-        } @else if (filteredLessons().length === 0) {
-          <p class="text-center text-sm text-muted">{{ 'lessons.emptyForType' | t }}</p>
-        } @else {
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-center text-sm">
-              <thead>
-                <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
-                  <th class="px-3 py-3 text-center">{{ 'lessons.subject' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.educationStage' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.educationYear' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.area' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.startDate' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.billingType' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.price' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.status' | t }}</th>
-                  <th class="px-3 py-3 text-center">{{ 'lessons.action' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (lesson of filteredLessons(); track lesson.id) {
-                  <tr class="border-b border-line/70 hover:bg-body/70">
-                    <td class="px-3 py-3 text-center font-semibold text-ink">{{ lesson.subject }}</td>
-                    <td class="px-3 py-3 text-center">{{ lesson.educationStageName }}</td>
-                    <td class="px-3 py-3 text-center">{{ lesson.educationYearName }}</td>
-                    <td class="px-3 py-3 text-center">{{ lesson.areaName }}</td>
-                    <td class="px-3 py-3 text-center">{{ lesson.startDate | date: 'yyyy-MM-dd' }}</td>
-                    <td class="px-3 py-3 text-center">{{ billingLabel(lesson.billingType) | t }}</td>
-                    <td class="px-3 py-3 text-center">
-                      @if (lesson.billingType === 'Monthly') {
-                        {{ lesson.monthlyPrice }}
-                      } @else {
-                        {{ lesson.sessionPrice }}
-                      }
-                    </td>
-                    <td class="px-3 py-3 text-center">
-                      <span class="text-xs font-semibold text-muted">
-                        {{ lesson.hasStarted ? ('lessons.started' | t) : ('lessons.notStarted' | t) }}
-                        · {{ lesson.groupsCount }} {{ 'lessons.groupsShort' | t }}
-                      </span>
-                    </td>
-                    <td class="px-3 py-3 text-center">
-                      <div class="flex flex-wrap items-center justify-center gap-1.5">
-                        <a class="rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-bold text-white" [routerLink]="['/teacher/lessons', lesson.id]">
-                          {{ 'lessons.manage' | t }}
-                        </a>
-                        @if (lesson.canEdit) {
-                          <button
-                            type="button"
-                            class="rounded-lg bg-body px-2.5 py-1 text-xs font-bold text-primary-700 hover:bg-primary-100"
-                            (click)="startEdit(lesson)"
-                          >
-                            {{ 'lessons.edit' | t }}
-                          </button>
-                        }
-                        <button
-                          type="button"
-                          class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-bold text-danger hover:bg-rose-100"
-                          [disabled]="deletingId() === lesson.id || !lesson.canEdit"
-                          (click)="deleteLesson(lesson)"
-                          [title]="!lesson.canEdit ? ('lessons.deleteLocked' | t) : ''"
-                        >
-                          {{ deletingId() === lesson.id ? ('lessons.deleting' | t) : ('lessons.delete' | t) }}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </div>
-    }
-  </section>
-</section>
+      </aside>
+    </div>
+  }
+}

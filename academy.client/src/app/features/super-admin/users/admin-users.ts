@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   AdminUserListItemDto,
@@ -16,21 +17,26 @@ import {
   UsersClient,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../core/i18n/translation.service';
 
 interface RoleOption {
   value: AppRole;
+  name: 'SuperAdmin' | 'Teacher' | 'Student' | 'Parent';
   labelKey: string;
 }
+
+type RoleFilter = 'all' | RoleOption['name'];
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, TranslatePipe],
+  imports: [ReactiveFormsModule, FormsModule, TranslatePipe, DatePipe],
   templateUrl: './admin-users.html',
   styleUrl: './admin-users.css',
 })
-export class AdminUsersComponent implements OnInit {
+export class AdminUsersComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(TranslationService);
   private readonly usersApi = inject(UsersClient);
   private readonly countriesApi = inject(CountriesClient);
   private readonly governoratesApi = inject(GovernoratesClient);
@@ -55,11 +61,49 @@ export class AdminUsersComponent implements OnInit {
   readonly loadingAreas = signal(false);
 
   readonly roles: RoleOption[] = [
-    { value: AppRole.SuperAdmin, labelKey: 'auth.roleAdmin' },
-    { value: AppRole.Teacher, labelKey: 'auth.roleTeacher' },
-    { value: AppRole.Student, labelKey: 'auth.roleStudent' },
-    { value: AppRole.Parent, labelKey: 'auth.roleParent' },
+    { value: AppRole.SuperAdmin, name: 'SuperAdmin', labelKey: 'auth.roleAdmin' },
+    { value: AppRole.Teacher, name: 'Teacher', labelKey: 'auth.roleTeacher' },
+    { value: AppRole.Student, name: 'Student', labelKey: 'auth.roleStudent' },
+    { value: AppRole.Parent, name: 'Parent', labelKey: 'auth.roleParent' },
   ];
+
+  readonly filters: { id: RoleFilter; labelKey: string }[] = [
+    { id: 'all', labelKey: 'adminUsers.statAll' },
+    { id: 'SuperAdmin', labelKey: 'auth.roleAdmin' },
+    { id: 'Teacher', labelKey: 'auth.roleTeacher' },
+    { id: 'Student', labelKey: 'auth.roleStudent' },
+    { id: 'Parent', labelKey: 'auth.roleParent' },
+  ];
+
+  readonly search = signal('');
+  readonly roleFilter = signal<RoleFilter>('all');
+  readonly createOpen = signal(false);
+
+  readonly counts = computed(() => {
+    const list = this.users();
+    const has = (name: RoleOption['name']) => list.filter((user) => (user.roles ?? []).includes(name)).length;
+    return {
+      all: list.length,
+      SuperAdmin: has('SuperAdmin'),
+      Teacher: has('Teacher'),
+      Student: has('Student'),
+      Parent: has('Parent'),
+    };
+  });
+
+  readonly filteredUsers = computed(() => {
+    const query = this.search().trim().toLowerCase();
+    const filter = this.roleFilter();
+    return this.users().filter((user) => {
+      if (filter !== 'all' && !(user.roles ?? []).includes(filter)) return false;
+      if (!query) return true;
+      const hay = [user.fullName, user.email, user.phoneNumber, user.studentCode]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(query);
+    });
+  });
 
   readonly form = this.fb.nonNullable.group({
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -119,6 +163,10 @@ export class AdminUsersComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    document.body.style.overflow = '';
+  }
+
   loadUsers(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -145,12 +193,12 @@ export class AdminUsersComponent implements OnInit {
 
     const value = this.form.getRawValue();
     if (value.password !== value.confirmPassword) {
-      this.error.set('Password and confirm password do not match.');
+      this.error.set(this.i18n.t('adminUsers.passwordMismatch'));
       return;
     }
 
     if (value.role !== AppRole.SuperAdmin && !value.areaId) {
-      this.error.set('Area is required for this role.');
+      this.error.set(this.i18n.t('adminUsers.areaRequired'));
       return;
     }
 
@@ -171,6 +219,8 @@ export class AdminUsersComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.success.set('created');
+        this.createOpen.set(false);
+        document.body.style.overflow = '';
         this.form.reset({
           firstName: '',
           lastName: '',
@@ -240,6 +290,59 @@ export class AdminUsersComponent implements OnInit {
           this.error.set(this.apiError(err, 'Failed to update permission.'));
         },
       });
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.createOpen() && !this.saving()) this.closeCreate();
+  }
+
+  openCreate(): void {
+    this.error.set(null);
+    this.createOpen.set(true);
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeCreate(): void {
+    if (this.saving()) return;
+    this.createOpen.set(false);
+    document.body.style.overflow = '';
+  }
+
+  countFor(id: RoleFilter): number {
+    return this.counts()[id];
+  }
+
+  setCreateRole(role: AppRole): void {
+    this.form.controls.role.setValue(role);
+  }
+
+  setRoleFilter(filter: RoleFilter): void {
+    this.roleFilter.set(filter);
+  }
+
+  onSearch(value: string): void {
+    this.search.set(value);
+  }
+
+  initials(name?: string): string {
+    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  roleTone(roleName?: string): string {
+    switch (roleName) {
+      case 'SuperAdmin':
+        return 'admin';
+      case 'Teacher':
+        return 'teacher';
+      case 'Parent':
+        return 'parent';
+      default:
+        return 'student';
+    }
   }
 
   isSuperAdminUser(user: AdminUserListItemDto): boolean {

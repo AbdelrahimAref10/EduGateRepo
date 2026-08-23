@@ -34,6 +34,12 @@ public sealed class GetAllGroupsQueryHandler(
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
+        var sessionCounts = await dbContext.LessonGroupSessions
+            .AsNoTracking()
+            .GroupBy(x => x.LessonGroupId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+
         var items = groups.Select(group =>
         {
             var members = group.Members
@@ -64,6 +70,10 @@ public sealed class GetAllGroupsQueryHandler(
                     group.Area.City.NameAr,
                     group.Area.City.NameEn,
                     language),
+                BillingType = group.Lesson.BillingType.ToString(),
+                SessionPrice = group.Lesson.SessionPrice,
+                MonthlyPrice = group.Lesson.MonthlyPrice,
+                SessionsCount = sessionCounts.GetValueOrDefault(group.Id),
                 StartedAtUtc = group.StartedAtUtc,
                 EndedAtUtc = group.EndedAtUtc,
                 HasStarted = group.StartedAtUtc.HasValue,

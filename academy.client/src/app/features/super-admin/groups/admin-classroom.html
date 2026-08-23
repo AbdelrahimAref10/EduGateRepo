@@ -1,0 +1,318 @@
+@if (!ready()) {
+  <app-page-loader titleKey="adminGroups.loadingClassroom" />
+} @else {
+<section class="space-y-5 animate-fade-up">
+  <a routerLink="/super-admin/groups" class="inline-flex text-sm font-semibold text-primary-700 hover:underline">
+    ← {{ 'adminGroups.backToGroups' | t }}
+  </a>
+
+  @if (error()) {
+    <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-danger" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  @if (classroom(); as room) {
+    <header class="room-hero overflow-hidden rounded-2xl text-white shadow-card">
+      <div class="relative px-5 py-8 sm:px-8">
+        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">
+          {{ room.groupName }} · {{ 'myExams.session' | t }} {{ room.sessionNumber }}
+        </p>
+        <h1 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ room.subject }}</h1>
+        <p class="mt-2 text-sm text-white/85">
+          {{ room.sessionDate | date: 'yyyy-MM-dd' }}
+          · {{ toTime(room.startTime) }}
+          · {{ room.teacherName }}
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{{ statusKey(room) | t }}</span>
+          <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">
+            {{ billingLabel(room.billingType) | t }} · {{ price(room) }}
+          </span>
+          @if (room.topic) {
+            <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{{ room.topic }}</span>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="grid gap-3 sm:grid-cols-3">
+      <article class="card p-4">
+        <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'adminGroups.members' | t }}</p>
+        <p class="mt-1 text-2xl font-extrabold">{{ room.students?.length || 0 }}</p>
+        <p class="mt-1 text-xs text-muted">
+          {{ presentCount() }} {{ 'classroom.present' | t }} · {{ paidCount() }} {{ 'classroom.paid' | t }}
+        </p>
+      </article>
+      <article class="card p-4">
+        <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'adminGroups.reviews' | t }}</p>
+        <p class="mt-1 text-2xl font-extrabold">{{ room.reviewCount }}</p>
+        <p class="mt-1 text-xs text-muted">{{ room.ratingAverage }}</p>
+      </article>
+      <article class="card p-4">
+        <p class="text-[11px] font-bold uppercase tracking-wide text-muted">{{ 'adminGroups.exam' | t }}</p>
+        <p class="mt-1 text-lg font-extrabold">
+          {{ room.hasExam ? (room.examTitle || ('adminGroups.hasExam' | t)) : ('adminGroups.noExam' | t) }}
+        </p>
+      </article>
+    </div>
+
+    @if (room.description) {
+      <p class="rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink">{{ room.description }}</p>
+    }
+
+    <nav class="flex flex-wrap gap-2">
+      @for (item of tabs; track item.id) {
+        <button
+          type="button"
+          class="rounded-xl px-4 py-2 text-sm font-bold transition"
+          [class]="tab() === item.id ? 'bg-navy-700 text-white' : 'bg-white text-ink ring-1 ring-line hover:bg-body'"
+          (click)="setTab(item.id)"
+        >
+          {{ item.key | t }}
+        </button>
+      }
+    </nav>
+
+    @if (tab() === 'students') {
+      <section class="card overflow-hidden">
+        <div class="p-5">
+          @if (!room.students?.length) {
+            <p class="text-center text-sm text-muted">{{ 'adminGroups.noMembers' | t }}</p>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-center text-sm">
+                <thead>
+                  <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                    <th class="px-3 py-3">{{ 'adminGroups.student' | t }}</th>
+                    <th class="px-3 py-3">{{ 'adminGroups.code' | t }}</th>
+                    <th class="px-3 py-3">{{ 'classroom.present' | t }}</th>
+                    <th class="px-3 py-3">{{ 'classroom.paid' | t }}</th>
+                    <th class="px-3 py-3">{{ 'adminGroups.notes' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (student of room.students; track student.studentId) {
+                    <tr class="border-b border-line/70">
+                      <td class="px-3 py-3">
+                        <div class="flex items-center justify-center gap-2">
+                          <app-user-avatar [src]="student.photoUrl" [alt]="student.studentName" size="sm" />
+                          <span class="font-semibold">{{ student.studentName }}</span>
+                        </div>
+                      </td>
+                      <td class="px-3 py-3 font-mono text-xs text-muted">{{ student.studentCode || '—' }}</td>
+                      <td class="px-3 py-3">
+                        <span
+                          class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold"
+                          [class]="student.isPresent ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                        >
+                          {{ student.isPresent ? ('classroom.present' | t) : '—' }}
+                        </span>
+                      </td>
+                      <td class="px-3 py-3">
+                        <span
+                          class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold"
+                          [class]="student.isPaid ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'"
+                        >
+                          {{ student.isPaid ? ('classroom.paid' | t) : ('adminGroups.unpaid' | t) }}
+                        </span>
+                      </td>
+                      <td class="px-3 py-3 text-muted">{{ student.teacherNotes || '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (tab() === 'materials') {
+      <section class="card overflow-hidden">
+        <div class="space-y-3 p-5">
+          @if (!room.materials?.length) {
+            <p class="text-center text-sm text-muted">{{ 'adminGroups.noMaterials' | t }}</p>
+          } @else {
+            @for (material of room.materials; track material.id) {
+              <article class="rounded-xl border border-line p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="font-bold text-ink">{{ material.title }}</p>
+                    <p class="mt-1 text-xs font-semibold uppercase text-muted">{{ material.materialTypeName }}</p>
+                    @if (material.description) {
+                      <p class="mt-2 text-sm text-ink">{{ material.description }}</p>
+                    }
+                    @if (material.body) {
+                      <p class="mt-2 text-sm text-muted">{{ material.body }}</p>
+                    }
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    @if (material.externalUrl) {
+                      <a class="btn-ghost text-xs" [href]="material.externalUrl" target="_blank" rel="noopener">
+                        {{ 'adminGroups.openLink' | t }}
+                      </a>
+                    }
+                    @if (material.hasFile) {
+                      <button
+                        type="button"
+                        class="btn-primary text-xs"
+                        (click)="downloadMaterial(material)"
+                        [disabled]="downloadingMaterialId() === material.id"
+                      >
+                        {{ 'adminGroups.download' | t }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </article>
+            }
+          }
+        </div>
+      </section>
+    }
+
+    @if (tab() === 'reviews') {
+      <section class="card overflow-hidden">
+        <div class="flex flex-wrap gap-2 border-b border-line px-5 py-4">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-bold"
+            [class]="reviewKind() === 'session' ? 'bg-primary-600 text-white' : 'bg-body text-ink'"
+            (click)="setReviewKind('session')"
+          >
+            {{ 'adminGroups.sessionReviews' | t }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-bold"
+            [class]="reviewKind() === 'lesson' ? 'bg-primary-600 text-white' : 'bg-body text-ink'"
+            (click)="setReviewKind('lesson')"
+          >
+            {{ 'adminGroups.lessonReviews' | t }}
+          </button>
+        </div>
+        <div class="space-y-3 p-5">
+          @if (loadingReviews()) {
+            <app-page-loader titleKey="adminGroups.loadingReviews" [compact]="true" />
+          } @else {
+            @let reviews = reviewKind() === 'session' ? sessionReviews() : lessonReviews();
+            @if (!reviews?.items?.length) {
+              <p class="text-center text-sm text-muted">{{ 'adminGroups.noReviews' | t }}</p>
+            } @else {
+              <p class="text-sm text-muted">
+                {{ reviews!.count }} · {{ reviews!.average }}
+              </p>
+              @for (item of reviews!.items; track item.id) {
+                <article class="rounded-xl border border-line p-4">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p class="font-bold text-ink">{{ item.studentName }}</p>
+                      <p class="font-mono text-xs text-muted">{{ item.studentCode || '—' }}</p>
+                    </div>
+                    <div class="text-end">
+                      <app-rating-stars [filled]="item.rating ?? 0" />
+                      <p class="mt-1 text-xs text-muted">{{ item.createdAtUtc | date: 'yyyy-MM-dd' }}</p>
+                    </div>
+                  </div>
+                  @if (item.comment) {
+                    <p class="mt-3 text-sm leading-relaxed">{{ item.comment }}</p>
+                  }
+                </article>
+              }
+            }
+          }
+        </div>
+      </section>
+    }
+
+    @if (tab() === 'exam') {
+      <section class="card overflow-hidden">
+        <div class="p-5">
+          @if (!room.hasExam) {
+            <p class="text-center text-sm text-muted">{{ 'adminGroups.noExam' | t }}</p>
+          } @else if (loadingExam()) {
+            <app-page-loader titleKey="adminGroups.loadingExam" [compact]="true" />
+          } @else if (examResults(); as results) {
+            <p class="mb-4 text-sm text-muted">
+              {{ results.title }} · {{ results.submittedCount }}/{{ results.studentCount }}
+            </p>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-center text-sm">
+                <thead>
+                  <tr class="border-b border-line text-xs font-bold uppercase tracking-wide text-muted">
+                    <th class="px-3 py-3">{{ 'adminGroups.student' | t }}</th>
+                    <th class="px-3 py-3">{{ 'classroom.examScore' | t }}</th>
+                    <th class="px-3 py-3">{{ 'classroom.examSubmitted' | t }}</th>
+                    <th class="px-3 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of results.students; track row.studentId) {
+                    <tr class="border-b border-line/70">
+                      <td class="px-3 py-3">
+                        <p class="font-bold">{{ row.studentName }}</p>
+                        <p class="font-mono text-xs text-muted">{{ row.studentCode || '—' }}</p>
+                      </td>
+                      <td class="px-3 py-3 font-bold">
+                        @if (row.hasSubmitted) {
+                          {{ row.score }} / {{ row.maxScore }}
+                          <span class="text-xs font-semibold text-muted">({{ row.percentage }}%)</span>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td class="px-3 py-3 text-muted">
+                        {{ row.hasSubmitted ? ('classroom.examSubmitted' | t) : ('classroom.examNotSubmitted' | t) }}
+                      </td>
+                      <td class="px-3 py-3">
+                        @if (row.hasSubmitted) {
+                          <button
+                            type="button"
+                            class="btn-primary text-xs"
+                            (click)="openStudentReview(row.studentId)"
+                            [disabled]="loadingStudentId() === row.studentId"
+                          >
+                            {{ 'classroom.viewStudentExam' | t }}
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            @if (openReview(); as review) {
+              <div class="mt-5 space-y-3">
+                <h3 class="section-title">{{ review.studentName }} · {{ review.score }} / {{ review.maxScore }}</h3>
+                @for (question of review.questions; track question.id; let i = $index) {
+                  <article class="rounded-xl border border-line p-4">
+                    <p class="font-bold">{{ i + 1 }}. {{ question.text }}</p>
+                    <ul class="mt-3 space-y-2">
+                      @for (option of question.options; track option.id) {
+                        <li
+                          class="rounded-lg px-3 py-2 text-sm"
+                          [class]="
+                            optionTone(question, option) === 'correct'
+                              ? 'bg-emerald-50 text-emerald-800'
+                              : optionTone(question, option) === 'wrong'
+                                ? 'bg-rose-50 text-rose-800'
+                                : 'bg-body'
+                          "
+                        >
+                          {{ option.text }}
+                        </li>
+                      }
+                    </ul>
+                  </article>
+                }
+              </div>
+            }
+          }
+        </div>
+      </section>
+    }
+  }
+</section>
+}

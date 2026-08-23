@@ -22,21 +22,15 @@ public sealed class GetTeacherReviewSummaryQueryHandler(IApplicationDbContext db
         if (teacherId is null)
             return Result<TeacherReviewSummaryDto>.NotFound("Teacher profile was not found.");
 
-        var teacherTask = StatAsync(
+        var teacher = await StatAsync(
             dbContext.TeacherReviews.AsNoTracking().Where(x => x.TeacherId == teacherId).Select(x => x.Rating),
             cancellationToken);
-        var lessonTask = StatAsync(
+        var lessons = await StatAsync(
             dbContext.LessonReviews.AsNoTracking().Where(x => x.TeacherId == teacherId).Select(x => x.Rating),
             cancellationToken);
-        var sessionTask = StatAsync(
+        var sessions = await StatAsync(
             dbContext.SessionReviews.AsNoTracking().Where(x => x.TeacherId == teacherId).Select(x => x.Rating),
             cancellationToken);
-
-        await Task.WhenAll(teacherTask, lessonTask, sessionTask);
-
-        var teacher = await teacherTask;
-        var lessons = await lessonTask;
-        var sessions = await sessionTask;
         var allCount = teacher.Count + lessons.Count + sessions.Count;
         var allAverage = allCount == 0
             ? 0d

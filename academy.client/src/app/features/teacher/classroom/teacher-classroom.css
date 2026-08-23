@@ -181,3 +181,151 @@
   gap: 0.5rem;
   padding-top: 0.15rem;
 }
+
+.exam-create-dialog.is-generating {
+  width: min(32rem, 100%);
+}
+
+.exam-gen {
+  display: grid;
+  justify-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0 0.2rem;
+  text-align: center;
+}
+
+.exam-gen-ring-wrap {
+  position: relative;
+  width: 7.5rem;
+  height: 7.5rem;
+}
+
+.exam-gen-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.exam-gen-track,
+.exam-gen-bar {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.exam-gen-track {
+  stroke: color-mix(in srgb, var(--color-primary-500) 14%, var(--color-body));
+}
+
+.exam-gen-bar {
+  stroke: var(--color-primary-600);
+  transition: stroke-dasharray 0.45s ease;
+}
+
+.exam-gen-count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.1rem;
+}
+
+.exam-gen-count strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-gen-count span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.exam-gen-kicker {
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary-700);
+}
+
+.exam-gen h4 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.exam-gen-wait {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.exam-gen-steps {
+  display: grid;
+  width: 100%;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  text-align: start;
+}
+
+.exam-gen-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  background: var(--color-body);
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.exam-gen-steps li.is-current {
+  border-color: color-mix(in srgb, var(--color-primary-500) 45%, var(--color-line));
+  background: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-surface));
+  color: var(--color-ink);
+  box-shadow: inset 3px 0 0 var(--color-primary-600);
+}
+
+.exam-gen-steps li.is-done {
+  color: var(--color-ink);
+}
+
+.exam-gen-dot {
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, var(--color-surface));
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.exam-gen-steps li.is-current .exam-gen-dot {
+  background: var(--color-primary-600);
+  color: #fff;
+  animation: exam-gen-pulse 1.4s ease-in-out infinite;
+}
+
+.exam-gen-steps li.is-done .exam-gen-dot {
+  background: var(--color-primary-600);
+  color: #fff;
+}
+
+@keyframes exam-gen-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}

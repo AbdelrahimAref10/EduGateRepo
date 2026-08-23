@@ -2,7 +2,9 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
+using Academy.Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Academy.Application.Features.Teacher.Lessons.Queries.GetLessonManage;
 
@@ -15,30 +17,61 @@ public sealed class GetLessonManageQueryHandler(
         GetLessonManageQuery request,
         CancellationToken cancellationToken)
     {
-        var teacherId = await LessonReadQueries.GetTeacherIdAsync(
-            dbContext, request.UserId, cancellationToken);
+        var teacherId = await dbContext.Teachers
+            .AsNoTracking()
+            .Where(x => x.UserId == request.UserId)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (teacherId is null)
             return Result<LessonManageDto>.NotFound("Teacher profile was not found.");
 
-        var language = requestLanguage.Current;
-        var lesson = await LessonReadQueries.GetLessonHeaderAsync(
-            dbContext, teacherId.Value, request.LessonId, language, cancellationToken);
+        var isArabic = requestLanguage.Current == AppLanguage.Arabic;
+
+        var lesson = await dbContext.Lessons
+            .AsNoTracking()
+            .Where(x => x.Id == request.LessonId && x.TeacherId == teacherId)
+            .Select(x => new LessonDto
+            {
+                Id = x.Id,
+                TeacherId = x.TeacherId,
+                Subject = isArabic ? x.EducationSubject.NameAr : x.EducationSubject.NameEn,
+                EducationSubjectId = x.EducationSubjectId,
+                EducationTypeId = x.EducationTypeId,
+                EducationTypeName = isArabic ? x.EducationType.NameAr : x.EducationType.NameEn,
+                EducationStageId = x.EducationStageId,
+                EducationStageName = isArabic ? x.EducationStage.NameAr : x.EducationStage.NameEn,
+                EducationYearId = x.EducationYearId,
+                EducationYearName = isArabic ? x.EducationYear.NameAr : x.EducationYear.NameEn,
+                BillingType = x.BillingType.ToString(),
+                SessionPrice = x.SessionPrice,
+                MonthlyPrice = x.MonthlyPrice,
+                StartDate = x.StartDate,
+                CountryId = x.CountryId,
+                CountryName = isArabic ? x.Country.NameAr : x.Country.NameEn,
+                AreaId = x.AreaId,
+                AreaName = isArabic ? x.Area.NameAr : x.Area.NameEn,
+                CityId = x.Area.CityId,
+                CityName = isArabic ? x.Area.City.NameAr : x.Area.City.NameEn,
+                IsActive = x.IsActive,
+                StartedAtUtc = x.StartedAtUtc,
+                HasStarted = x.StartedAtUtc != null,
+                CanEdit = !x.Groups.Any(g => g.StartedAtUtc != null),
+                GroupsCount = x.Groups.Count,
+                BookingsCount = x.Bookings.Count,
+                ConfirmedBookingsCount = x.Bookings.Count(b => b.Status == BookingStatus.Confirmed),
+                CreatedAtUtc = x.CreatedAtUtc
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (lesson is null)
             return Result<LessonManageDto>.NotFound("Lesson was not found.");
 
-        var students = await LessonReadQueries.GetLessonStudentsAsync(
-            dbContext, request.LessonId, confirmedOnly: false, cancellationToken);
-
-        var groups = await LessonReadQueries.GetLessonGroupsAsync(
-            dbContext, request.LessonId, language, cancellationToken);
-
         return Result<LessonManageDto>.Success(new LessonManageDto
         {
             Lesson = lesson,
-            Students = students,
-            Groups = groups
+            Students = [],
+            Groups = []
         });
     }
 }

@@ -17,6 +17,8 @@ public sealed class ExamSourceMaterial
 
 public sealed class GenerateExamAiRequest
 {
+    public required int UserId { get; init; }
+
     public required IReadOnlyList<ExamSourceMaterial> Materials { get; init; }
 
     public required int QuestionCount { get; init; }
