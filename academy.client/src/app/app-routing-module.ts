@@ -6,6 +6,10 @@ import { manageUsersGuard } from './core/auth/permission.guard';
 import { LoginComponent } from './features/auth/login/login';
 import { RegisterComponent } from './features/auth/register/register';
 import { ParentDashboardComponent } from './features/dashboards/parent-dashboard/parent-dashboard';
+import { ParentAttendanceComponent } from './features/parent/parent-attendance';
+import { ParentChildrenComponent } from './features/parent/parent-children';
+import { ParentExamsComponent } from './features/parent/parent-exams';
+import { ParentPaymentsComponent } from './features/parent/parent-payments';
 import { StudentDashboardComponent } from './features/dashboards/student-dashboard/student-dashboard';
 import { SuperAdminDashboardComponent } from './features/dashboards/super-admin-dashboard/super-admin-dashboard';
 import { TeacherDashboardComponent } from './features/dashboards/teacher-dashboard/teacher-dashboard';
@@ -135,6 +139,10 @@ const routes: Routes = [
     },
     children: [
       { path: '', component: ParentDashboardComponent },
+      { path: 'children', component: ParentChildrenComponent },
+      { path: 'exams', component: ParentExamsComponent },
+      { path: 'attendance', component: ParentAttendanceComponent },
+      { path: 'payments', component: ParentPaymentsComponent },
       { path: 'profile', component: EditProfileComponent },
     ],
   },

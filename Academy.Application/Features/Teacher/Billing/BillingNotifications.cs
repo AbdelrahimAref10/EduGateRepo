@@ -1,4 +1,6 @@
 using Academy.Application.Contracts.Notifications;
+using Academy.Application.Contracts.Persistence;
+using Academy.Application.Features.Parent;
 using Academy.Domain.Entities;
 using Academy.Domain.Enums;
 
@@ -6,12 +8,14 @@ namespace Academy.Application.Features.Teacher.Billing;
 
 internal static class BillingNotifications
 {
-    public static Task NotifyChargeCreatedAsync(
+    public static async Task NotifyChargeCreatedAsync(
+        IApplicationDbContext dbContext,
         INotificationService notifications,
         Charge charge,
         string studentName,
         string subject,
         int studentUserId,
+        int studentId,
         CancellationToken cancellationToken)
     {
         var typeLabelAr = charge.Type switch
@@ -29,7 +33,7 @@ internal static class BillingNotifications
             _ => "charge"
         };
 
-        return notifications.CreateAsync(
+        await notifications.CreateAsync(
             new NotificationCreateRequest
             {
                 RecipientUserIds = [studentUserId],
@@ -44,17 +48,39 @@ internal static class BillingNotifications
                 IncludeSuperAdmins = false
             },
             cancellationToken);
+
+        await ParentNotifications.NotifyLinkedParentsAsync(
+            dbContext,
+            notifications,
+            studentId,
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [],
+                UserTargetId = studentUserId,
+                Type = NotificationType.ChargeCreated,
+                EntityType = NotificationEntityType.Charge,
+                EntityId = charge.Id,
+                TitleAr = "فاتورة جديدة لابنك/ابنتك",
+                TitleEn = "New charge for your child",
+                BodyAr = $"تم تسجيل استحقاق ({typeLabelAr}) بمبلغ {charge.Amount:0.##} على درس {subject} للطالب {studentName}.",
+                BodyEn = $"A {typeLabelEn} charge of {charge.Amount:0.##} was added for {studentName} on '{subject}'.",
+                IncludeSuperAdmins = false
+            },
+            cancellationToken);
     }
 
-    public static Task NotifyPaymentRecordedAsync(
+    public static async Task NotifyPaymentRecordedAsync(
+        IApplicationDbContext dbContext,
         INotificationService notifications,
         Payment payment,
         string subject,
         int studentUserId,
+        int studentId,
+        string studentName,
         int teacherUserId,
         CancellationToken cancellationToken)
     {
-        return notifications.CreateAsync(
+        await notifications.CreateAsync(
             new NotificationCreateRequest
             {
                 RecipientUserIds = [studentUserId],
@@ -66,6 +92,25 @@ internal static class BillingNotifications
                 TitleEn = "Payment recorded",
                 BodyAr = $"تم تسجيل دفعة بمبلغ {payment.Amount:0.##} لدرس {subject}. رقم الإيصال: {payment.ReceiptNumber}. يمكنك تحميل إيصال PDF.",
                 BodyEn = $"A payment of {payment.Amount:0.##} was recorded for {subject}. Receipt #{payment.ReceiptNumber}. You can download the PDF receipt.",
+                IncludeSuperAdmins = false
+            },
+            cancellationToken);
+
+        await ParentNotifications.NotifyLinkedParentsAsync(
+            dbContext,
+            notifications,
+            studentId,
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [],
+                UserTargetId = teacherUserId,
+                Type = NotificationType.PaymentRecorded,
+                EntityType = NotificationEntityType.Payment,
+                EntityId = payment.Id,
+                TitleAr = "تم سداد دفعة",
+                TitleEn = "Payment recorded for your child",
+                BodyAr = $"تم تسجيل دفعة بمبلغ {payment.Amount:0.##} لدرس {subject} للطالب {studentName}. رقم الإيصال: {payment.ReceiptNumber}.",
+                BodyEn = $"A payment of {payment.Amount:0.##} was recorded for {studentName} on '{subject}'. Receipt #{payment.ReceiptNumber}.",
                 IncludeSuperAdmins = false
             },
             cancellationToken);

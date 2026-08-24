@@ -4,6 +4,7 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
+using Academy.Application.Features.Parent;
 using Academy.Application.Features.Teacher.StudentBookings.Dtos;
 using Academy.Domain.Enums;
 using MediatR;
@@ -69,6 +70,25 @@ public sealed class ConfirmBookingCommandHandler(
                 BodyAr = $"المعلم {teacherName} أكد حجزك لدرس «{subject}». تاريخ البدء: {booking.Lesson.StartDate:yyyy-MM-dd}.",
                 BodyEn = $"Teacher {teacherName} confirmed your booking for '{subject}'. Start date: {booking.Lesson.StartDate:yyyy-MM-dd}.",
                 IncludeSuperAdmins = true
+            },
+            cancellationToken);
+
+        await ParentNotifications.NotifyLinkedParentsAsync(
+            dbContext,
+            notificationService,
+            booking.StudentId,
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [],
+                UserTargetId = teacher.UserId,
+                Type = NotificationType.LessonBookingConfirmed,
+                EntityType = NotificationEntityType.Lesson,
+                EntityId = booking.LessonId,
+                TitleAr = "تم تأكيد حجز ابنك/ابنتك",
+                TitleEn = "Your child's booking confirmed",
+                BodyAr = $"المعلم {teacherName} أكد حجز {booking.Student.User.FullName} لدرس «{subject}».",
+                BodyEn = $"Teacher {teacherName} confirmed {booking.Student.User.FullName}'s booking for '{subject}'.",
+                IncludeSuperAdmins = false
             },
             cancellationToken);
 

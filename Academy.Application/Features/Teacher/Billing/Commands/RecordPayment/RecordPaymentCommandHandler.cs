@@ -131,10 +131,13 @@ public sealed class RecordPaymentCommandHandler(
         }
 
         await BillingNotifications.NotifyPaymentRecordedAsync(
+            dbContext,
             notificationService,
             payment,
             lesson.Subject,
             student.UserId,
+            student.Id,
+            student.User.FullName,
             request.UserId,
             cancellationToken);
 

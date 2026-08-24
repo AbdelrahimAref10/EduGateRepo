@@ -1081,6 +1081,9 @@ namespace Academy.Persistence.Migrations
                     b.Property<DateTime?>("StartedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("StartingSoonReminderSentAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Topic")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -1333,6 +1336,33 @@ namespace Academy.Persistence.Migrations
                     b.HasIndex("UserId", "IsRead", "CreatedAtUtc");
 
                     b.ToTable("NotificationDetails", (string)null);
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ParentChildLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChildStudentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LinkedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ParentStudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChildStudentId");
+
+                    b.HasIndex("ParentStudentId", "ChildStudentId")
+                        .IsUnique();
+
+                    b.ToTable("ParentChildLinks", (string)null);
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Payment", b =>
@@ -2117,6 +2147,25 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Notification");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Academy.Domain.Entities.ParentChildLink", b =>
+                {
+                    b.HasOne("Academy.Domain.Entities.Student", "ChildStudent")
+                        .WithMany()
+                        .HasForeignKey("ChildStudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Academy.Domain.Entities.Student", "ParentStudent")
+                        .WithMany()
+                        .HasForeignKey("ParentStudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChildStudent");
+
+                    b.Navigation("ParentStudent");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.Payment", b =>

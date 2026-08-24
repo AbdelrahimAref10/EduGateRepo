@@ -1,0 +1,57 @@
+<section class="space-y-6">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="space-y-1">
+      <h1 class="text-2xl font-bold text-ink">{{ 'parent.attendanceTitle' | t }}</h1>
+      <p class="text-sm text-muted">{{ 'parent.attendanceSub' | t }}</p>
+    </div>
+    <label class="space-y-1 text-sm">
+      <span class="text-xs font-semibold uppercase text-muted">{{ 'parent.filterChild' | t }}</span>
+      <select
+        class="block min-w-48 rounded-xl border border-line bg-surface px-3 py-2"
+        [ngModel]="childFilter() ?? ''"
+        (ngModelChange)="onFilterChange($event)"
+      >
+        <option value="">{{ 'parent.allChildren' | t }}</option>
+        @for (c of children(); track c.childStudentId) {
+          <option [value]="c.childStudentId">{{ c.fullName }}</option>
+        }
+      </select>
+    </label>
+  </header>
+
+  @if (error()) {
+    <p class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-muted">{{ 'common.loading' | t }}</p>
+  } @else if (items().length === 0) {
+    <p class="text-sm text-muted">{{ 'parent.noAttendance' | t }}</p>
+  } @else {
+    <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
+      @for (item of items(); track item.sessionId + '-' + item.childStudentId) {
+        <li class="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="font-semibold text-ink">{{ item.childName }} · {{ item.subject }}</p>
+            <p class="text-sm text-muted">
+              {{ item.groupName }} · {{ item.sessionDate | date: 'mediumDate' }} · {{ toTime(item.startTime) }}
+            </p>
+            @if (item.teacherNotes) {
+              <p class="mt-1 text-sm text-muted">{{ item.teacherNotes }}</p>
+            }
+          </div>
+          <span
+            class="inline-flex rounded-full px-3 py-1 text-xs font-bold"
+            [class.bg-emerald-100]="item.isPresent"
+            [class.text-emerald-800]="item.isPresent"
+            [class.bg-rose-100]="!item.isPresent"
+            [class.text-rose-800]="!item.isPresent"
+          >
+            {{ item.isPresent ? ('parent.present' | t) : ('parent.absent' | t) }}
+          </span>
+        </li>
+      }
+    </ul>
+    <app-paginator [page]="page()" [pageSize]="pageSize" [totalCount]="totalCount()" (pageChange)="onPageChange($event)" />
+  }
+</section>

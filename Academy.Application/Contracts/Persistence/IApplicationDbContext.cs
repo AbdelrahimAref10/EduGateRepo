@@ -71,5 +71,7 @@ public interface IApplicationDbContext
 
     DbSet<PaymentAllocation> PaymentAllocations { get; }
 
+    DbSet<ParentChildLink> ParentChildLinks { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
