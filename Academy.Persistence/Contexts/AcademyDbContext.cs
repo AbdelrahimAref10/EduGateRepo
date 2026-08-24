@@ -88,6 +88,8 @@ public sealed class AcademyDbContext
 
     public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
 
+    public DbSet<ParentChildLink> ParentChildLinks => Set<ParentChildLink>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

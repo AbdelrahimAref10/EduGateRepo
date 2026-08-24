@@ -42,6 +42,8 @@ public sealed class LessonGroupSessionConfiguration : IEntityTypeConfiguration<L
             .IsRequired()
             .HasDefaultValue(false);
 
+        builder.Property(x => x.StartingSoonReminderSentAtUtc);
+
         builder.HasOne(x => x.MakeupForSession)
             .WithMany(x => x.MakeupSessions)
             .HasForeignKey(x => x.MakeupForSessionId)

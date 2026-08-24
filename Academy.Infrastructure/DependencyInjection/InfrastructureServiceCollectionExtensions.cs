@@ -21,6 +21,8 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddPersistence(configuration);
 
+        services.AddHostedService<Background.SessionStartingSoonReminderService>();
+
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 
         services

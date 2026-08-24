@@ -1,6 +1,7 @@
 using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
+using Academy.Application.Features.Parent;
 using Academy.Application.Features.Student.Classroom.Dtos;
 using Academy.Application.Features.Student.Classroom.Queries.GetStudentSessionExam;
 using Academy.Domain.Entities;
@@ -125,6 +126,25 @@ public sealed class SubmitStudentSessionExamCommandHandler(
                 TitleEn = "Student finished an exam",
                 BodyAr = $"الطالب {student.Name} أنهى امتحان «{exam.Title}» بنتيجة {attempt.Score}/{max} ({percent}%).",
                 BodyEn = $"Student {student.Name} finished the exam '{exam.Title}' with {attempt.Score}/{max} ({percent}%).",
+                IncludeSuperAdmins = false
+            },
+            cancellationToken);
+
+        await ParentNotifications.NotifyLinkedParentsAsync(
+            dbContext,
+            notificationService,
+            studentId,
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [],
+                UserTargetId = student.UserId,
+                Type = NotificationType.StudentExamSubmitted,
+                EntityType = NotificationEntityType.Session,
+                EntityId = exam.LessonGroupSessionId,
+                TitleAr = "نتيجة امتحان جاهزة",
+                TitleEn = "Exam score ready",
+                BodyAr = $"أنهى {student.Name} امتحان «{exam.Title}» بنتيجة {attempt.Score}/{max} ({percent}%).",
+                BodyEn = $"{student.Name} finished the exam '{exam.Title}' with {attempt.Score}/{max} ({percent}%).",
                 IncludeSuperAdmins = false
             },
             cancellationToken);

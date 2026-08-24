@@ -1,0 +1,66 @@
+<section class="space-y-6">
+  <header class="space-y-1">
+    <h1 class="text-2xl font-bold text-ink">{{ 'parent.childrenTitle' | t }}</h1>
+    <p class="text-sm text-muted">{{ 'parent.childrenSub' | t }}</p>
+  </header>
+
+  <form class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:flex-row sm:items-end" (ngSubmit)="link()">
+    <label class="flex-1 space-y-1">
+      <span class="text-xs font-semibold uppercase text-muted">{{ 'parent.studentCode' | t }}</span>
+      <input
+        class="w-full rounded-xl border border-line bg-body px-3 py-2.5 text-sm"
+        [(ngModel)]="studentCode"
+        name="studentCode"
+        autocomplete="off"
+        [placeholder]="'parent.studentCodePlaceholder' | t"
+      />
+    </label>
+    <button
+      type="submit"
+      class="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+      [disabled]="linking() || !studentCode.trim()"
+    >
+      {{ linking() ? ('common.loading' | t) : ('parent.linkChild' | t) }}
+    </button>
+  </form>
+
+  @if (error()) {
+    <p class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ 'parent.linkSuccess' | t }}</p>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-muted">{{ 'common.loading' | t }}</p>
+  } @else if (children().length === 0) {
+    <p class="text-sm text-muted">{{ 'parent.noChildren' | t }}</p>
+  } @else {
+    <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
+      @for (c of children(); track c.childStudentId) {
+        <li class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3">
+            @if (c.photoUrl) {
+              <img [src]="c.photoUrl" alt="" class="size-10 rounded-full object-cover" />
+            } @else {
+              <span class="flex size-10 items-center justify-center rounded-full bg-body text-sm font-bold text-muted">
+                {{ c.fullName.charAt(0) }}
+              </span>
+            }
+            <div>
+              <p class="font-semibold text-ink">{{ c.fullName }}</p>
+              <p class="text-sm text-muted">{{ c.studentCode || '—' }} · {{ c.linkedAtUtc | date: 'mediumDate' }}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+            (click)="unlink(c)"
+          >
+            {{ 'parent.unlink' | t }}
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

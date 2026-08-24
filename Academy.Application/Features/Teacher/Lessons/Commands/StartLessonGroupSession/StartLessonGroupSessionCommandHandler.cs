@@ -2,6 +2,7 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom;
+using Academy.Application.Features.Parent;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Domain.Enums;
 using MediatR;
@@ -71,10 +72,12 @@ public sealed class StartLessonGroupSessionCommandHandler(
 
         if (sessionJustStarted)
         {
-            var studentUserIds = await dbContext.LessonGroupMembers
+            var members = await dbContext.LessonGroupMembers
                 .Where(x => x.LessonGroupId == session.LessonGroupId)
-                .Select(x => x.Student.UserId)
+                .Select(x => new { x.StudentId, x.Student.UserId })
                 .ToListAsync(cancellationToken);
+
+            var studentUserIds = members.Select(x => x.UserId).ToList();
 
             if (studentUserIds.Count > 0)
             {
@@ -94,6 +97,25 @@ public sealed class StartLessonGroupSessionCommandHandler(
                     },
                     cancellationToken);
             }
+
+            await ParentNotifications.NotifyLinkedParentsForChildrenAsync(
+                dbContext,
+                notificationService,
+                members.Select(x => x.StudentId),
+                new NotificationCreateRequest
+                {
+                    RecipientUserIds = [],
+                    UserTargetId = teacher.UserId,
+                    Type = NotificationType.SessionStarted,
+                    EntityType = NotificationEntityType.Session,
+                    EntityId = session.Id,
+                    TitleAr = "بدأت حصة لابنك/ابنتك",
+                    TitleEn = "Your child's session started",
+                    BodyAr = $"بدأ المعلم {teacherName} حصة مجموعة «{groupName}» في درس «{subject}».",
+                    BodyEn = $"Teacher {teacherName} started a session for group '{groupName}' in '{subject}'.",
+                    IncludeSuperAdmins = false
+                },
+                cancellationToken);
         }
 
         if (lessonJustStarted)

@@ -38,6 +38,9 @@ public class LessonGroupSession : BaseEntity
 
     public LessonGroupSession? MakeupForSession { get; set; }
 
+    /// <summary>Set when a "starting soon" reminder was sent to students/parents.</summary>
+    public DateTime? StartingSoonReminderSentAtUtc { get; set; }
+
     public ICollection<LessonGroupSession> MakeupSessions { get; set; } = [];
 
     public ICollection<LessonSessionStudentDetail> StudentDetails { get; set; } = [];

@@ -2,6 +2,7 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom;
+using Academy.Application.Features.Parent;
 using Academy.Application.Features.Teacher.Billing;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
 using Academy.Domain.Entities;
@@ -69,6 +70,8 @@ public sealed class UpdateStudentSessionDetailCommandHandler(
             dbContext.LessonSessionStudentDetails.Add(detail);
         }
 
+        var wasPresent = detail.IsPresent;
+
         detail.IsPresent = request.IsPresent;
         detail.TeacherNotes = string.IsNullOrWhiteSpace(request.TeacherNotes)
             ? null
@@ -102,12 +105,41 @@ public sealed class UpdateStudentSessionDetailCommandHandler(
         if (createdCharge is not null && detail.Student.UserId > 0)
         {
             await BillingNotifications.NotifyChargeCreatedAsync(
+                dbContext,
                 notificationService,
                 createdCharge,
                 detail.Student.User.FullName,
                 lesson.Subject,
                 detail.Student.UserId,
+                request.StudentId,
                 cancellationToken);
+        }
+
+        if (wasPresent != request.IsPresent && session.StartedAtUtc is not null)
+        {
+            var childName = detail.Student.User.FullName;
+            if (!request.IsPresent)
+            {
+                await ParentNotifications.NotifyAbsentAsync(
+                    dbContext,
+                    notificationService,
+                    request.StudentId,
+                    childName,
+                    lesson.Subject,
+                    session.Id,
+                    cancellationToken);
+            }
+            else
+            {
+                await ParentNotifications.NotifyPresentAsync(
+                    dbContext,
+                    notificationService,
+                    request.StudentId,
+                    childName,
+                    lesson.Subject,
+                    session.Id,
+                    cancellationToken);
+            }
         }
 
         if (detail.Student?.User is null)

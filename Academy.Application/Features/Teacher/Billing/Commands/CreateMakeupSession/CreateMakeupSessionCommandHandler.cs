@@ -165,11 +165,13 @@ public sealed class CreateMakeupSessionCommandHandler(
             if (member.Student.UserId > 0)
             {
                 await BillingNotifications.NotifyChargeCreatedAsync(
+                    dbContext,
                     notificationService,
                     charge,
                     member.Student.User.FullName,
                     lesson.Subject,
                     member.Student.UserId,
+                    member.StudentId,
                     cancellationToken);
             }
         }

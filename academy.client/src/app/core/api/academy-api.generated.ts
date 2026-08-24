@@ -8772,14 +8772,21 @@ export class PublicMarketplaceClient implements IPublicMarketplaceClient {
     }
 }
 
-export interface IParentDashboardClient {
-    getDashboard(): Observable<FileResponse>;
+export interface IParentClient {
+    getDashboard(): Observable<ParentDashboardDto>;
+    getChildren(): Observable<ParentChildDto[]>;
+    linkChild(request: LinkChildRequest): Observable<ParentChildDto>;
+    unlinkChild(childStudentId: number): Observable<void>;
+    getExams(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentExamListItemDto>;
+    getChildExam(childStudentId: number, sessionId: number): Observable<StudentExamDto>;
+    getAttendance(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentAttendanceItemDto>;
+    getPayments(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentPaymentItemDto>;
 }
 
 @Injectable({
     providedIn: 'root'
 })
-export class ParentDashboardClient implements IParentDashboardClient {
+export class ParentClient implements IParentClient {
     private http: HttpClient;
     private baseUrl: string;
     protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
@@ -8789,7 +8796,7 @@ export class ParentDashboardClient implements IParentDashboardClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getDashboard(): Observable<FileResponse> {
+    getDashboard(): Observable<ParentDashboardDto> {
         let url_ = this.baseUrl + "/api/parent/dashboard";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -8797,7 +8804,7 @@ export class ParentDashboardClient implements IParentDashboardClient {
             observe: "response",
             responseType: "blob",
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             })
         };
 
@@ -8808,31 +8815,409 @@ export class ParentDashboardClient implements IParentDashboardClient {
                 try {
                     return this.processGetDashboard(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<FileResponse>;
+                    return _observableThrow(e) as any as Observable<ParentDashboardDto>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<FileResponse>;
+                return _observableThrow(response_) as any as Observable<ParentDashboardDto>;
         }));
     }
 
-    protected processGetDashboard(response: HttpResponseBase): Observable<FileResponse> {
+    protected processGetDashboard(response: HttpResponseBase): Observable<ParentDashboardDto> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
             (response as any).error instanceof Blob ? (response as any).error : undefined;
 
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ParentDashboardDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getChildren(): Observable<ParentChildDto[]> {
+        let url_ = this.baseUrl + "/api/parent/children";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetChildren(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetChildren(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ParentChildDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ParentChildDto[]>;
+        }));
+    }
+
+    protected processGetChildren(response: HttpResponseBase): Observable<ParentChildDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ParentChildDto.fromJS(item));
             }
-            return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
+            else {
+                result200 = null as any;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    linkChild(request: LinkChildRequest): Observable<ParentChildDto> {
+        let url_ = this.baseUrl + "/api/parent/children/link";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processLinkChild(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processLinkChild(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ParentChildDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ParentChildDto>;
+        }));
+    }
+
+    protected processLinkChild(response: HttpResponseBase): Observable<ParentChildDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ParentChildDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    unlinkChild(childStudentId: number): Observable<void> {
+        let url_ = this.baseUrl + "/api/parent/children/{childStudentId}";
+        if (childStudentId === undefined || childStudentId === null)
+            throw new globalThis.Error("The parameter 'childStudentId' must be defined.");
+        url_ = url_.replace("{childStudentId}", encodeURIComponent("" + childStudentId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("delete", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUnlinkChild(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUnlinkChild(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processUnlinkChild(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getExams(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentExamListItemDto> {
+        let url_ = this.baseUrl + "/api/parent/exams?";
+        if (childStudentId !== undefined && childStudentId !== null)
+            url_ += "childStudentId=" + encodeURIComponent("" + childStudentId) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetExams(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetExams(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PagedResultOfParentExamListItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PagedResultOfParentExamListItemDto>;
+        }));
+    }
+
+    protected processGetExams(response: HttpResponseBase): Observable<PagedResultOfParentExamListItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PagedResultOfParentExamListItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getChildExam(childStudentId: number, sessionId: number): Observable<StudentExamDto> {
+        let url_ = this.baseUrl + "/api/parent/children/{childStudentId}/sessions/{sessionId}/exam";
+        if (childStudentId === undefined || childStudentId === null)
+            throw new globalThis.Error("The parameter 'childStudentId' must be defined.");
+        url_ = url_.replace("{childStudentId}", encodeURIComponent("" + childStudentId));
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetChildExam(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetChildExam(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<StudentExamDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<StudentExamDto>;
+        }));
+    }
+
+    protected processGetChildExam(response: HttpResponseBase): Observable<StudentExamDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = StudentExamDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getAttendance(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentAttendanceItemDto> {
+        let url_ = this.baseUrl + "/api/parent/attendance?";
+        if (childStudentId !== undefined && childStudentId !== null)
+            url_ += "childStudentId=" + encodeURIComponent("" + childStudentId) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetAttendance(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetAttendance(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PagedResultOfParentAttendanceItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PagedResultOfParentAttendanceItemDto>;
+        }));
+    }
+
+    protected processGetAttendance(response: HttpResponseBase): Observable<PagedResultOfParentAttendanceItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PagedResultOfParentAttendanceItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getPayments(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentPaymentItemDto> {
+        let url_ = this.baseUrl + "/api/parent/payments?";
+        if (childStudentId !== undefined && childStudentId !== null)
+            url_ += "childStudentId=" + encodeURIComponent("" + childStudentId) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetPayments(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetPayments(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PagedResultOfParentPaymentItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PagedResultOfParentPaymentItemDto>;
+        }));
+    }
+
+    protected processGetPayments(response: HttpResponseBase): Observable<PagedResultOfParentPaymentItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PagedResultOfParentPaymentItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -16926,6 +17311,748 @@ export class PublicLessonDeepLinkDto implements IPublicLessonDeepLinkDto {
 export interface IPublicLessonDeepLinkDto {
     lessonId: number;
     teacherId: number;
+}
+
+export class ParentDashboardDto implements IParentDashboardDto {
+    children!: ParentChildDto[];
+    upcomingSessions!: ParentUpcomingSessionDto[];
+    unpaidCharges!: ParentUnpaidChargeDto[];
+
+    constructor(data?: IParentDashboardDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.children = [];
+            this.upcomingSessions = [];
+            this.unpaidCharges = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["children"])) {
+                this.children = [] as any;
+                for (let item of _data["children"])
+                    this.children!.push(ParentChildDto.fromJS(item));
+            }
+            if (Array.isArray(_data["upcomingSessions"])) {
+                this.upcomingSessions = [] as any;
+                for (let item of _data["upcomingSessions"])
+                    this.upcomingSessions!.push(ParentUpcomingSessionDto.fromJS(item));
+            }
+            if (Array.isArray(_data["unpaidCharges"])) {
+                this.unpaidCharges = [] as any;
+                for (let item of _data["unpaidCharges"])
+                    this.unpaidCharges!.push(ParentUnpaidChargeDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ParentDashboardDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentDashboardDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.children)) {
+            data["children"] = [];
+            for (let item of this.children)
+                data["children"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.upcomingSessions)) {
+            data["upcomingSessions"] = [];
+            for (let item of this.upcomingSessions)
+                data["upcomingSessions"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.unpaidCharges)) {
+            data["unpaidCharges"] = [];
+            for (let item of this.unpaidCharges)
+                data["unpaidCharges"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IParentDashboardDto {
+    children: ParentChildDto[];
+    upcomingSessions: ParentUpcomingSessionDto[];
+    unpaidCharges: ParentUnpaidChargeDto[];
+}
+
+export class ParentChildDto implements IParentChildDto {
+    childStudentId!: number;
+    fullName!: string;
+    studentCode?: string | undefined;
+    photoUrl?: string | undefined;
+    linkedAtUtc?: Date;
+
+    constructor(data?: IParentChildDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.childStudentId = _data["childStudentId"];
+            this.fullName = _data["fullName"];
+            this.studentCode = _data["studentCode"];
+            this.photoUrl = _data["photoUrl"];
+            this.linkedAtUtc = _data["linkedAtUtc"] ? new Date(_data["linkedAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): ParentChildDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentChildDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["childStudentId"] = this.childStudentId;
+        data["fullName"] = this.fullName;
+        data["studentCode"] = this.studentCode;
+        data["photoUrl"] = this.photoUrl;
+        data["linkedAtUtc"] = this.linkedAtUtc ? this.linkedAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IParentChildDto {
+    childStudentId: number;
+    fullName: string;
+    studentCode?: string | undefined;
+    photoUrl?: string | undefined;
+    linkedAtUtc?: Date;
+}
+
+export class ParentUpcomingSessionDto implements IParentUpcomingSessionDto {
+    sessionId!: number;
+    childStudentId!: number;
+    childName!: string;
+    subject!: string;
+    groupName!: string;
+    teacherName!: string;
+    sessionDate!: Date;
+    startTime!: string;
+    topic?: string | undefined;
+    hasStarted?: boolean;
+
+    constructor(data?: IParentUpcomingSessionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.sessionId = _data["sessionId"];
+            this.childStudentId = _data["childStudentId"];
+            this.childName = _data["childName"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            this.teacherName = _data["teacherName"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.startTime = _data["startTime"];
+            this.topic = _data["topic"];
+            this.hasStarted = _data["hasStarted"];
+        }
+    }
+
+    static fromJS(data: any): ParentUpcomingSessionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentUpcomingSessionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["sessionId"] = this.sessionId;
+        data["childStudentId"] = this.childStudentId;
+        data["childName"] = this.childName;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        data["teacherName"] = this.teacherName;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["startTime"] = this.startTime;
+        data["topic"] = this.topic;
+        data["hasStarted"] = this.hasStarted;
+        return data;
+    }
+}
+
+export interface IParentUpcomingSessionDto {
+    sessionId: number;
+    childStudentId: number;
+    childName: string;
+    subject: string;
+    groupName: string;
+    teacherName: string;
+    sessionDate: Date;
+    startTime: string;
+    topic?: string | undefined;
+    hasStarted?: boolean;
+}
+
+export class ParentUnpaidChargeDto implements IParentUnpaidChargeDto {
+    chargeId!: number;
+    childStudentId!: number;
+    childName!: string;
+    subject!: string;
+    type!: string;
+    amount!: number;
+    remaining!: number;
+    status!: string;
+    createdAtUtc?: Date;
+
+    constructor(data?: IParentUnpaidChargeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.chargeId = _data["chargeId"];
+            this.childStudentId = _data["childStudentId"];
+            this.childName = _data["childName"];
+            this.subject = _data["subject"];
+            this.type = _data["type"];
+            this.amount = _data["amount"];
+            this.remaining = _data["remaining"];
+            this.status = _data["status"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): ParentUnpaidChargeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentUnpaidChargeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["chargeId"] = this.chargeId;
+        data["childStudentId"] = this.childStudentId;
+        data["childName"] = this.childName;
+        data["subject"] = this.subject;
+        data["type"] = this.type;
+        data["amount"] = this.amount;
+        data["remaining"] = this.remaining;
+        data["status"] = this.status;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface IParentUnpaidChargeDto {
+    chargeId: number;
+    childStudentId: number;
+    childName: string;
+    subject: string;
+    type: string;
+    amount: number;
+    remaining: number;
+    status: string;
+    createdAtUtc?: Date;
+}
+
+export class LinkChildRequest implements ILinkChildRequest {
+    studentCode!: string;
+
+    constructor(data?: ILinkChildRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.studentCode = _data["studentCode"];
+        }
+    }
+
+    static fromJS(data: any): LinkChildRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new LinkChildRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["studentCode"] = this.studentCode;
+        return data;
+    }
+}
+
+export interface ILinkChildRequest {
+    studentCode: string;
+}
+
+export class PagedResultOfParentExamListItemDto implements IPagedResultOfParentExamListItemDto {
+    items!: ParentExamListItemDto[];
+    totalCount!: number;
+    page!: number;
+    pageSize!: number;
+    totalPages?: number;
+    hasPrevious?: boolean;
+    hasNext?: boolean;
+
+    constructor(data?: IPagedResultOfParentExamListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.items = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ParentExamListItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.hasPrevious = _data["hasPrevious"];
+            this.hasNext = _data["hasNext"];
+        }
+    }
+
+    static fromJS(data: any): PagedResultOfParentExamListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PagedResultOfParentExamListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["hasPrevious"] = this.hasPrevious;
+        data["hasNext"] = this.hasNext;
+        return data;
+    }
+}
+
+export interface IPagedResultOfParentExamListItemDto {
+    items: ParentExamListItemDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages?: number;
+    hasPrevious?: boolean;
+    hasNext?: boolean;
+}
+
+export class ParentExamListItemDto implements IParentExamListItemDto {
+    examId!: number;
+    sessionId!: number;
+    childStudentId!: number;
+    childName!: string;
+    title!: string;
+    subject!: string;
+    groupName!: string;
+    teacherName!: string;
+    sessionDate!: Date;
+    startTime!: string;
+    questionCount!: number;
+    hasSubmitted!: boolean;
+    score?: number | undefined;
+    maxScore?: number | undefined;
+    percentage?: number | undefined;
+
+    constructor(data?: IParentExamListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.examId = _data["examId"];
+            this.sessionId = _data["sessionId"];
+            this.childStudentId = _data["childStudentId"];
+            this.childName = _data["childName"];
+            this.title = _data["title"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            this.teacherName = _data["teacherName"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.startTime = _data["startTime"];
+            this.questionCount = _data["questionCount"];
+            this.hasSubmitted = _data["hasSubmitted"];
+            this.score = _data["score"];
+            this.maxScore = _data["maxScore"];
+            this.percentage = _data["percentage"];
+        }
+    }
+
+    static fromJS(data: any): ParentExamListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentExamListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["examId"] = this.examId;
+        data["sessionId"] = this.sessionId;
+        data["childStudentId"] = this.childStudentId;
+        data["childName"] = this.childName;
+        data["title"] = this.title;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        data["teacherName"] = this.teacherName;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["startTime"] = this.startTime;
+        data["questionCount"] = this.questionCount;
+        data["hasSubmitted"] = this.hasSubmitted;
+        data["score"] = this.score;
+        data["maxScore"] = this.maxScore;
+        data["percentage"] = this.percentage;
+        return data;
+    }
+}
+
+export interface IParentExamListItemDto {
+    examId: number;
+    sessionId: number;
+    childStudentId: number;
+    childName: string;
+    title: string;
+    subject: string;
+    groupName: string;
+    teacherName: string;
+    sessionDate: Date;
+    startTime: string;
+    questionCount: number;
+    hasSubmitted: boolean;
+    score?: number | undefined;
+    maxScore?: number | undefined;
+    percentage?: number | undefined;
+}
+
+export class PagedResultOfParentAttendanceItemDto implements IPagedResultOfParentAttendanceItemDto {
+    items!: ParentAttendanceItemDto[];
+    totalCount!: number;
+    page!: number;
+    pageSize!: number;
+    totalPages?: number;
+    hasPrevious?: boolean;
+    hasNext?: boolean;
+
+    constructor(data?: IPagedResultOfParentAttendanceItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.items = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ParentAttendanceItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.hasPrevious = _data["hasPrevious"];
+            this.hasNext = _data["hasNext"];
+        }
+    }
+
+    static fromJS(data: any): PagedResultOfParentAttendanceItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PagedResultOfParentAttendanceItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["hasPrevious"] = this.hasPrevious;
+        data["hasNext"] = this.hasNext;
+        return data;
+    }
+}
+
+export interface IPagedResultOfParentAttendanceItemDto {
+    items: ParentAttendanceItemDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages?: number;
+    hasPrevious?: boolean;
+    hasNext?: boolean;
+}
+
+export class ParentAttendanceItemDto implements IParentAttendanceItemDto {
+    sessionId!: number;
+    childStudentId!: number;
+    childName!: string;
+    subject!: string;
+    groupName!: string;
+    sessionDate!: Date;
+    startTime!: string;
+    isPresent!: boolean;
+    teacherNotes?: string | undefined;
+
+    constructor(data?: IParentAttendanceItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.sessionId = _data["sessionId"];
+            this.childStudentId = _data["childStudentId"];
+            this.childName = _data["childName"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.startTime = _data["startTime"];
+            this.isPresent = _data["isPresent"];
+            this.teacherNotes = _data["teacherNotes"];
+        }
+    }
+
+    static fromJS(data: any): ParentAttendanceItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentAttendanceItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["sessionId"] = this.sessionId;
+        data["childStudentId"] = this.childStudentId;
+        data["childName"] = this.childName;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["startTime"] = this.startTime;
+        data["isPresent"] = this.isPresent;
+        data["teacherNotes"] = this.teacherNotes;
+        return data;
+    }
+}
+
+export interface IParentAttendanceItemDto {
+    sessionId: number;
+    childStudentId: number;
+    childName: string;
+    subject: string;
+    groupName: string;
+    sessionDate: Date;
+    startTime: string;
+    isPresent: boolean;
+    teacherNotes?: string | undefined;
+}
+
+export class PagedResultOfParentPaymentItemDto implements IPagedResultOfParentPaymentItemDto {
+    items!: ParentPaymentItemDto[];
+    totalCount!: number;
+    page!: number;
+    pageSize!: number;
+    totalPages?: number;
+    hasPrevious?: boolean;
+    hasNext?: boolean;
+
+    constructor(data?: IPagedResultOfParentPaymentItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.items = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ParentPaymentItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.hasPrevious = _data["hasPrevious"];
+            this.hasNext = _data["hasNext"];
+        }
+    }
+
+    static fromJS(data: any): PagedResultOfParentPaymentItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PagedResultOfParentPaymentItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["hasPrevious"] = this.hasPrevious;
+        data["hasNext"] = this.hasNext;
+        return data;
+    }
+}
+
+export interface IPagedResultOfParentPaymentItemDto {
+    items: ParentPaymentItemDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages?: number;
+    hasPrevious?: boolean;
+    hasNext?: boolean;
+}
+
+export class ParentPaymentItemDto implements IParentPaymentItemDto {
+    paymentId!: number;
+    childStudentId!: number;
+    childName!: string;
+    subject!: string;
+    amount!: number;
+    method!: string;
+    receiptNumber!: number;
+    paidAtUtc!: Date;
+    note?: string | undefined;
+
+    constructor(data?: IParentPaymentItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.paymentId = _data["paymentId"];
+            this.childStudentId = _data["childStudentId"];
+            this.childName = _data["childName"];
+            this.subject = _data["subject"];
+            this.amount = _data["amount"];
+            this.method = _data["method"];
+            this.receiptNumber = _data["receiptNumber"];
+            this.paidAtUtc = _data["paidAtUtc"] ? new Date(_data["paidAtUtc"].toString()) : undefined as any;
+            this.note = _data["note"];
+        }
+    }
+
+    static fromJS(data: any): ParentPaymentItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ParentPaymentItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["paymentId"] = this.paymentId;
+        data["childStudentId"] = this.childStudentId;
+        data["childName"] = this.childName;
+        data["subject"] = this.subject;
+        data["amount"] = this.amount;
+        data["method"] = this.method;
+        data["receiptNumber"] = this.receiptNumber;
+        data["paidAtUtc"] = this.paidAtUtc ? this.paidAtUtc.toISOString() : undefined as any;
+        data["note"] = this.note;
+        return data;
+    }
+}
+
+export interface IParentPaymentItemDto {
+    paymentId: number;
+    childStudentId: number;
+    childName: string;
+    subject: string;
+    amount: number;
+    method: string;
+    receiptNumber: number;
+    paidAtUtc: Date;
+    note?: string | undefined;
 }
 
 export class AuthResponseDto implements IAuthResponseDto {

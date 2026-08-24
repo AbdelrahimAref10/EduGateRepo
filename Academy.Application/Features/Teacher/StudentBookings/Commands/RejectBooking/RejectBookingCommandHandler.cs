@@ -4,6 +4,7 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Localization;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
+using Academy.Application.Features.Parent;
 using Academy.Application.Features.Teacher.StudentBookings.Dtos;
 using Academy.Domain.Enums;
 using MediatR;
@@ -69,6 +70,25 @@ public sealed class RejectBookingCommandHandler(
                 BodyAr = $"المعلم {teacherName} رفض حجزك لدرس «{subject}».",
                 BodyEn = $"Teacher {teacherName} rejected your booking for '{subject}'.",
                 IncludeSuperAdmins = true
+            },
+            cancellationToken);
+
+        await ParentNotifications.NotifyLinkedParentsAsync(
+            dbContext,
+            notificationService,
+            booking.StudentId,
+            new NotificationCreateRequest
+            {
+                RecipientUserIds = [],
+                UserTargetId = teacher.UserId,
+                Type = NotificationType.LessonBookingRejected,
+                EntityType = NotificationEntityType.Lesson,
+                EntityId = booking.LessonId,
+                TitleAr = "تم رفض حجز ابنك/ابنتك",
+                TitleEn = "Your child's booking rejected",
+                BodyAr = $"المعلم {teacherName} رفض حجز {booking.Student.User.FullName} لدرس «{subject}».",
+                BodyEn = $"Teacher {teacherName} rejected {booking.Student.User.FullName}'s booking for '{subject}'.",
+                IncludeSuperAdmins = false
             },
             cancellationToken);
 

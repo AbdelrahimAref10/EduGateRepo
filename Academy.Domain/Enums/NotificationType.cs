@@ -18,5 +18,8 @@ public enum NotificationType
     ClassroomMaterialAdded = 14,
     PaymentRecorded = 15,
     ChargeCreated = 16,
-    MakeupSessionScheduled = 17
+    MakeupSessionScheduled = 17,
+    StudentAbsent = 18,
+    StudentPresent = 19,
+    SessionStartingSoon = 20
 }

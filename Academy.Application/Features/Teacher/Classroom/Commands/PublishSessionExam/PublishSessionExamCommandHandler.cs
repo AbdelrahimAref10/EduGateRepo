@@ -2,6 +2,7 @@ using Academy.Application.Common.Models;
 using Academy.Application.Contracts.Notifications;
 using Academy.Application.Contracts.Persistence;
 using Academy.Application.Features.Classroom.Exams;
+using Academy.Application.Features.Parent;
 using Academy.Application.Features.Teacher.Classroom.Dtos;
 using Academy.Domain.Enums;
 using MediatR;
@@ -52,10 +53,12 @@ public sealed class PublishSessionExamCommandHandler(
             exam.PublishedAtUtc = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            var studentUserIds = await dbContext.LessonGroupMembers
+            var members = await dbContext.LessonGroupMembers
                 .Where(x => x.LessonGroupId == session.LessonGroupId)
-                .Select(x => x.Student.UserId)
+                .Select(x => new { x.StudentId, x.Student.UserId })
                 .ToListAsync(cancellationToken);
+
+            var studentUserIds = members.Select(x => x.UserId).ToList();
 
             if (studentUserIds.Count > 0)
             {
@@ -75,6 +78,25 @@ public sealed class PublishSessionExamCommandHandler(
                     },
                     cancellationToken);
             }
+
+            await ParentNotifications.NotifyLinkedParentsForChildrenAsync(
+                dbContext,
+                notificationService,
+                members.Select(x => x.StudentId),
+                new NotificationCreateRequest
+                {
+                    RecipientUserIds = [],
+                    UserTargetId = request.UserId,
+                    Type = NotificationType.ExamPublished,
+                    EntityType = NotificationEntityType.Session,
+                    EntityId = request.SessionId,
+                    TitleAr = "امتحان جديد لابنك/ابنتك",
+                    TitleEn = "New exam for your child",
+                    BodyAr = $"تم نشر امتحان «{exam.Title}» لابنك/ابنتك.",
+                    BodyEn = $"Exam '{exam.Title}' was published for your child.",
+                    IncludeSuperAdmins = false
+                },
+                cancellationToken);
         }
 
         return Result<TeacherExamDto>.Success(ExamMappings.ToTeacherDto(exam));
