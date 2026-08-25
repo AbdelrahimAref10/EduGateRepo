@@ -4,6 +4,12 @@ using Academy.Application.Features.Teacher.StudentBookings.Commands.RejectBookin
 using Academy.Application.Features.Teacher.StudentBookings.Dtos;
 using Academy.Application.Features.Teacher.StudentBookings.Queries.GetAllBookings;
 using Academy.Application.Features.Teacher.StudentBookings.Queries.GetPendingBookings;
+using Academy.Application.Features.Teacher.Students.Commands.TransferStudentGroup;
+using Academy.Application.Features.Teacher.Students.Dtos;
+using Academy.Application.Features.Teacher.Students.Queries.GetLessonGroupsForTransfer;
+using Academy.Application.Features.Teacher.Students.Queries.GetMyStudents;
+using Academy.Application.Features.Teacher.Students.Queries.GetTeacherStudentLessonGroup;
+using Academy.Application.Features.Teacher.Students.Queries.GetTeacherStudentLessons;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
 using MediatR;
@@ -69,6 +75,93 @@ public sealed class StudentController(ISender sender) : ControllerBase
             return Unauthorized();
 
         var result = await sender.Send(new RejectBookingCommand(userId.Value, bookingId), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<TeacherStudentListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyStudents(
+        [FromQuery] string? search,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(new GetMyStudentsQuery(userId.Value, search), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{studentId:int}/lessons")]
+    [ProducesResponseType(typeof(IReadOnlyList<TeacherStudentLessonDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStudentLessons(int studentId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherStudentLessonsQuery(userId.Value, studentId),
+            cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{studentId:int}/lessons/{lessonId:int}/group")]
+    [ProducesResponseType(typeof(TeacherStudentGroupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStudentLessonGroup(
+        int studentId,
+        int lessonId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherStudentLessonGroupQuery(userId.Value, studentId, lessonId),
+            cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{studentId:int}/lessons/{lessonId:int}/groups")]
+    [ProducesResponseType(typeof(IReadOnlyList<TeacherStudentGroupDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLessonGroupsForTransfer(
+        int studentId,
+        int lessonId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetLessonGroupsForTransferQuery(userId.Value, studentId, lessonId),
+            cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{studentId:int}/lessons/{lessonId:int}/transfer")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> TransferStudentGroup(
+        int studentId,
+        int lessonId,
+        [FromBody] TransferStudentGroupRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new TransferStudentGroupCommand(userId.Value, studentId, lessonId, request.TargetGroupId),
+            cancellationToken);
         return result.ToActionResult();
     }
 

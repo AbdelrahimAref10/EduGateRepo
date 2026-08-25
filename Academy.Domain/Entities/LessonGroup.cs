@@ -48,4 +48,21 @@ public class LessonGroup : BaseEntity
     public ICollection<LessonGroupMember> Members { get; set; } = [];
 
     public ICollection<LessonGroupSession> Sessions { get; set; } = [];
+
+    /// <summary>
+    /// Requires <see cref="Members"/> to be loaded.
+    /// </summary>
+    public bool IsEmpty => Members.Count == 0;
+
+    /// <summary>
+    /// Requires <see cref="Members"/> to be loaded.
+    /// </summary>
+    public bool IsFull => MaxCapacity is int max && Members.Count >= max;
+
+    public bool HasEnded => EndedAtUtc.HasValue;
+
+    /// <summary>
+    /// Requires <see cref="Members"/> to be loaded for the capacity check.
+    /// </summary>
+    public bool CanAcceptMember => !HasEnded && !IsFull;
 }

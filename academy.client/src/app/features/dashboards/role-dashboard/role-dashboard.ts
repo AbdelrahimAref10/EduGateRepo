@@ -47,6 +47,7 @@ export class RoleDashboardComponent {
       case 'teacher':
         return [
           { labelKey: 'lessons.nav', link: '/teacher/lessons' },
+          { labelKey: 'myStudents.nav', link: '/teacher/students' },
           { labelKey: 'booking.nav', link: '/teacher/bookings' },
           { labelKey: 'common.profile', link: '/teacher/profile' },
         ];

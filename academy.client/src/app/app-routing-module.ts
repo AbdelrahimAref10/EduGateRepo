@@ -43,6 +43,7 @@ import { TeacherGroupManageComponent } from './features/teacher/lessons/teacher-
 import { TeacherLessonManageComponent } from './features/teacher/lessons/teacher-lesson-manage';
 import { TeacherLessonsComponent } from './features/teacher/lessons/teacher-lessons';
 import { TeacherPaymentsComponent } from './features/teacher/payments/teacher-payments';
+import { TeacherStudentsComponent } from './features/teacher/students/teacher-students';
 
 const routes: Routes = [
   { path: '', pathMatch: 'full', component: LandingComponent },
@@ -97,6 +98,8 @@ const routes: Routes = [
     },
     children: [
       { path: '', component: TeacherDashboardComponent },
+      { path: 'students', component: TeacherStudentsComponent },
+      { path: 'students/:studentId', component: TeacherStudentsComponent },
       { path: 'lessons', component: TeacherLessonsComponent },
       { path: 'lessons/:lessonId', component: TeacherLessonManageComponent },
       { path: 'lessons/:lessonId/groups/:groupId', component: TeacherGroupManageComponent },
