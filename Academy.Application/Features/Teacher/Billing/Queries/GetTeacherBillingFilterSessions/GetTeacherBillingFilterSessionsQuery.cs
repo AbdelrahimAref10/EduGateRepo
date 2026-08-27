@@ -32,7 +32,7 @@ public sealed class GetTeacherBillingFilterSessionsQueryHandler(IApplicationDbCo
 
         var items = await dbContext.LessonGroupSessions
             .AsNoTracking()
-            .Where(x => x.LessonGroupId == request.GroupId)
+            .Where(x => x.LessonGroupId == request.GroupId && x.StartedAtUtc != null)
             .OrderBy(x => x.SessionDate)
             .ThenBy(x => x.StartTime)
             .ThenBy(x => x.Id)

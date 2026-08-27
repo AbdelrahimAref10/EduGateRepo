@@ -9,8 +9,6 @@ import {
   Subject,
   catchError,
   concatMap,
-  debounceTime,
-  distinctUntilChanged,
   of,
   switchMap,
   tap,
@@ -61,8 +59,6 @@ export class TeacherPaymentsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly billingApi = inject(BillingClient);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly filterSearch$ = new Subject<string>();
-  private readonly collectSearch$ = new Subject<string>();
   private readonly list$ = new Subject<void>();
 
   readonly pageSize = PAGE_SIZE;
@@ -103,6 +99,10 @@ export class TeacherPaymentsComponent implements OnInit {
     },
   ];
 
+  readonly searching = signal(false);
+  readonly collectSearching = signal(false);
+  readonly studentNotFound = signal(false);
+  readonly collectSearchError = signal<'empty' | 'none' | null>(null);
   readonly loadingList = signal(false);
   readonly loadingStages = signal(false);
   readonly loadingLessons = signal(false);
@@ -133,6 +133,12 @@ export class TeacherPaymentsComponent implements OnInit {
   readonly lessonId = signal<number | null>(null);
   readonly groupId = signal<number | null>(null);
   readonly sessionId = signal<number | null>(null);
+  private readonly appliedStudentId = signal<number | undefined>(undefined);
+  private readonly appliedAcademicYearId = signal<number | undefined>(undefined);
+  private readonly appliedEducationStageId = signal<number | undefined>(undefined);
+  private readonly appliedLessonId = signal<number | undefined>(undefined);
+  private readonly appliedGroupId = signal<number | undefined>(undefined);
+  private readonly appliedSessionId = signal<number | undefined>(undefined);
 
   readonly filterQuery = signal('');
   readonly filterHits = signal<BillingStudentSearchDto[]>([]);
@@ -184,6 +190,7 @@ export class TeacherPaymentsComponent implements OnInit {
 
   readonly hasActiveFilters = computed(
     () =>
+      !!this.filterQuery().trim() ||
       !!this.filterStudent() ||
       !!this.academicYearId() ||
       !!this.educationStageId() ||
@@ -199,31 +206,8 @@ export class TeacherPaymentsComponent implements OnInit {
     this.lessonId.set(Number(q.get('lessonId') || 0) || null);
     this.groupId.set(Number(q.get('groupId') || 0) || null);
     this.sessionId.set(Number(q.get('sessionId') || 0) || null);
+    this.commitScopeFilters();
     const studentId = Number(q.get('studentId') || 0) || null;
-
-    this.filterSearch$
-      .pipe(
-        debounceTime(220),
-        distinctUntilChanged(),
-        switchMap((term) => this.billingApi.searchStudents(term).pipe(catchError(() => of([])))),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((rows) => {
-        this.filterHits.set(rows ?? []);
-        this.filterOpen.set((rows ?? []).length > 0);
-      });
-
-    this.collectSearch$
-      .pipe(
-        debounceTime(220),
-        distinctUntilChanged(),
-        switchMap((term) => this.billingApi.searchStudents(term || undefined).pipe(catchError(() => of([])))),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((rows) => {
-        this.collectHits.set(rows ?? []);
-        this.collectOpenList.set(true);
-      });
 
     this.list$
       .pipe(
@@ -260,9 +244,7 @@ export class TeacherPaymentsComponent implements OnInit {
     this.lessons.set([]);
     this.groups.set([]);
     this.sessions.set([]);
-    this.page.set(1);
     if (this.academicYearId()) this.loadStages();
-    this.refreshAfterFilter();
   }
 
   onStageChange(raw: string): void {
@@ -273,9 +255,7 @@ export class TeacherPaymentsComponent implements OnInit {
     this.lessons.set([]);
     this.groups.set([]);
     this.sessions.set([]);
-    this.page.set(1);
     if (this.educationStageId()) this.loadLessonsFilter();
-    this.refreshAfterFilter();
   }
 
   onLessonChange(raw: string): void {
@@ -284,24 +264,18 @@ export class TeacherPaymentsComponent implements OnInit {
     this.sessionId.set(null);
     this.groups.set([]);
     this.sessions.set([]);
-    this.page.set(1);
     if (this.lessonId()) this.loadGroups();
-    this.refreshAfterFilter();
   }
 
   onGroupChange(raw: string): void {
     this.groupId.set(Number(raw) || null);
     this.sessionId.set(null);
     this.sessions.set([]);
-    this.page.set(1);
     if (this.groupId()) this.loadSessions();
-    this.refreshAfterFilter();
   }
 
   onSessionChange(raw: string): void {
     this.sessionId.set(Number(raw) || null);
-    this.page.set(1);
-    this.refreshAfterFilter();
   }
 
   onPageChange(page: number): void {
@@ -311,35 +285,99 @@ export class TeacherPaymentsComponent implements OnInit {
 
   onFilterSearch(value: string): void {
     this.filterQuery.set(value);
-    const term = value.trim();
-    if (!term) {
+    this.studentNotFound.set(false);
+    this.filterHits.set([]);
+    this.filterOpen.set(false);
+    const picked = this.filterStudent();
+    if (picked && value.trim() !== picked.fullName) {
+      this.filterStudent.set(null);
+    }
+  }
+
+  applyFilters(): void {
+    this.error.set(null);
+    this.studentNotFound.set(false);
+    this.filterOpen.set(false);
+    this.commitScopeFilters();
+
+    const query = this.filterQuery().trim();
+    const picked = this.filterStudent();
+    if (!query) {
+      this.filterStudent.set(null);
       this.filterHits.set([]);
-      this.filterOpen.set(false);
+      this.appliedStudentId.set(undefined);
+      this.runAppliedQuery();
       return;
     }
-    this.filterSearch$.next(term);
+
+    if (picked && this.studentMatchesQuery(picked, query)) {
+      this.appliedStudentId.set(picked.id);
+      this.runAppliedQuery();
+      return;
+    }
+
+    this.searching.set(true);
+    this.billingApi
+      .searchStudents(query)
+      .pipe(
+        catchError((err) => {
+          this.searching.set(false);
+          this.error.set(this.apiError(err, 'Failed to search students.'));
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.searching.set(false);
+        const hits = this.preferExactStudent(rows ?? [], query);
+        if (hits.length === 1) {
+          this.filterStudent.set(hits[0]);
+          this.filterQuery.set(hits[0].fullName);
+          this.filterHits.set([]);
+          this.appliedStudentId.set(hits[0].id);
+          this.runAppliedQuery();
+          return;
+        }
+        if (hits.length === 0) {
+          this.filterStudent.set(null);
+          this.filterHits.set([]);
+          this.appliedStudentId.set(undefined);
+          this.studentNotFound.set(true);
+          this.runAppliedQuery();
+          return;
+        }
+        this.filterHits.set(hits);
+        this.filterOpen.set(true);
+        this.appliedStudentId.set(undefined);
+        this.runAppliedQuery();
+      });
   }
 
   pickFilterStudent(row: BillingStudentSearchDto): void {
     this.filterStudent.set(row);
     this.filterQuery.set(row.fullName);
+    this.filterHits.set([]);
     this.filterOpen.set(false);
-    this.page.set(1);
-    this.refreshAfterFilter();
+    this.studentNotFound.set(false);
+    this.commitScopeFilters();
+    this.appliedStudentId.set(row.id);
+    this.runAppliedQuery();
   }
 
   clearFilterStudent(): void {
     this.filterStudent.set(null);
     this.filterQuery.set('');
     this.filterHits.set([]);
-    this.page.set(1);
-    this.refreshAfterFilter();
+    this.filterOpen.set(false);
+    this.studentNotFound.set(false);
   }
 
   clearFilters(): void {
     this.filterStudent.set(null);
     this.filterQuery.set('');
     this.filterHits.set([]);
+    this.filterOpen.set(false);
+    this.studentNotFound.set(false);
     this.academicYearId.set(null);
     this.educationStageId.set(null);
     this.lessonId.set(null);
@@ -349,21 +387,76 @@ export class TeacherPaymentsComponent implements OnInit {
     this.lessons.set([]);
     this.groups.set([]);
     this.sessions.set([]);
-    this.page.set(1);
-    this.refreshAfterFilter();
+    this.commitScopeFilters();
+    this.appliedStudentId.set(undefined);
+    this.runAppliedQuery();
   }
 
   onCollectSearch(value: string): void {
     this.collectQuery.set(value);
-    this.collectSearch$.next(value.trim());
+    this.collectSearchError.set(null);
+    this.collectHits.set([]);
+    this.collectOpenList.set(false);
+    const picked = this.collectStudent();
+    if (picked && value.trim() !== picked.fullName) {
+      this.collectStudent.set(null);
+      this.collectOutstanding.set(null);
+      this.collectLessonId.set(null);
+      this.selectedChargeIds.set(new Set());
+    }
   }
 
-  onCollectFocus(): void {
-    if (!this.collectHits().length) this.collectSearch$.next('');
+  findCollectStudent(): void {
+    const term = this.collectQuery().trim();
+    this.collectSearchError.set(null);
+    this.collectHits.set([]);
+    this.collectOpenList.set(false);
+    if (!term) {
+      this.collectSearchError.set('empty');
+      return;
+    }
+
+    const picked = this.collectStudent();
+    if (picked && this.studentMatchesQuery(picked, term)) {
+      this.loadCollectOutstanding(picked.id);
+      return;
+    }
+
+    this.collectSearching.set(true);
+    this.billingApi
+      .searchStudents(term)
+      .pipe(
+        catchError((err) => {
+          this.collectSearching.set(false);
+          this.error.set(this.apiError(err, 'Failed to search students.'));
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.collectSearching.set(false);
+        const hits = this.preferExactStudent(rows ?? [], term);
+        if (hits.length === 1) {
+          this.pickCollectStudent(hits[0]);
+          return;
+        }
+        if (hits.length === 0) {
+          this.collectStudent.set(null);
+          this.collectOutstanding.set(null);
+          this.collectLessonId.set(null);
+          this.selectedChargeIds.set(new Set());
+          this.collectSearchError.set('none');
+          return;
+        }
+        this.collectHits.set(hits);
+        this.collectOpenList.set(true);
+      });
   }
 
   openCollect(): void {
     this.success.set(null);
+    this.collectSearchError.set(null);
+    this.collectSearching.set(false);
     this.collectOpen.set(true);
     this.collectStudent.set(null);
     this.collectOutstanding.set(null);
@@ -371,6 +464,7 @@ export class TeacherPaymentsComponent implements OnInit {
     this.selectedChargeIds.set(new Set());
     this.collectQuery.set('');
     this.collectHits.set([]);
+    this.collectOpenList.set(false);
     this.collectForm.reset({ amount: 0, method: PaymentMethod.Cash, note: '' });
   }
 
@@ -383,7 +477,9 @@ export class TeacherPaymentsComponent implements OnInit {
   pickCollectStudent(row: BillingStudentSearchDto): void {
     this.collectStudent.set(row);
     this.collectQuery.set(row.fullName);
+    this.collectHits.set([]);
     this.collectOpenList.set(false);
+    this.collectSearchError.set(null);
     this.loadCollectOutstanding(row.id);
   }
 
@@ -677,9 +773,40 @@ export class TeacherPaymentsComponent implements OnInit {
     this.loadList();
   }
 
-  private refreshAfterFilter(): void {
+  private commitScopeFilters(): void {
+    this.appliedAcademicYearId.set(this.academicYearId() ?? undefined);
+    this.appliedEducationStageId.set(this.educationStageId() ?? undefined);
+    this.appliedLessonId.set(this.lessonId() ?? undefined);
+    this.appliedGroupId.set(this.groupId() ?? undefined);
+    this.appliedSessionId.set(this.sessionId() ?? undefined);
+  }
+
+  private runAppliedQuery(): void {
+    this.page.set(1);
     this.loadSummary();
     this.reloadOpenSection();
+  }
+
+  private studentMatchesQuery(row: BillingStudentSearchDto, query: string): boolean {
+    const q = this.normalizeSearch(query);
+    if (!q) return false;
+    return (
+      this.normalizeSearch(row.fullName) === q ||
+      this.normalizeSearch(row.studentCode) === q ||
+      this.normalizeSearch(row.phoneNumber) === q
+    );
+  }
+
+  private preferExactStudent(rows: BillingStudentSearchDto[], query: string): BillingStudentSearchDto[] {
+    const q = this.normalizeSearch(query);
+    const exact = rows.filter(
+      (row) => this.normalizeSearch(row.studentCode) === q || this.normalizeSearch(row.phoneNumber) === q,
+    );
+    return exact.length ? exact : rows;
+  }
+
+  private normalizeSearch(value?: string | null): string {
+    return (value ?? '').trim().toLowerCase().replace(/\s+/g, '');
   }
 
   private loadSummary(): void {
@@ -706,12 +833,12 @@ export class TeacherPaymentsComponent implements OnInit {
     number | undefined,
   ] {
     return [
-      this.filterStudent()?.id ?? undefined,
-      this.academicYearId() ?? undefined,
-      this.educationStageId() ?? undefined,
-      this.lessonId() ?? undefined,
-      this.groupId() ?? undefined,
-      this.sessionId() ?? undefined,
+      this.appliedStudentId(),
+      this.appliedAcademicYearId(),
+      this.appliedEducationStageId(),
+      this.appliedLessonId(),
+      this.appliedGroupId(),
+      this.appliedSessionId(),
     ];
   }
 

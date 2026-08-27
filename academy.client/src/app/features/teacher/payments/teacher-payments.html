@@ -82,7 +82,7 @@
   </div>
 
   <section class="card overflow-hidden">
-    <div class="grid gap-4 p-4 sm:p-5">
+    <form class="grid gap-4 p-4 sm:p-5" (submit)="applyFilters(); $event.preventDefault()">
       <label class="grid gap-1.5">
         <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'teacherPayments.filterStudent' | t }}</span>
         <div class="ld-search">
@@ -113,6 +113,9 @@
             </ul>
           }
         </div>
+        @if (studentNotFound()) {
+          <p class="text-sm text-danger">{{ 'teacherPayments.studentNotFound' | t }}</p>
+        }
       </label>
 
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -183,10 +186,13 @@
         </label>
       </div>
 
-      @if (hasActiveFilters()) {
-        <button type="button" class="btn-ghost w-fit" (click)="clearFilters()">{{ 'teacherPayments.resetFilters' | t }}</button>
-      }
-    </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="submit" class="btn-primary" [disabled]="searching()">{{ 'teacherPayments.search' | t }}</button>
+        @if (hasActiveFilters()) {
+          <button type="button" class="btn-ghost" (click)="clearFilters()">{{ 'teacherPayments.resetFilters' | t }}</button>
+        }
+      </div>
+    </form>
   </section>
 
   <div class="grid gap-4 sm:grid-cols-2">
@@ -326,32 +332,47 @@
       <div class="grid gap-4 p-4">
         <label class="grid gap-1.5">
           <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'billing.student' | t }}</span>
-          <div class="ld-search">
-            <input
-              class="field"
-              type="text"
-              autocomplete="off"
-              [value]="collectQuery()"
-              (input)="onCollectSearch($any($event.target).value)"
-              (focus)="onCollectFocus()"
-              [attr.placeholder]="'teacherPayments.searchStudent' | t"
-            />
-            @if (collectOpenList() && collectHits().length) {
-              <ul class="ld-suggest">
-                @for (hit of collectHits(); track hit.id) {
-                  <li>
-                    <button type="button" (click)="pickCollectStudent(hit)">
-                      <app-user-avatar [src]="hit.photoUrl" [alt]="hit.fullName" size="sm" />
-                      <span>
-                        <strong>{{ hit.fullName }}</strong>
-                        <small>{{ hit.studentCode || hit.phoneNumber || '—' }}</small>
-                      </span>
-                    </button>
-                  </li>
-                }
-              </ul>
-            }
+          <div class="flex items-start gap-2">
+            <div class="ld-search min-w-0 flex-1">
+              <input
+                class="field"
+                type="text"
+                autocomplete="off"
+                [value]="collectQuery()"
+                (input)="onCollectSearch($any($event.target).value)"
+                (keydown.enter)="findCollectStudent(); $event.preventDefault()"
+                [attr.placeholder]="'teacherPayments.searchCodeOrPhone' | t"
+              />
+              @if (collectOpenList() && collectHits().length) {
+                <ul class="ld-suggest">
+                  @for (hit of collectHits(); track hit.id) {
+                    <li>
+                      <button type="button" (click)="pickCollectStudent(hit)">
+                        <app-user-avatar [src]="hit.photoUrl" [alt]="hit.fullName" size="sm" />
+                        <span>
+                          <strong>{{ hit.fullName }}</strong>
+                          <small>{{ hit.studentCode || hit.phoneNumber || '—' }}</small>
+                        </span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            <button
+              type="button"
+              class="btn-primary shrink-0"
+              [disabled]="collectSearching()"
+              (click)="findCollectStudent()"
+            >
+              {{ 'teacherPayments.findStudent' | t }}
+            </button>
           </div>
+          @if (collectSearchError() === 'empty') {
+            <p class="text-sm text-danger">{{ 'teacherPayments.enterSearchTerm' | t }}</p>
+          } @else if (collectSearchError() === 'none') {
+            <p class="text-sm text-danger">{{ 'teacherPayments.studentNotFound' | t }}</p>
+          }
         </label>
 
         @if (loadingOutstanding()) {
