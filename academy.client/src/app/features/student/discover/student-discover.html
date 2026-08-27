@@ -20,17 +20,17 @@
         </select>
       </label>
       <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
-        {{ 'lessons.educationType' | t }}
-        <select class="field" (change)="catalog.onType($any($event.target).value)">
-          <option value="">{{ 'marketplace.anyType' | t }}</option>
-          @for (type of catalog.types(); track type.id) {
-            <option [value]="type.id">{{ type.name }}</option>
+        {{ 'lessons.academicYear' | t }}
+        <select class="field" (change)="catalog.onAcademicYear($any($event.target).value)">
+          <option value="">{{ 'marketplace.anyAcademicYear' | t }}</option>
+          @for (year of catalog.academicYears(); track year.id) {
+            <option [value]="year.id">{{ year.name }}</option>
           }
         </select>
       </label>
       <label class="grid gap-1 text-xs font-bold uppercase tracking-wide text-muted">
         {{ 'lessons.educationStage' | t }}
-        <select class="field" (change)="catalog.onStage($any($event.target).value)" [disabled]="!catalog.typeId()">
+        <select class="field" (change)="catalog.onStage($any($event.target).value)">
           <option value="">{{ 'marketplace.anyStage' | t }}</option>
           @for (stage of catalog.stages(); track stage.id) {
             <option [value]="stage.id">{{ stage.name }}</option>

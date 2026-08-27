@@ -5,7 +5,6 @@ using MediatR;
 namespace Academy.Application.Features.SuperAdmin.Education.Queries.GetEducationSubjectsByYear;
 
 public sealed record GetEducationSubjectsByYearQuery(
-    int EducationTypeId,
     int EducationStageId,
     int EducationYearId,
     bool ActiveOnly = true)

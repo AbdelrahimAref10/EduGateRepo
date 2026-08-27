@@ -366,7 +366,7 @@
                         <a
                           class="billing-collect-btn"
                           [routerLink]="['/teacher/payments']"
-                          [queryParams]="{ lessonId: room.lessonId, studentId: student.studentId }"
+                          [queryParams]="{ lessonId: room.lessonId, studentId: student.studentId, tab: 'outstanding' }"
                         >
                           {{ 'billing.goToPayments' | t }}
                         </a>

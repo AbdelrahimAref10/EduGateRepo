@@ -1,27 +1,44 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
-  BillingCatalogDto,
+  EMPTY,
+  Observable,
+  Subject,
+  catchError,
+  concatMap,
+  debounceTime,
+  distinctUntilChanged,
+  of,
+  switchMap,
+  tap,
+} from 'rxjs';
+import {
   BillingClient,
-  BillingEducationTypeNodeDto,
-  BillingLessonSummaryDto,
-  BillingStageNodeDto,
-  ChargeDto,
-  GroupBillingDto,
-  LedgerStudentRowDto,
-  LessonBillingDetailDto,
-  PaymentDto,
+  BillingStudentSearchDto,
+  LedgerChargeDetailDto,
+  LedgerChargeRowDto,
+  LedgerFilterOptionDto,
+  LedgerFilterSessionDto,
+  LedgerPaymentDetailDto,
+  LedgerPaymentRowDto,
+  LedgerTransactionDto,
   PaymentMethod,
-  RecordPaymentRequest,
-  StudentLessonLedgerDto,
+  RecordTeacherPaymentRequest,
+  StudentOutstandingDto,
+  StudentOutstandingLessonDto,
+  TeacherBillingSummaryDto,
 } from '../../../core/api/academy-api.generated';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
+import { PaginatorComponent } from '../../../shared/paginator/paginator';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 
-export type PayStep = 'type' | 'stage' | 'lesson' | 'students';
+type LedgerSection = 'outstanding' | 'charges' | 'payments' | 'transactions';
+
+const PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-teacher-payments',
@@ -32,6 +49,7 @@ export type PayStep = 'type' | 'stage' | 'lesson' | 'students';
     ReactiveFormsModule,
     TranslatePipe,
     PageLoaderComponent,
+    PaginatorComponent,
     UserAvatarComponent,
   ],
   templateUrl: './teacher-payments.html',
@@ -42,38 +60,98 @@ export class TeacherPaymentsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly billingApi = inject(BillingClient);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly filterSearch$ = new Subject<string>();
+  private readonly collectSearch$ = new Subject<string>();
+  private readonly list$ = new Subject<void>();
 
-  readonly loadingCatalog = signal(true);
-  readonly ready = signal(false);
-  readonly loadingDetail = signal(false);
-  readonly loadingLedger = signal(false);
-  readonly collecting = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly success = signal<string | null>(null);
-
-  readonly catalog = signal<BillingCatalogDto | null>(null);
-  readonly step = signal<PayStep>('type');
-  readonly selectedTypeId = signal<number | null>(null);
-  readonly selectedStageId = signal<number | null>(null);
-  readonly debtOnly = signal(true);
-
-  readonly selectedLessonId = signal<number | null>(null);
-  readonly selectedLessonSummary = signal<BillingLessonSummaryDto | null>(null);
-  readonly detail = signal<LessonBillingDetailDto | null>(null);
-  readonly selectedGroupId = signal<number | null>(null);
-
-  readonly collectOpen = signal(false);
-  readonly collectLessonId = signal<number | null>(null);
-  readonly collectStudentId = signal<number | null>(null);
-  readonly studentLedger = signal<StudentLessonLedgerDto | null>(null);
-  readonly selectedChargeIds = signal<Set<number>>(new Set());
-
+  readonly pageSize = PAGE_SIZE;
   readonly paymentMethods = [
     { value: PaymentMethod.Cash, key: 'billing.methodCash' },
     { value: PaymentMethod.VodafoneCash, key: 'billing.methodVodafone' },
     { value: PaymentMethod.InstaPay, key: 'billing.methodInstaPay' },
     { value: PaymentMethod.Other, key: 'billing.methodOther' },
   ];
+  readonly sections: { id: LedgerSection; key: string; hint: string; icon: string; tone: string }[] = [
+    {
+      id: 'outstanding',
+      key: 'teacherPayments.tabDue',
+      hint: 'teacherPayments.stillDue',
+      icon: 'M12 5v14M5 12h14',
+      tone: 'flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-danger to-rose-500 text-white',
+    },
+    {
+      id: 'charges',
+      key: 'teacherPayments.tabInvoices',
+      hint: 'teacherPayments.chargesTotal',
+      icon: 'M4 19h16M6 16V9l6-4 6 4v7',
+      tone: 'flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-warning to-orange-500 text-white',
+    },
+    {
+      id: 'payments',
+      key: 'teacherPayments.tabCash',
+      hint: 'teacherPayments.paymentsTotal',
+      icon: 'M4 12h16M12 4v16',
+      tone: 'flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white',
+    },
+    {
+      id: 'transactions',
+      key: 'teacherPayments.tabJournal',
+      hint: 'teacherPayments.entry',
+      icon: 'M4 12h16M14 7l5 5-5 5',
+      tone: 'flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-navy-600 to-navy-800 text-white',
+    },
+  ];
+
+  readonly loadingList = signal(false);
+  readonly loadingStages = signal(false);
+  readonly loadingLessons = signal(false);
+  readonly loadingGroups = signal(false);
+  readonly loadingSessions = signal(false);
+  readonly collecting = signal(false);
+  readonly downloading = signal(false);
+  readonly loadingDetail = signal(false);
+  readonly loadingOutstanding = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly success = signal<string | null>(null);
+
+  readonly summary = signal<TeacherBillingSummaryDto | null>(null);
+  readonly section = signal<LedgerSection | null>(null);
+  readonly page = signal(1);
+  readonly totalCount = signal(0);
+  readonly transactions = signal<LedgerTransactionDto[]>([]);
+  readonly charges = signal<LedgerChargeRowDto[]>([]);
+  readonly payments = signal<LedgerPaymentRowDto[]>([]);
+
+  readonly academicYears = signal<LedgerFilterOptionDto[]>([]);
+  readonly stages = signal<LedgerFilterOptionDto[]>([]);
+  readonly lessons = signal<LedgerFilterOptionDto[]>([]);
+  readonly groups = signal<LedgerFilterOptionDto[]>([]);
+  readonly sessions = signal<LedgerFilterSessionDto[]>([]);
+  readonly academicYearId = signal<number | null>(null);
+  readonly educationStageId = signal<number | null>(null);
+  readonly lessonId = signal<number | null>(null);
+  readonly groupId = signal<number | null>(null);
+  readonly sessionId = signal<number | null>(null);
+
+  readonly filterQuery = signal('');
+  readonly filterHits = signal<BillingStudentSearchDto[]>([]);
+  readonly filterStudent = signal<BillingStudentSearchDto | null>(null);
+  readonly filterOpen = signal(false);
+
+  readonly collectOpen = signal(false);
+  readonly collectQuery = signal('');
+  readonly collectHits = signal<BillingStudentSearchDto[]>([]);
+  readonly collectOpenList = signal(false);
+  readonly collectStudent = signal<BillingStudentSearchDto | null>(null);
+  readonly collectOutstanding = signal<StudentOutstandingDto | null>(null);
+  readonly collectLessonId = signal<number | null>(null);
+  readonly selectedChargeIds = signal<ReadonlySet<number>>(new Set());
+
+  readonly detailOpen = signal(false);
+  readonly detailKind = signal<'Charge' | 'Payment'>('Charge');
+  readonly chargeDetail = signal<LedgerChargeDetailDto | null>(null);
+  readonly paymentDetail = signal<LedgerPaymentDetailDto | null>(null);
 
   readonly collectForm = this.fb.nonNullable.group({
     amount: [0, [Validators.required, Validators.min(0.01)]],
@@ -81,272 +159,246 @@ export class TeacherPaymentsComponent implements OnInit {
     note: [''],
   });
 
-  readonly educationTypes = computed(() => this.catalog()?.educationTypes ?? []);
-
-  readonly selectedType = computed(() => {
-    const id = this.selectedTypeId();
-    return this.educationTypes().find((t) => t.educationTypeId === id) ?? null;
-  });
-
-  readonly stagesForType = computed(() => this.selectedType()?.stages ?? []);
-
-  readonly selectedStage = computed(() => {
-    const id = this.selectedStageId();
-    return this.stagesForType().find((s) => s.educationStageId === id) ?? null;
-  });
-
-  readonly lessonsForStage = computed(() => {
-    const lessons = this.selectedStage()?.lessons ?? [];
-    if (!this.debtOnly()) return lessons;
-    return lessons.filter((l) => (l.outstandingAmount ?? 0) > 0);
-  });
-
-  readonly groups = computed(() => this.detail()?.groups ?? []);
-
-  readonly activeGroup = computed(() => {
-    const id = this.selectedGroupId();
-    const list = this.groups();
-    return list.find((g) => g.groupId === id) ?? list[0] ?? null;
-  });
-
-  readonly stepIndex = computed(() => {
-    switch (this.step()) {
-      case 'type':
-        return 1;
-      case 'stage':
-        return 2;
-      case 'lesson':
-        return 3;
-      case 'students':
-        return 4;
-    }
-  });
-
-  readonly promptKey = computed(() => {
-    switch (this.step()) {
-      case 'type':
-        return 'teacherPayments.askType';
-      case 'stage':
-        return 'teacherPayments.askStage';
-      case 'lesson':
-        return 'teacherPayments.askLesson';
-      case 'students':
-        return 'teacherPayments.askStudent';
-    }
-  });
-
-  readonly openCharges = computed(() => {
-    const led = this.studentLedger();
-    if (!led?.charges?.length) return [] as ChargeDto[];
-    return led.charges.filter(
-      (c) => c.status !== 'Deferred' && c.status !== 'Paid' && (c.remaining ?? 0) > 0,
-    );
+  readonly collectLesson = computed(() => {
+    const lessonId = this.collectLessonId();
+    const sheet = this.collectOutstanding();
+    if (!lessonId || !sheet) return null;
+    return sheet.lessons.find((item) => item.lessonId === lessonId) ?? null;
   });
 
   readonly selectedRemaining = computed(() => {
-    const ids = this.selectedChargeIds();
-    return this.openCharges()
-      .filter((c) => ids.has(c.id))
+    const lesson = this.collectLesson();
+    if (!lesson) return 0;
+    const selected = this.selectedChargeIds();
+    return lesson.charges
+      .filter((c) => selected.has(c.id))
       .reduce((sum, c) => sum + Number(c.remaining || 0), 0);
   });
 
+  readonly listEmpty = computed(() => {
+    const section = this.section();
+    if (section === 'payments') return this.payments().length === 0;
+    if (section === 'transactions') return this.transactions().length === 0;
+    return this.charges().length === 0;
+  });
+
+  readonly hasActiveFilters = computed(
+    () =>
+      !!this.filterStudent() ||
+      !!this.academicYearId() ||
+      !!this.educationStageId() ||
+      !!this.lessonId() ||
+      !!this.groupId() ||
+      !!this.sessionId(),
+  );
+
   ngOnInit(): void {
-    const qLesson = Number(this.route.snapshot.queryParamMap.get('lessonId') || 0);
-    const qStudent = Number(this.route.snapshot.queryParamMap.get('studentId') || 0);
-    this.loadCatalog(qLesson > 0 ? qLesson : null, qStudent > 0 ? qStudent : null);
+    const q = this.route.snapshot.queryParamMap;
+    this.academicYearId.set(Number(q.get('academicYearId') || 0) || null);
+    this.educationStageId.set(Number(q.get('educationStageId') || 0) || null);
+    this.lessonId.set(Number(q.get('lessonId') || 0) || null);
+    this.groupId.set(Number(q.get('groupId') || 0) || null);
+    this.sessionId.set(Number(q.get('sessionId') || 0) || null);
+    const studentId = Number(q.get('studentId') || 0) || null;
+
+    this.filterSearch$
+      .pipe(
+        debounceTime(220),
+        distinctUntilChanged(),
+        switchMap((term) => this.billingApi.searchStudents(term).pipe(catchError(() => of([])))),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.filterHits.set(rows ?? []);
+        this.filterOpen.set((rows ?? []).length > 0);
+      });
+
+    this.collectSearch$
+      .pipe(
+        debounceTime(220),
+        distinctUntilChanged(),
+        switchMap((term) => this.billingApi.searchStudents(term || undefined).pipe(catchError(() => of([])))),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.collectHits.set(rows ?? []);
+        this.collectOpenList.set(true);
+      });
+
+    this.list$
+      .pipe(
+        switchMap(() => this.listRequest()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((data) => this.applyList(data));
+
+    this.boot(studentId);
   }
 
-  loadCatalog(
-    autoSelectLessonId: number | null = null,
-    autoCollectStudentId: number | null = null,
-  ): void {
-    this.loadingCatalog.set(true);
-    this.error.set(null);
-    this.billingApi.getBillingCatalog().subscribe({
-      next: (data) => {
-        this.catalog.set(data);
-        this.loadingCatalog.set(false);
-        this.ready.set(true);
-
-        if (autoSelectLessonId) {
-          this.applySelectionPath(data, autoSelectLessonId);
-          const summary = this.findLessonSummary(autoSelectLessonId, data);
-          if (summary) this.selectedLessonSummary.set(summary);
-          this.loadLessonDetail(autoSelectLessonId, autoCollectStudentId, true);
-          return;
-        }
-
-        // Fresh entry: start at type — don't dump the teacher into a deep lesson.
-        this.selectedTypeId.set(null);
-        this.selectedStageId.set(null);
-        this.selectedLessonId.set(null);
-        this.selectedLessonSummary.set(null);
-        this.detail.set(null);
-        this.step.set('type');
-
-        const types = data.educationTypes ?? [];
-        if (types.length === 1) {
-          this.enterType(types[0].educationTypeId, true);
-        }
-      },
-      error: (err) => {
-        this.loadingCatalog.set(false);
-        this.ready.set(true);
-        this.error.set(this.apiError(err, 'Failed to load billing catalog.'));
-      },
-    });
-  }
-
-  enterType(typeId: number, autoAdvance = true): void {
-    this.selectedTypeId.set(typeId);
-    this.selectedStageId.set(null);
-    this.clearLesson();
-    this.step.set('stage');
-
-    const type = this.educationTypes().find((t) => t.educationTypeId === typeId);
-    const stages = type?.stages ?? [];
-    if (autoAdvance && stages.length === 1) {
-      this.enterStage(stages[0].educationStageId, true);
-    }
-  }
-
-  enterStage(stageId: number, autoAdvance = false): void {
-    this.selectedStageId.set(stageId);
-    this.clearLesson();
-    this.step.set('lesson');
-
-    const stage = this.stagesForType().find((s) => s.educationStageId === stageId);
-    const lessons = stage?.lessons ?? [];
-    const owed = lessons.filter((l) => (l.outstandingAmount ?? 0) > 0);
-    if (autoAdvance && owed.length === 1) {
-      this.enterLesson(owed[0].lessonId);
-    } else if (autoAdvance && lessons.length === 1) {
-      this.enterLesson(lessons[0].lessonId);
-    }
-  }
-
-  enterLesson(lessonId: number, autoCollectStudentId: number | null = null): void {
-    this.loadLessonDetail(lessonId, autoCollectStudentId, true);
-  }
-
-  goToStep(target: PayStep): void {
-    if (target === 'type') {
-      this.selectedTypeId.set(null);
-      this.selectedStageId.set(null);
-      this.clearLesson();
-      this.step.set('type');
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.detailOpen()) {
+      this.closeDetail();
       return;
     }
-    if (target === 'stage') {
-      if (!this.selectedTypeId()) return;
-      this.selectedStageId.set(null);
-      this.clearLesson();
-      this.step.set('stage');
+    if (this.collectOpen()) this.closeCollect();
+  }
+
+  selectSection(section: LedgerSection): void {
+    this.section.set(section);
+    this.page.set(1);
+    this.loadList();
+  }
+
+  onAcademicYearChange(raw: string): void {
+    this.academicYearId.set(Number(raw) || null);
+    this.educationStageId.set(null);
+    this.lessonId.set(null);
+    this.groupId.set(null);
+    this.sessionId.set(null);
+    this.stages.set([]);
+    this.lessons.set([]);
+    this.groups.set([]);
+    this.sessions.set([]);
+    this.page.set(1);
+    if (this.academicYearId()) this.loadStages();
+    this.refreshAfterFilter();
+  }
+
+  onStageChange(raw: string): void {
+    this.educationStageId.set(Number(raw) || null);
+    this.lessonId.set(null);
+    this.groupId.set(null);
+    this.sessionId.set(null);
+    this.lessons.set([]);
+    this.groups.set([]);
+    this.sessions.set([]);
+    this.page.set(1);
+    if (this.educationStageId()) this.loadLessonsFilter();
+    this.refreshAfterFilter();
+  }
+
+  onLessonChange(raw: string): void {
+    this.lessonId.set(Number(raw) || null);
+    this.groupId.set(null);
+    this.sessionId.set(null);
+    this.groups.set([]);
+    this.sessions.set([]);
+    this.page.set(1);
+    if (this.lessonId()) this.loadGroups();
+    this.refreshAfterFilter();
+  }
+
+  onGroupChange(raw: string): void {
+    this.groupId.set(Number(raw) || null);
+    this.sessionId.set(null);
+    this.sessions.set([]);
+    this.page.set(1);
+    if (this.groupId()) this.loadSessions();
+    this.refreshAfterFilter();
+  }
+
+  onSessionChange(raw: string): void {
+    this.sessionId.set(Number(raw) || null);
+    this.page.set(1);
+    this.refreshAfterFilter();
+  }
+
+  onPageChange(page: number): void {
+    this.page.set(page);
+    this.reloadOpenSection();
+  }
+
+  onFilterSearch(value: string): void {
+    this.filterQuery.set(value);
+    const term = value.trim();
+    if (!term) {
+      this.filterHits.set([]);
+      this.filterOpen.set(false);
       return;
     }
-    if (target === 'lesson') {
-      if (!this.selectedStageId()) return;
-      this.clearLesson();
-      this.step.set('lesson');
-      return;
-    }
-    if (this.selectedLessonId() && this.detail()) {
-      this.step.set('students');
-    }
+    this.filterSearch$.next(term);
   }
 
-  goBack(): void {
-    switch (this.step()) {
-      case 'students':
-        this.goToStep('lesson');
-        break;
-      case 'lesson':
-        this.goToStep('stage');
-        break;
-      case 'stage':
-        this.goToStep('type');
-        break;
-      default:
-        break;
-    }
+  pickFilterStudent(row: BillingStudentSearchDto): void {
+    this.filterStudent.set(row);
+    this.filterQuery.set(row.fullName);
+    this.filterOpen.set(false);
+    this.page.set(1);
+    this.refreshAfterFilter();
   }
 
-  toggleDebtOnly(): void {
-    this.debtOnly.update((v) => !v);
+  clearFilterStudent(): void {
+    this.filterStudent.set(null);
+    this.filterQuery.set('');
+    this.filterHits.set([]);
+    this.page.set(1);
+    this.refreshAfterFilter();
   }
 
-  selectGroup(groupId: number): void {
-    this.selectedGroupId.set(groupId);
+  clearFilters(): void {
+    this.filterStudent.set(null);
+    this.filterQuery.set('');
+    this.filterHits.set([]);
+    this.academicYearId.set(null);
+    this.educationStageId.set(null);
+    this.lessonId.set(null);
+    this.groupId.set(null);
+    this.sessionId.set(null);
+    this.stages.set([]);
+    this.lessons.set([]);
+    this.groups.set([]);
+    this.sessions.set([]);
+    this.page.set(1);
+    this.refreshAfterFilter();
   }
 
-  openCollect(lessonId: number, row: LedgerStudentRowDto): void {
-    this.collectLessonId.set(lessonId);
-    this.collectStudentId.set(row.studentId);
-    this.studentLedger.set(null);
-    this.selectedChargeIds.set(new Set());
-    this.collectOpen.set(true);
+  onCollectSearch(value: string): void {
+    this.collectQuery.set(value);
+    this.collectSearch$.next(value.trim());
+  }
+
+  onCollectFocus(): void {
+    if (!this.collectHits().length) this.collectSearch$.next('');
+  }
+
+  openCollect(): void {
     this.success.set(null);
-    this.error.set(null);
-    this.loadingLedger.set(true);
-
-    this.collectForm.reset({
-      amount: Math.max(Number(row.outstandingAmount || 0), 0),
-      method: PaymentMethod.Cash,
-      note: '',
-    });
-
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { lessonId, studentId: row.studentId },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
-
-    this.billingApi.getStudentLedger(lessonId, row.studentId).subscribe({
-      next: (ledger) => {
-        this.studentLedger.set(ledger);
-        this.loadingLedger.set(false);
-        const open = (ledger.charges ?? []).filter(
-          (c) => c.status !== 'Deferred' && c.status !== 'Paid' && (c.remaining ?? 0) > 0,
-        );
-        this.selectedChargeIds.set(new Set(open.map((c) => c.id)));
-        const max = open.reduce((sum, c) => sum + Number(c.remaining || 0), 0);
-        this.collectForm.patchValue({ amount: Math.max(max, 0) });
-      },
-      error: (err) => {
-        this.loadingLedger.set(false);
-        this.error.set(this.apiError(err, 'Failed to load student ledger.'));
-      },
-    });
+    this.collectOpen.set(true);
+    this.collectStudent.set(null);
+    this.collectOutstanding.set(null);
+    this.collectLessonId.set(null);
+    this.selectedChargeIds.set(new Set());
+    this.collectQuery.set('');
+    this.collectHits.set([]);
+    this.collectForm.reset({ amount: 0, method: PaymentMethod.Cash, note: '' });
   }
 
   closeCollect(): void {
     this.collectOpen.set(false);
-    this.collectStudentId.set(null);
-    this.studentLedger.set(null);
-    this.selectedChargeIds.set(new Set());
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { studentId: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
+    this.collectOutstanding.set(null);
+    this.clearCollectQueryParams();
+  }
+
+  pickCollectStudent(row: BillingStudentSearchDto): void {
+    this.collectStudent.set(row);
+    this.collectQuery.set(row.fullName);
+    this.collectOpenList.set(false);
+    this.loadCollectOutstanding(row.id);
+  }
+
+  selectCollectLesson(lesson: StudentOutstandingLessonDto): void {
+    this.collectLessonId.set(lesson.lessonId);
+    this.selectedChargeIds.set(new Set(lesson.charges.map((c) => c.id)));
+    this.collectForm.patchValue({ amount: Math.max(lesson.remaining ?? 0, 0) });
   }
 
   toggleCharge(chargeId: number): void {
-    this.selectedChargeIds.update((set) => {
-      const next = new Set(set);
-      if (next.has(chargeId)) next.delete(chargeId);
-      else next.add(chargeId);
-      return next;
-    });
-    const max = this.selectedRemaining();
-    const current = Number(this.collectForm.controls.amount.value || 0);
-    if (current > max) {
-      this.collectForm.patchValue({ amount: Math.max(max, 0) });
-    } else if (current <= 0 && max > 0) {
-      this.collectForm.patchValue({ amount: max });
-    }
+    const next = new Set(this.selectedChargeIds());
+    if (next.has(chargeId)) next.delete(chargeId);
+    else next.add(chargeId);
+    this.selectedChargeIds.set(next);
+    this.collectForm.patchValue({ amount: Math.max(this.selectedRemaining(), 0) });
   }
 
   isChargeSelected(chargeId: number): boolean {
@@ -358,80 +410,96 @@ export class TeacherPaymentsComponent implements OnInit {
   }
 
   submitCollect(): void {
+    const studentId = this.collectStudent()?.id;
     const lessonId = this.collectLessonId();
-    const studentId = this.collectStudentId();
-    if (!lessonId || !studentId || this.collectForm.invalid) {
+    if (!studentId || !lessonId || this.collectForm.invalid) {
       this.collectForm.markAllAsTouched();
       return;
     }
-
     const chargeIds = [...this.selectedChargeIds()];
-    if (chargeIds.length === 0) {
+    if (!chargeIds.length) {
       this.error.set('Select at least one open charge.');
       return;
     }
-
     const max = this.selectedRemaining();
     const value = this.collectForm.getRawValue();
     if (value.amount > max + 0.0001) {
-      this.error.set(`Amount cannot exceed remaining (${max}).`);
       this.collectForm.patchValue({ amount: max });
       return;
     }
 
     this.collecting.set(true);
     this.error.set(null);
-
     this.billingApi
       .recordPayment(
-        lessonId,
-        new RecordPaymentRequest({
+        new RecordTeacherPaymentRequest({
           studentId,
+          lessonId,
           amount: value.amount,
           method: value.method,
           note: value.note.trim() || undefined,
           chargeIds,
         }),
       )
-      .subscribe({
-        next: () => {
-          this.collecting.set(false);
+      .pipe(
+        concatMap(() => this.billingApi.getSummary(...this.summaryArgs())),
+        tap((summary) => {
+          this.summary.set(summary);
           this.success.set('paymentRecorded');
-          this.refreshAfterPayment(lessonId);
-          this.billingApi.getStudentLedger(lessonId, studentId).subscribe({
-            next: (ledger) => {
-              this.studentLedger.set(ledger);
-              const open = (ledger.charges ?? []).filter(
-                (c) => c.status !== 'Deferred' && c.status !== 'Paid' && (c.remaining ?? 0) > 0,
-              );
-              this.selectedChargeIds.set(new Set(open.map((c) => c.id)));
-              const nextMax = open.reduce((sum, c) => sum + Number(c.remaining || 0), 0);
-              this.collectForm.patchValue({
-                amount: Math.max(nextMax, 0),
-                method: PaymentMethod.Cash,
-                note: '',
-              });
-            },
-            error: () => this.closeCollect(),
-          });
-        },
-        error: (err) => {
+          this.collecting.set(false);
+        }),
+        concatMap(() => (this.section() ? this.listRequest() : of(null))),
+        tap((list) => this.applyList(list)),
+        concatMap(() => {
+          const student = this.collectStudent();
+          return student ? this.billingApi.getStudentOutstanding(student.id) : of(null);
+        }),
+        catchError((err) => {
           this.collecting.set(false);
           this.error.set(this.apiError(err, 'Failed to record payment.'));
-        },
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((sheet) => {
+        if (sheet) this.applyCollectSheet(sheet);
       });
   }
 
-  downloadReceipt(payment: PaymentDto): void {
-    this.billingApi.downloadReceipt(payment.id).subscribe({
-      next: (file) =>
-        this.saveBlob(file.data, file.fileName || `receipt-${payment.receiptNumber}.pdf`),
-      error: (err) => this.error.set(this.apiError(err, 'Failed to download receipt.')),
-    });
+  openTransaction(row: LedgerTransactionDto): void {
+    this.openDetail(row.kind === 'Payment' ? 'Payment' : 'Charge', row.id);
   }
 
-  billingTypeKey(type?: string | null): string {
-    return type === 'Monthly' ? 'billing.monthlyCycle' : 'billing.sessionCharge';
+  openCharge(row: LedgerChargeRowDto): void {
+    this.openDetail('Charge', row.id);
+  }
+
+  openPayment(row: LedgerPaymentRowDto): void {
+    this.openDetail('Payment', row.id);
+  }
+
+  closeDetail(): void {
+    this.detailOpen.set(false);
+    this.chargeDetail.set(null);
+    this.paymentDetail.set(null);
+  }
+
+  downloadPayment(id: number, receiptNumber?: number): void {
+    this.downloading.set(true);
+    this.billingApi
+      .downloadReceipt(id)
+      .pipe(
+        catchError((err) => {
+          this.downloading.set(false);
+          this.error.set(this.apiError(err, 'Failed to download receipt.'));
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((file) => {
+        this.downloading.set(false);
+        this.saveBlob(file.data, file.fileName || `receipt-${receiptNumber ?? id}.pdf`);
+      });
   }
 
   chargeTypeKey(type?: string | null): string {
@@ -440,6 +508,8 @@ export class TeacherPaymentsComponent implements OnInit {
         return 'billing.monthlyCycle';
       case 'Makeup':
         return 'billing.makeupCharge';
+      case 'Adjustment':
+        return 'billing.adjustmentCharge';
       default:
         return 'billing.sessionCharge';
     }
@@ -453,180 +523,377 @@ export class TeacherPaymentsComponent implements OnInit {
         return 'billing.statusPartial';
       case 'Open':
         return 'billing.statusOpen';
+      case 'Deferred':
+        return 'billing.statusDeferred';
       default:
         return 'billing.statusNone';
     }
   }
 
-  studentTone(row: LedgerStudentRowDto): string {
-    if ((row.outstandingAmount ?? 0) <= 0) return 'pay-pill is-paid';
-    if ((row.lastPaymentAmount ?? 0) > 0) return 'pay-pill is-partial';
-    return 'pay-pill is-open';
-  }
-
-  studentStatusKey(row: LedgerStudentRowDto): string {
-    if ((row.outstandingAmount ?? 0) <= 0) return 'billing.statusPaid';
-    if ((row.lastPaymentAmount ?? 0) > 0) return 'billing.statusPartial';
-    return 'billing.statusOpen';
-  }
-
-  trackType(_: number, t: BillingEducationTypeNodeDto): number {
-    return t.educationTypeId;
-  }
-
-  trackStage(_: number, s: BillingStageNodeDto): number {
-    return s.educationStageId;
-  }
-
-  trackLesson(_: number, l: BillingLessonSummaryDto): number {
-    return l.lessonId;
-  }
-
-  trackGroup(_: number, g: GroupBillingDto): number {
-    return g.groupId;
-  }
-
-  private loadLessonDetail(
-    lessonId: number,
-    autoCollectStudentId: number | null,
-    goStudents: boolean,
-  ): void {
-    const summary = this.findLessonSummary(lessonId);
-    if (summary) {
-      this.selectedLessonSummary.set(summary);
-      this.ensurePathForLesson(summary);
+  methodKey(method?: string | null): string {
+    switch (method) {
+      case 'VodafoneCash':
+        return 'billing.methodVodafone';
+      case 'InstaPay':
+        return 'billing.methodInstaPay';
+      case 'Other':
+        return 'billing.methodOther';
+      default:
+        return 'billing.methodCash';
     }
+  }
 
-    if (this.selectedLessonId() === lessonId && this.detail()?.lessonId === lessonId) {
-      if (goStudents) this.step.set('students');
-      if (autoCollectStudentId) {
-        const row = this.findStudentRow(autoCollectStudentId);
-        if (row) this.openCollect(lessonId, row);
-      }
+  statusTone(status?: string | null): string {
+    switch (status) {
+      case 'Paid':
+        return 'is-paid';
+      case 'Partial':
+        return 'is-partial';
+      case 'Deferred':
+        return 'is-deferred';
+      default:
+        return 'is-open';
+    }
+  }
+
+  sessionLabel(session: LedgerFilterSessionDto): string {
+    const date = session.sessionDate
+      ? new Date(session.sessionDate).toISOString().slice(0, 10)
+      : '';
+    const topic = session.topic ? ` · ${session.topic}` : '';
+    const makeup = session.isMakeup ? ' *' : '';
+    return `${date} ${session.startTime || ''}${topic}${makeup}`.trim();
+  }
+
+  chargeContext(row: LedgerChargeRowDto): string {
+    return [row.academicYearName, row.educationStageName, row.groupName].filter(Boolean).join(' · ');
+  }
+
+  chargeSession(row: LedgerChargeRowDto): string {
+    if (!row.sessionDate && !row.sessionTopic) return '';
+    const date = row.sessionDate ? new Date(row.sessionDate).toISOString().slice(0, 10) : '';
+    return [date, row.sessionStartTime, row.sessionTopic].filter(Boolean).join(' · ');
+  }
+
+  private boot(studentId: number | null): void {
+    this.loadSummary();
+    this.billingApi
+      .getFilterAcademicYears()
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load ledger.'));
+          return of([] as LedgerFilterOptionDto[]);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((years) => {
+        this.academicYears.set(years ?? []);
+      });
+
+    if (this.academicYearId()) this.loadStages();
+    if (this.educationStageId()) this.loadLessonsFilter();
+    if (this.lessonId()) this.loadGroups();
+    if (this.groupId()) this.loadSessions();
+    if (studentId) this.openCollectForStudent(studentId);
+  }
+
+  private loadStages(): void {
+    const academicYearId = this.academicYearId();
+    if (!academicYearId) return;
+    this.loadingStages.set(true);
+    this.billingApi
+      .getFilterStages(academicYearId)
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load stages.'));
+          return of([] as LedgerFilterOptionDto[]);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.stages.set(rows ?? []);
+        this.loadingStages.set(false);
+      });
+  }
+
+  private loadLessonsFilter(): void {
+    if (!this.educationStageId()) return;
+    this.loadingLessons.set(true);
+    this.billingApi
+      .getFilterLessons(this.academicYearId() ?? undefined, this.educationStageId() ?? undefined)
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load lessons.'));
+          return of([] as LedgerFilterOptionDto[]);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.lessons.set(rows ?? []);
+        this.loadingLessons.set(false);
+      });
+  }
+
+  private loadGroups(): void {
+    const lessonId = this.lessonId();
+    if (!lessonId) return;
+    this.loadingGroups.set(true);
+    this.billingApi
+      .getFilterGroups(lessonId)
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load groups.'));
+          return of([] as LedgerFilterOptionDto[]);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.groups.set(rows ?? []);
+        this.loadingGroups.set(false);
+      });
+  }
+
+  private loadSessions(): void {
+    const groupId = this.groupId();
+    if (!groupId) return;
+    this.loadingSessions.set(true);
+    this.billingApi
+      .getFilterSessions(groupId)
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load sessions.'));
+          return of([] as LedgerFilterSessionDto[]);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((rows) => {
+        this.sessions.set(rows ?? []);
+        this.loadingSessions.set(false);
+      });
+  }
+
+  private reloadOpenSection(): void {
+    if (!this.section()) return;
+    this.loadList();
+  }
+
+  private refreshAfterFilter(): void {
+    this.loadSummary();
+    this.reloadOpenSection();
+  }
+
+  private loadSummary(): void {
+    this.billingApi
+      .getSummary(...this.summaryArgs())
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load ledger.'));
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((summary) => {
+        if (summary) this.summary.set(summary);
+      });
+  }
+
+  private summaryArgs(): [
+    number | undefined,
+    number | undefined,
+    number | undefined,
+    number | undefined,
+    number | undefined,
+    number | undefined,
+  ] {
+    return [
+      this.filterStudent()?.id ?? undefined,
+      this.academicYearId() ?? undefined,
+      this.educationStageId() ?? undefined,
+      this.lessonId() ?? undefined,
+      this.groupId() ?? undefined,
+      this.sessionId() ?? undefined,
+    ];
+  }
+
+  private loadList(): void {
+    if (!this.section()) return;
+    this.loadingList.set(true);
+    this.list$.next();
+  }
+
+  private listRequest(): Observable<{ items?: unknown[]; totalCount?: number } | null> {
+    const [studentId, academicYearId, educationStageId, lessonId, groupId, sessionId] = this.summaryArgs();
+    const page = this.page();
+    const section = this.section();
+    const request$ = (
+      section === 'outstanding'
+        ? this.billingApi.getOutstanding(
+            studentId,
+            academicYearId,
+            educationStageId,
+            lessonId,
+            groupId,
+            sessionId,
+            undefined,
+            undefined,
+            undefined,
+            page,
+            PAGE_SIZE,
+          )
+        : section === 'charges'
+          ? this.billingApi.getCharges(
+              studentId,
+              academicYearId,
+              educationStageId,
+              lessonId,
+              groupId,
+              sessionId,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              page,
+              PAGE_SIZE,
+            )
+          : section === 'payments'
+            ? this.billingApi.getPayments(
+                studentId,
+                academicYearId,
+                educationStageId,
+                lessonId,
+                groupId,
+                sessionId,
+                undefined,
+                undefined,
+                page,
+                PAGE_SIZE,
+              )
+            : this.billingApi.getTransactions(
+                studentId,
+                academicYearId,
+                educationStageId,
+                lessonId,
+                groupId,
+                sessionId,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                page,
+                PAGE_SIZE,
+              )
+    ) as Observable<{ items?: unknown[]; totalCount?: number }>;
+
+    return request$.pipe(
+      catchError((err) => {
+        this.error.set(this.apiError(err, 'Failed to load ledger.'));
+        this.loadingList.set(false);
+        return of(null);
+      }),
+    );
+  }
+
+  private applyList(data: { items?: unknown[]; totalCount?: number } | null): void {
+    this.loadingList.set(false);
+    if (!data) {
+      this.transactions.set([]);
+      this.charges.set([]);
+      this.payments.set([]);
+      this.totalCount.set(0);
       return;
     }
 
-    this.selectedLessonId.set(lessonId);
-    this.detail.set(null);
-    this.selectedGroupId.set(null);
-    this.loadingDetail.set(true);
-    this.error.set(null);
-    if (goStudents) this.step.set('students');
-
-    this.billingApi.getLessonBillingDetail(lessonId).subscribe({
-      next: (data) => {
-        this.detail.set(data);
-        this.loadingDetail.set(false);
-        const preferred =
-          (data.groups ?? []).find((g) => g.outstandingAmount > 0)?.groupId ??
-          data.groups?.[0]?.groupId ??
-          null;
-        this.selectedGroupId.set(preferred);
-
-        if (autoCollectStudentId) {
-          const row = this.findStudentRow(autoCollectStudentId, data);
-          if (row) this.openCollect(lessonId, row);
-        }
-
-        void this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { lessonId },
-          queryParamsHandling: 'merge',
-          replaceUrl: true,
-        });
-      },
-      error: (err) => {
-        this.loadingDetail.set(false);
-        this.error.set(this.apiError(err, 'Failed to load lesson billing.'));
-      },
-    });
+    this.totalCount.set(data.totalCount ?? 0);
+    switch (this.section()) {
+      case 'payments':
+        this.payments.set((data.items as LedgerPaymentRowDto[]) ?? []);
+        this.transactions.set([]);
+        this.charges.set([]);
+        break;
+      case 'transactions':
+        this.transactions.set((data.items as LedgerTransactionDto[]) ?? []);
+        this.charges.set([]);
+        this.payments.set([]);
+        break;
+      default:
+        this.charges.set((data.items as LedgerChargeRowDto[]) ?? []);
+        this.transactions.set([]);
+        this.payments.set([]);
+        break;
+    }
   }
 
-  private clearLesson(): void {
-    this.selectedLessonId.set(null);
-    this.selectedLessonSummary.set(null);
-    this.detail.set(null);
-    this.selectedGroupId.set(null);
+  private openCollectForStudent(studentId: number): void {
+    this.collectOpen.set(true);
+    this.collectStudent.set(new BillingStudentSearchDto({ id: studentId, fullName: '' }));
+    this.loadCollectOutstanding(studentId);
+  }
+
+  private loadCollectOutstanding(studentId: number): void {
+    this.loadingOutstanding.set(true);
+    this.billingApi
+      .getStudentOutstanding(studentId)
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load outstanding.'));
+          this.loadingOutstanding.set(false);
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((sheet) => {
+        this.loadingOutstanding.set(false);
+        if (sheet) this.applyCollectSheet(sheet);
+      });
+  }
+
+  private applyCollectSheet(sheet: StudentOutstandingDto): void {
+    this.collectOutstanding.set(sheet);
+    this.collectStudent.set(
+      new BillingStudentSearchDto({
+        id: sheet.studentId,
+        fullName: sheet.studentName,
+        studentCode: sheet.studentCode,
+      }),
+    );
+    this.collectQuery.set(sheet.studentName);
+    const match = sheet.lessons.find((l) => l.lessonId === this.lessonId()) ?? sheet.lessons[0];
+    if (match) this.selectCollectLesson(match);
+  }
+
+  private openDetail(kind: 'Charge' | 'Payment', id: number): void {
+    this.detailOpen.set(true);
+    this.detailKind.set(kind);
+    this.loadingDetail.set(true);
+    this.chargeDetail.set(null);
+    this.paymentDetail.set(null);
+    const call$ = (
+      kind === 'Charge' ? this.billingApi.getCharge(id) : this.billingApi.getPayment(id)
+    ) as Observable<LedgerChargeDetailDto | LedgerPaymentDetailDto | null>;
+    call$
+      .pipe(
+        catchError((err) => {
+          this.error.set(this.apiError(err, 'Failed to load details.'));
+          this.loadingDetail.set(false);
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((data) => {
+        this.loadingDetail.set(false);
+        if (!data) return;
+        if (kind === 'Charge') this.chargeDetail.set(data as LedgerChargeDetailDto);
+        else this.paymentDetail.set(data as LedgerPaymentDetailDto);
+      });
+  }
+
+  private clearCollectQueryParams(): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { lessonId: null, studentId: null },
+      queryParams: { studentId: null },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
-  }
-
-  private applySelectionPath(data: BillingCatalogDto, lessonId: number): void {
-    for (const type of data.educationTypes ?? []) {
-      for (const stage of type.stages ?? []) {
-        if ((stage.lessons ?? []).some((l) => l.lessonId === lessonId)) {
-          this.selectedTypeId.set(type.educationTypeId);
-          this.selectedStageId.set(stage.educationStageId);
-          return;
-        }
-      }
-    }
-  }
-
-  private ensurePathForLesson(summary: BillingLessonSummaryDto): void {
-    const data = this.catalog();
-    if (!data) return;
-    for (const type of data.educationTypes ?? []) {
-      for (const stage of type.stages ?? []) {
-        if ((stage.lessons ?? []).some((l) => l.lessonId === summary.lessonId)) {
-          this.selectedTypeId.set(type.educationTypeId);
-          this.selectedStageId.set(stage.educationStageId);
-          return;
-        }
-      }
-    }
-  }
-
-  private refreshAfterPayment(lessonId: number): void {
-    // Keep the teacher on the same lesson after settle.
-    this.billingApi.getBillingCatalog().subscribe({
-      next: (data) => {
-        this.catalog.set(data);
-        this.applySelectionPath(data, lessonId);
-        const summary = this.findLessonSummary(lessonId, data);
-        if (summary) this.selectedLessonSummary.set(summary);
-        this.billingApi.getLessonBillingDetail(lessonId).subscribe({
-          next: (detail) => {
-            this.detail.set(detail);
-            const preferred =
-              (detail.groups ?? []).find((g) => g.groupId === this.selectedGroupId()) ??
-              (detail.groups ?? []).find((g) => g.outstandingAmount > 0) ??
-              detail.groups?.[0] ??
-              null;
-            this.selectedGroupId.set(preferred?.groupId ?? null);
-            this.step.set('students');
-          },
-        });
-      },
-    });
-  }
-
-  private findLessonSummary(
-    lessonId: number,
-    data: BillingCatalogDto | null = this.catalog(),
-  ): BillingLessonSummaryDto | null {
-    for (const type of data?.educationTypes ?? []) {
-      for (const stage of type.stages ?? []) {
-        const hit = (stage.lessons ?? []).find((l) => l.lessonId === lessonId);
-        if (hit) return hit;
-      }
-    }
-    return null;
-  }
-
-  private findStudentRow(
-    studentId: number,
-    detail: LessonBillingDetailDto | null = this.detail(),
-  ): LedgerStudentRowDto | null {
-    for (const g of detail?.groups ?? []) {
-      const hit = g.students?.find((s) => s.studentId === studentId);
-      if (hit) return hit;
-    }
-    return null;
   }
 
   private saveBlob(data: Blob, fileName: string): void {

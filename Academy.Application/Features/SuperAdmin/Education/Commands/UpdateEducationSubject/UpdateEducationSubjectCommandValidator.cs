@@ -6,7 +6,6 @@ public sealed class UpdateEducationSubjectCommandValidator : AbstractValidator<U
 {
     public UpdateEducationSubjectCommandValidator()
     {
-        RuleFor(x => x.EducationTypeId).GreaterThan(0);
         RuleFor(x => x.EducationStageId).GreaterThan(0);
         RuleFor(x => x.EducationYearId).GreaterThan(0);
         RuleFor(x => x.SubjectId).GreaterThan(0);

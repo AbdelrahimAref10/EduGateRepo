@@ -1,497 +1,502 @@
-@if (!ready()) {
-  <app-page-loader titleKey="teacherPayments.title" />
-} @else {
-  <section class="pay-page animate-fade-up">
-    <header class="pay-top">
-      <div class="pay-top-text">
-        <h1>{{ 'teacherPayments.title' | t }}</h1>
-        @if (catalog(); as cat) {
-          <p class="pay-top-stats">
-            <span
-              >{{ 'billing.outstanding' | t }}:
-              <strong>{{ cat.totalOutstanding | number: '1.0-2' }}</strong></span
-            >
-            <span
-              >{{ 'teacherPayments.debtors' | t }}: <strong>{{ cat.totalDebtors }}</strong></span
-            >
-          </p>
-        }
-      </div>
-      <button
-        type="button"
-        class="btn-ghost"
-        (click)="loadCatalog()"
-        [disabled]="loadingCatalog()"
-      >
-        {{ loadingCatalog() ? ('classroom.loading' | t) : ('lessons.refresh' | t) }}
-      </button>
-    </header>
-
-    @if (error()) {
-      <div class="pay-alert is-danger" role="alert">{{ error() }}</div>
-    }
-    @if (success() === 'paymentRecorded') {
-      <div class="pay-alert is-ok">{{ 'billing.paymentRecorded' | t }}</div>
-    }
-
-    <!-- Progress: 4 clear steps -->
-    <ol class="pay-steps" [attr.aria-label]="'teacherPayments.flow' | t">
-      <li [class.is-done]="stepIndex() > 1" [class.is-now]="step() === 'type'">
-        <button type="button" (click)="goToStep('type')">
-          <span class="pay-steps-n">1</span>
-          <span class="pay-steps-t">{{ 'teacherPayments.stepType' | t }}</span>
-        </button>
-      </li>
-      <li [class.is-done]="stepIndex() > 2" [class.is-now]="step() === 'stage'">
-        <button type="button" [disabled]="!selectedTypeId()" (click)="goToStep('stage')">
-          <span class="pay-steps-n">2</span>
-          <span class="pay-steps-t">{{ 'teacherPayments.stepStage' | t }}</span>
-        </button>
-      </li>
-      <li [class.is-done]="stepIndex() > 3" [class.is-now]="step() === 'lesson'">
-        <button type="button" [disabled]="!selectedStageId()" (click)="goToStep('lesson')">
-          <span class="pay-steps-n">3</span>
-          <span class="pay-steps-t">{{ 'teacherPayments.stepLesson' | t }}</span>
-        </button>
-      </li>
-      <li [class.is-now]="step() === 'students'">
-        <button
-          type="button"
-          [disabled]="!selectedLessonId()"
-          (click)="goToStep('students')"
-        >
-          <span class="pay-steps-n">4</span>
-          <span class="pay-steps-t">{{ 'teacherPayments.stepStudents' | t }}</span>
-        </button>
-      </li>
-    </ol>
-
-    <!-- Path + back -->
-    <div class="pay-path">
-      @if (step() !== 'type') {
-        <button type="button" class="pay-back" (click)="goBack()">
-          ← {{ 'teacherPayments.back' | t }}
-        </button>
-      }
-      <nav class="pay-crumb" aria-label="breadcrumb">
-        @if (selectedType(); as t) {
-          <button type="button" (click)="goToStep('type')">{{ t.name }}</button>
-        }
-        @if (selectedStage(); as s) {
-          <span>/</span>
-          <button type="button" (click)="goToStep('stage')">{{ s.name }}</button>
-        }
-        @if (selectedLessonSummary(); as l) {
-          <span>/</span>
-          <button type="button" (click)="goToStep('lesson')">{{ l.subject }}</button>
-          <span class="pay-crumb-year">{{ l.educationYearName }}</span>
-        }
-      </nav>
+<section class="space-y-5">
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h1 class="page-title">{{ 'teacherPayments.title' | t }}</h1>
+      <p class="mt-1 text-sm text-muted">{{ 'teacherPayments.subtitle' | t }}</p>
     </div>
+    <button type="button" class="btn-primary" (click)="openCollect()">
+      {{ 'billing.collect' | t }}
+    </button>
+  </header>
 
-    <div class="pay-panel-main">
-      <header class="pay-ask">
-        <p class="pay-ask-label">
-          {{ 'teacherPayments.stepLabel' | t }} {{ stepIndex() }} / 4
-        </p>
-        <h2>{{ promptKey() | t }}</h2>
-      </header>
+  @if (error()) {
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-danger" role="alert">{{ error() }}</div>
+  }
+  @if (success() === 'paymentRecorded') {
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+      {{ 'billing.paymentRecorded' | t }}
+    </div>
+  }
 
-      @if (loadingCatalog() && !educationTypes().length) {
-        <app-page-loader titleKey="teacherPayments.catalog" [compact]="true" />
-      } @else if (!educationTypes().length) {
-        <p class="pay-empty">{{ 'teacherPayments.noLessons' | t }}</p>
-      } @else {
-        <!-- STEP 1: Education types -->
-        @if (step() === 'type') {
-          <div class="pay-grid">
-            @for (type of educationTypes(); track trackType($index, type)) {
-              <button type="button" class="pay-pick" (click)="enterType(type.educationTypeId)">
-                <div class="pay-pick-body">
-                  <p class="pay-pick-kicker">{{ 'teacherPayments.educationType' | t }}</p>
-                  <p class="pay-pick-title">{{ type.name }}</p>
-                  <p class="pay-pick-meta">
-                    {{ type.stages.length }} {{ 'teacherPayments.stages' | t }}
-                    · {{ type.lessonsCount }} {{ 'teacherPayments.lessons' | t }}
-                  </p>
-                </div>
-                <div class="pay-pick-side">
-                  @if (type.outstandingAmount > 0) {
-                    <span class="pay-amt-badge is-due">{{ type.outstandingAmount | number: '1.0-2' }}</span>
-                    <span class="pay-pick-hint">{{ 'billing.outstanding' | t }}</span>
-                  } @else {
-                    <span class="pay-amt-badge is-ok">{{ 'billing.statusPaid' | t }}</span>
-                  }
-                  <span class="pay-pick-arrow" aria-hidden="true">←</span>
-                </div>
-              </button>
-            }
-          </div>
-        }
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    @if (summary(); as s) {
+      <article class="card flex items-center gap-4 p-4">
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-danger to-rose-500 text-white">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ s.chargesTotal | number: '1.0-2' }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ 'teacherPayments.chargesTotal' | t }}</p>
+        </div>
+      </article>
+      <article class="card flex items-center gap-4 p-4">
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ s.paymentsTotal | number: '1.0-2' }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ 'teacherPayments.paymentsTotal' | t }}</p>
+        </div>
+      </article>
+      <article class="card flex items-center gap-4 p-4">
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-warning to-orange-500 text-white">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M4 19h16M6 16V9l6-4 6 4v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ s.netOutstanding | number: '1.0-2' }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ 'teacherPayments.netOutstanding' | t }}</p>
+        </div>
+      </article>
+      <article class="card flex items-center gap-4 p-4">
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-info to-primary-600 text-white">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M8 3.5v3M16 3.5v3M4.5 9.5h15M6 6h12a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 18 20H6a1.5 1.5 0 0 1-1.5-1.5v-11A1.5 1.5 0 0 1 6 6Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ s.todayChargesTotal | number: '1.0-2' }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ 'teacherPayments.todayCharges' | t }}</p>
+        </div>
+      </article>
+      <article class="card flex items-center gap-4 p-4">
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 text-white">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ s.todayPaymentsTotal | number: '1.0-2' }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ 'teacherPayments.todayPayments' | t }}</p>
+        </div>
+      </article>
+      <article class="card flex items-center gap-4 p-4">
+        <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-navy-600 to-navy-800 text-white">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M14 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold tracking-tight text-ink">{{ s.todayNetOutstanding | number: '1.0-2' }}</p>
+          <p class="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">{{ 'teacherPayments.todayNet' | t }}</p>
+        </div>
+      </article>
+    } @else {
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <article class="card h-24 animate-pulse"></article>
+      }
+    }
+  </div>
 
-        <!-- STEP 2: Stages -->
-        @if (step() === 'stage') {
-          <div class="pay-grid">
-            @for (stage of stagesForType(); track trackStage($index, stage)) {
-              <button type="button" class="pay-pick" (click)="enterStage(stage.educationStageId)">
-                <div class="pay-pick-body">
-                  <p class="pay-pick-kicker">{{ 'teacherPayments.stage' | t }}</p>
-                  <p class="pay-pick-title">{{ stage.name }}</p>
-                  <p class="pay-pick-meta">
-                    {{ stage.lessonsCount }} {{ 'teacherPayments.lessons' | t }}
-                  </p>
-                </div>
-                <div class="pay-pick-side">
-                  @if (stage.outstandingAmount > 0) {
-                    <span class="pay-amt-badge is-due">{{ stage.outstandingAmount | number: '1.0-2' }}</span>
-                  } @else {
-                    <span class="pay-amt-badge is-ok">{{ 'billing.statusPaid' | t }}</span>
-                  }
-                  <span class="pay-pick-arrow" aria-hidden="true">←</span>
-                </div>
-              </button>
-            }
-          </div>
-        }
-
-        <!-- STEP 3: Lessons -->
-        @if (step() === 'lesson') {
-          <div class="pay-lesson-tools">
-            <button
-              type="button"
-              class="pay-filter"
-              [class.is-on]="debtOnly()"
-              (click)="toggleDebtOnly()"
-            >
-              {{ 'teacherPayments.debtOnly' | t }}
-            </button>
-          </div>
-
-          @if (!lessonsForStage().length) {
-            <p class="pay-empty">
-              {{ debtOnly() ? ('teacherPayments.noDebtLessons' | t) : ('teacherPayments.noLessons' | t) }}
-            </p>
-          } @else {
-            <div class="pay-grid">
-              @for (lesson of lessonsForStage(); track trackLesson($index, lesson)) {
-                <button type="button" class="pay-pick is-lesson" (click)="enterLesson(lesson.lessonId)">
-                  <div class="pay-pick-body">
-                    <p class="pay-pick-kicker">{{ lesson.educationYearName }}</p>
-                    <p class="pay-pick-title">{{ lesson.subject }}</p>
-                    <p class="pay-pick-meta">
-                      {{ billingTypeKey(lesson.billingType) | t }}
-                      @if (lesson.billingType === 'PerSession' && lesson.sessionPrice != null) {
-                        · {{ lesson.sessionPrice | number: '1.0-2' }}
-                      }
-                      @if (lesson.billingType === 'Monthly' && lesson.monthlyPrice != null) {
-                        · {{ lesson.monthlyPrice | number: '1.0-2' }}
-                      }
-                      · {{ lesson.groupsCount }} {{ 'teacherPayments.groups' | t }}
-                    </p>
-                  </div>
-                  <div class="pay-pick-side">
-                    @if (lesson.outstandingAmount > 0) {
-                      <span class="pay-amt-badge is-due">{{ lesson.outstandingAmount | number: '1.0-2' }}</span>
-                      <span class="pay-pick-hint"
-                        >{{ lesson.debtorsCount }} {{ 'teacherPayments.debtorsShort' | t }}</span
-                      >
-                    } @else {
-                      <span class="pay-amt-badge is-ok">{{ 'billing.statusPaid' | t }}</span>
-                    }
-                    <span class="pay-pick-arrow" aria-hidden="true">←</span>
-                  </div>
-                </button>
-              }
-            </div>
+  <section class="card overflow-hidden">
+    <div class="grid gap-4 p-4 sm:p-5">
+      <label class="grid gap-1.5">
+        <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'teacherPayments.filterStudent' | t }}</span>
+        <div class="ld-search">
+          <input
+            class="field"
+            type="text"
+            autocomplete="off"
+            [value]="filterQuery()"
+            (input)="onFilterSearch($any($event.target).value)"
+            [attr.placeholder]="'teacherPayments.searchStudent' | t"
+          />
+          @if (filterStudent()) {
+            <button type="button" class="ld-clear" (click)="clearFilterStudent()">×</button>
           }
-        }
-
-        <!-- STEP 4: Students -->
-        @if (step() === 'students') {
-          @if (loadingDetail() && !detail()) {
-            <app-page-loader titleKey="billing.ledger" [compact]="true" />
-          } @else if (detail(); as d) {
-            <div class="pay-students-head">
-              <div>
-                <p class="pay-students-path">
-                  {{ d.educationTypeName }} · {{ d.educationStageName }} · {{ d.educationYearName }}
-                </p>
-                <h3>{{ d.subject }}</h3>
-                <p class="pay-students-meta">
-                  {{ billingTypeKey(d.billingType) | t }}
-                  @if (d.billingType === 'PerSession' && d.sessionPrice != null) {
-                    · {{ 'billing.price' | t }}: {{ d.sessionPrice | number: '1.0-2' }}
-                  }
-                  @if (d.billingType === 'Monthly' && d.monthlyPrice != null) {
-                    · {{ 'billing.price' | t }}: {{ d.monthlyPrice | number: '1.0-2' }}
-                  }
-                </p>
-              </div>
-              @if (selectedLessonSummary(); as sum) {
-                <div class="pay-remain-box">
-                  <span>{{ 'billing.outstanding' | t }}</span>
-                  <strong>{{ sum.outstandingAmount | number: '1.0-2' }}</strong>
-                </div>
-              }
-            </div>
-
-            @if (!groups().length) {
-              <p class="pay-empty">{{ 'teacherPayments.noGroups' | t }}</p>
-            } @else {
-              <div class="pay-group-rail" role="tablist">
-                @for (group of groups(); track trackGroup($index, group)) {
-                  <button
-                    type="button"
-                    role="tab"
-                    class="pay-group-tab"
-                    [class.is-active]="activeGroup()?.groupId === group.groupId"
-                    (click)="selectGroup(group.groupId)"
-                  >
-                    <span class="pay-group-tab-name">{{ group.name }}</span>
-                    <span class="pay-group-tab-meta"
-                      >{{ group.membersCount }} {{ 'billing.student' | t }}</span
-                    >
-                    @if (group.outstandingAmount > 0) {
-                      <span class="pay-amt-badge is-due soft">{{
-                        group.outstandingAmount | number: '1.0-2'
-                      }}</span>
-                    }
+          @if (filterOpen() && filterHits().length) {
+            <ul class="ld-suggest">
+              @for (hit of filterHits(); track hit.id) {
+                <li>
+                  <button type="button" (click)="pickFilterStudent(hit)">
+                    <app-user-avatar [src]="hit.photoUrl" [alt]="hit.fullName" size="sm" />
+                    <span>
+                      <strong>{{ hit.fullName }}</strong>
+                      <small>{{ hit.studentCode || hit.phoneNumber || '—' }}</small>
+                    </span>
                   </button>
-                }
-              </div>
-
-              @if (activeGroup(); as group) {
-                <div class="pay-table-wrap">
-                  @if (!group.students?.length) {
-                    <p class="pay-empty">—</p>
-                  } @else {
-                    <table class="pay-table">
-                      <thead>
-                        <tr>
-                          <th>{{ 'billing.student' | t }}</th>
-                          <th>{{ 'billing.outstanding' | t }}</th>
-                          <th>{{ 'billing.openCharges' | t }}</th>
-                          <th>{{ 'teacherPayments.lastPayment' | t }}</th>
-                          <th>{{ 'lessons.action' | t }}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (row of group.students; track row.studentId) {
-                          <tr [class.has-debt]="row.outstandingAmount > 0">
-                            <td>
-                              <div class="pay-student">
-                                <app-user-avatar
-                                  [src]="row.photoUrl"
-                                  [alt]="row.studentName"
-                                  size="sm"
-                                />
-                                <div>
-                                  <p class="pay-student-name">{{ row.studentName }}</p>
-                                  <p class="pay-student-code">{{ row.studentCode || '—' }}</p>
-                                  <span [class]="studentTone(row)">
-                                    {{ studentStatusKey(row) | t }}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                            <td class="pay-cell-amt" [class.is-due]="row.outstandingAmount > 0">
-                              {{ row.outstandingAmount | number: '1.0-2' }}
-                            </td>
-                            <td>{{ row.openChargesCount }}</td>
-                            <td>
-                              @if (row.lastPaymentAtUtc) {
-                                <p class="pay-last-amt">{{ row.lastPaymentAmount | number: '1.0-2' }}</p>
-                                <p class="pay-last-date">
-                                  {{ row.lastPaymentAtUtc | date: 'yyyy-MM-dd' }}
-                                </p>
-                              } @else {
-                                —
-                              }
-                            </td>
-                            <td>
-                              @if (row.outstandingAmount > 0) {
-                                <button
-                                  type="button"
-                                  class="btn-primary text-xs"
-                                  (click)="openCollect(d.lessonId, row)"
-                                >
-                                  {{ 'teacherPayments.settle' | t }}
-                                </button>
-                              } @else {
-                                <button
-                                  type="button"
-                                  class="btn-ghost text-xs"
-                                  (click)="openCollect(d.lessonId, row)"
-                                >
-                                  {{ 'billing.viewLedger' | t }}
-                                </button>
-                              }
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  }
-                </div>
+                </li>
               }
-            }
+            </ul>
           }
-        }
+        </div>
+      </label>
+
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <label class="grid gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'lessons.academicYear' | t }}</span>
+          <select class="field" [value]="academicYearId() ?? ''" (change)="onAcademicYearChange($any($event.target).value)">
+            <option value="">{{ 'teacherPayments.allAcademicYears' | t }}</option>
+            @for (year of academicYears(); track year.id) {
+              <option [value]="year.id">{{ year.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'teacherPayments.stage' | t }}</span>
+          <select
+            class="field"
+            [value]="educationStageId() ?? ''"
+            (change)="onStageChange($any($event.target).value)"
+            [disabled]="!academicYearId() || loadingStages()"
+          >
+            <option value="">{{ 'teacherPayments.allStages' | t }}</option>
+            @for (stage of stages(); track stage.id) {
+              <option [value]="stage.id">{{ stage.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'teacherPayments.lesson' | t }}</span>
+          <select
+            class="field"
+            [value]="lessonId() ?? ''"
+            (change)="onLessonChange($any($event.target).value)"
+            [disabled]="!educationStageId() || loadingLessons()"
+          >
+            <option value="">{{ 'teacherPayments.allLessons' | t }}</option>
+            @for (lesson of lessons(); track lesson.id) {
+              <option [value]="lesson.id">{{ lesson.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'teacherPayments.group' | t }}</span>
+          <select
+            class="field"
+            [value]="groupId() ?? ''"
+            (change)="onGroupChange($any($event.target).value)"
+            [disabled]="!lessonId() || loadingGroups()"
+          >
+            <option value="">{{ 'teacherPayments.allGroups' | t }}</option>
+            @for (group of groups(); track group.id) {
+              <option [value]="group.id">{{ group.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'teacherPayments.session' | t }}</span>
+          <select
+            class="field"
+            [value]="sessionId() ?? ''"
+            (change)="onSessionChange($any($event.target).value)"
+            [disabled]="!groupId() || loadingSessions()"
+          >
+            <option value="">{{ 'teacherPayments.allSessions' | t }}</option>
+            @for (session of sessions(); track session.id) {
+              <option [value]="session.id">{{ sessionLabel(session) }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (hasActiveFilters()) {
+        <button type="button" class="btn-ghost w-fit" (click)="clearFilters()">{{ 'teacherPayments.resetFilters' | t }}</button>
       }
     </div>
   </section>
-}
 
-@if (collectOpen()) {
-  <div class="pay-sheet-backdrop" (click)="closeCollect()">
-    <aside
-      class="pay-sheet animate-fade-up"
-      (click)="$event.stopPropagation()"
-      role="dialog"
-      aria-modal="true"
-    >
-      <header class="pay-sheet-head">
-        <div>
-          <p class="pay-sheet-kicker">{{ 'teacherPayments.settle' | t }}</p>
-          @if (studentLedger(); as led) {
-            <h3>{{ led.studentName }}</h3>
-            <p class="pay-sheet-sub">
-              {{ led.subject }} · {{ 'billing.outstanding' | t }}:
-              <strong>{{ led.outstandingAmount | number: '1.0-2' }}</strong>
-            </p>
-          } @else {
-            <h3>{{ 'billing.collectTitle' | t }}</h3>
-          }
+  <div class="grid gap-4 sm:grid-cols-2">
+    @for (item of sections; track item.id) {
+      <button
+        type="button"
+        class="card flex items-center gap-4 p-4 text-start transition hover:-translate-y-0.5 hover:shadow-dropdown"
+        [class.ring-2]="section() === item.id"
+        [class.ring-primary-500]="section() === item.id"
+        (click)="selectSection(item.id)"
+      >
+        <div [class]="item.tone">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none">
+            <path [attr.d]="item.icon" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
-        <button
-          type="button"
-          class="btn-ghost border-white/20 bg-white/10 text-white"
-          (click)="closeCollect()"
-        >
-          ×
-        </button>
-      </header>
+        <div>
+          <p class="text-base font-extrabold text-ink">{{ item.key | t }}</p>
+          <p class="mt-0.5 text-sm text-muted">{{ item.hint | t }}</p>
+        </div>
+      </button>
+    }
+  </div>
 
-      <div class="pay-sheet-body">
-        @if (success() === 'paymentRecorded') {
-          <div class="pay-alert is-ok">{{ 'billing.paymentRecorded' | t }}</div>
+  @if (!section()) {
+    <section class="card px-5 py-10 text-center text-muted">
+      <p class="font-bold text-ink">{{ 'teacherPayments.pickSection' | t }}</p>
+      <p class="mt-1 text-sm">{{ 'teacherPayments.pickSectionHint' | t }}</p>
+    </section>
+  } @else {
+    <section class="card overflow-hidden">
+      <div class="p-4 sm:p-5" [class.opacity-60]="loadingList()">
+        @if (loadingList() && listEmpty()) {
+          <app-page-loader titleKey="billing.ledger" [compact]="true" />
+        } @else if (listEmpty()) {
+          <div class="py-8 text-center text-muted">
+            <p class="font-bold text-ink">{{ 'teacherPayments.emptyTitle' | t }}</p>
+            <p class="mt-1 text-sm">{{ 'teacherPayments.emptyHint' | t }}</p>
+          </div>
+        } @else {
+          <div class="ld-head">
+            <span>{{ 'billing.student' | t }}</span>
+            <span>{{ 'billing.subject' | t }}</span>
+            <span>{{ 'teacherPayments.when' | t }}</span>
+            <span>{{ 'teacherPayments.entry' | t }}</span>
+            <span>{{ 'billing.amount' | t }}</span>
+          </div>
+
+          @if (section() === 'transactions') {
+            @for (row of transactions(); track row.kind + '-' + row.id) {
+              <button type="button" class="ld-row" (click)="openTransaction(row)">
+                <span>
+                  <strong>{{ row.studentName }}</strong>
+                  <small>{{ row.studentCode || '—' }}</small>
+                </span>
+                <span>
+                  <strong>{{ row.lessonTitle }}</strong>
+                  <small>{{ row.groupName || '—' }}</small>
+                </span>
+                <span>{{ row.occurredAtUtc | date: 'yyyy-MM-dd HH:mm' }}</span>
+                <span>
+                  <em class="ld-pill" [class.is-in]="row.kind === 'Payment'" [class.is-out]="row.kind === 'Charge'">
+                    {{ row.kind === 'Payment' ? ('billing.payments' | t) : ('billing.charges' | t) }}
+                  </em>
+                </span>
+                <span class="ld-amt" [class.is-in]="row.kind === 'Payment'" [class.is-due]="row.kind === 'Charge'">
+                  {{ row.kind === 'Payment' ? '+' : '' }}{{ row.amount | number: '1.0-2' }}
+                </span>
+              </button>
+            }
+          }
+
+          @if (section() === 'outstanding' || section() === 'charges') {
+            @for (row of charges(); track row.id) {
+              <button type="button" class="ld-row" (click)="openCharge(row)">
+                <span>
+                  <strong>{{ row.studentName }}</strong>
+                  <small>{{ row.studentCode || '—' }}</small>
+                </span>
+                <span>
+                  <strong>{{ row.lessonTitle }}</strong>
+                  <small>{{ chargeContext(row) || '—' }}</small>
+                  @if (chargeSession(row); as session) {
+                    <small>{{ session }}</small>
+                  }
+                </span>
+                <span>{{ (row.sessionDate || row.createdAtUtc) | date: 'yyyy-MM-dd' }}</span>
+                <span>
+                  <em class="ld-pill" [class]="statusTone(row.status)">{{ statusKey(row.status) | t }}</em>
+                </span>
+                <span class="ld-amt is-due">{{ row.remaining | number: '1.0-2' }}</span>
+              </button>
+            }
+          }
+
+          @if (section() === 'payments') {
+            @for (row of payments(); track row.id) {
+              <button type="button" class="ld-row" (click)="openPayment(row)">
+                <span>
+                  <strong>{{ row.studentName }}</strong>
+                  <small>{{ row.studentCode || '—' }}</small>
+                </span>
+                <span>
+                  <strong>{{ row.lessonTitle }}</strong>
+                  <small>{{ row.groupName || '—' }}</small>
+                </span>
+                <span>{{ row.paidAtUtc | date: 'yyyy-MM-dd HH:mm' }}</span>
+                <span><em class="ld-pill is-in">#{{ row.receiptNumber }}</em></span>
+                <span class="ld-amt is-in">+{{ row.amount | number: '1.0-2' }}</span>
+              </button>
+            }
+          }
         }
 
-        @if (loadingLedger()) {
-          <app-page-loader titleKey="billing.ledger" [compact]="true" />
-        } @else if (studentLedger(); as led) {
-          <section>
-            <div class="pay-sheet-section-head">
-              <h4>{{ 'teacherPayments.selectCharges' | t }}</h4>
-              <span>
-                {{ 'teacherPayments.maxAmount' | t }}:
-                <strong>{{ selectedRemaining() | number: '1.0-2' }}</strong>
-              </span>
-            </div>
+        <app-paginator
+          [page]="page()"
+          [pageSize]="pageSize"
+          [totalCount]="totalCount()"
+          [disabled]="loadingList()"
+          (pageChange)="onPageChange($event)"
+        />
+      </div>
+    </section>
+  }
+</section>
 
-            @if (!openCharges().length) {
-              <p class="pay-empty compact">{{ 'billing.noDebts' | t }}</p>
-            } @else {
-              <ul class="pay-charge-list">
-                @for (charge of openCharges(); track charge.id) {
+@if (collectOpen()) {
+  <div class="ld-backdrop" (click)="closeCollect()">
+    <div class="ld-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="flex items-start justify-between gap-3 border-b border-line p-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'billing.collectTitle' | t }}</p>
+          <h2 class="mt-1 text-lg font-extrabold">{{ 'teacherPayments.collectHint' | t }}</h2>
+        </div>
+        <button type="button" class="ld-icon" (click)="closeCollect()">×</button>
+      </header>
+      <div class="grid gap-4 p-4">
+        <label class="grid gap-1.5">
+          <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'billing.student' | t }}</span>
+          <div class="ld-search">
+            <input
+              class="field"
+              type="text"
+              autocomplete="off"
+              [value]="collectQuery()"
+              (input)="onCollectSearch($any($event.target).value)"
+              (focus)="onCollectFocus()"
+              [attr.placeholder]="'teacherPayments.searchStudent' | t"
+            />
+            @if (collectOpenList() && collectHits().length) {
+              <ul class="ld-suggest">
+                @for (hit of collectHits(); track hit.id) {
                   <li>
-                    <label class="pay-charge" [class.is-on]="isChargeSelected(charge.id)">
-                      <input
-                        type="checkbox"
-                        [checked]="isChargeSelected(charge.id)"
-                        (change)="toggleCharge(charge.id)"
-                      />
-                      <div class="min-w-0 flex-1">
-                        <p class="font-bold text-ink">{{ chargeTypeKey(charge.type) | t }}</p>
-                        <p class="mt-0.5 text-xs text-muted">
-                          {{ charge.createdAtUtc | date: 'yyyy-MM-dd' }}
-                          · {{ 'billing.price' | t }} {{ charge.amount | number: '1.0-2' }}
-                          · {{ 'teacherPayments.paidAmount' | t }}
-                          {{ charge.allocatedAmount | number: '1.0-2' }}
-                        </p>
-                      </div>
-                      <div class="text-end">
-                        <p class="text-sm font-extrabold text-amber-700">
-                          {{ charge.remaining | number: '1.0-2' }}
-                        </p>
-                        <p class="text-[11px] text-muted">{{ statusKey(charge.status) | t }}</p>
-                      </div>
-                    </label>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-
-          @if (openCharges().length) {
-            <form class="space-y-3" [formGroup]="collectForm" (ngSubmit)="submitCollect()">
-              <label>
-                <div class="mb-1 flex items-center justify-between gap-2">
-                  <span class="label-text">{{ 'billing.amount' | t }}</span>
-                  <button
-                    type="button"
-                    class="text-xs font-bold text-primary-700"
-                    (click)="fillMaxAmount()"
-                  >
-                    {{ 'teacherPayments.payAllSelected' | t }}
-                  </button>
-                </div>
-                <input
-                  class="field"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  [attr.max]="selectedRemaining()"
-                  formControlName="amount"
-                />
-              </label>
-              <label>
-                <span class="label-text">{{ 'billing.method' | t }}</span>
-                <select class="field" formControlName="method">
-                  @for (m of paymentMethods; track m.value) {
-                    <option [ngValue]="m.value">{{ m.key | t }}</option>
-                  }
-                </select>
-              </label>
-              <label>
-                <span class="label-text">{{ 'billing.note' | t }}</span>
-                <input class="field" type="text" formControlName="note" />
-              </label>
-              <div class="flex justify-end gap-2 pt-1">
-                <button type="button" class="btn-ghost" (click)="closeCollect()">
-                  {{ 'common.cancel' | t }}
-                </button>
-                <button
-                  type="submit"
-                  class="btn-primary"
-                  [disabled]="collecting() || selectedChargeIds().size === 0 || selectedRemaining() <= 0"
-                >
-                  {{ collecting() ? ('lessons.saving' | t) : ('billing.confirmCollect' | t) }}
-                </button>
-              </div>
-            </form>
-          }
-
-          @if (led.payments?.length) {
-            <section>
-              <h4 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-                {{ 'billing.payments' | t }}
-              </h4>
-              <ul class="space-y-2">
-                @for (p of led.payments; track p.id) {
-                  <li class="flex items-center justify-between gap-2 rounded-xl border border-line px-3 py-2">
-                    <div>
-                      <p class="font-bold">#{{ p.receiptNumber }} · {{ p.amount | number: '1.0-2' }}</p>
-                      <p class="text-xs text-muted">{{ p.paidAtUtc | date: 'yyyy-MM-dd HH:mm' }}</p>
-                    </div>
-                    <button type="button" class="btn-primary text-xs" (click)="downloadReceipt(p)">
-                      {{ 'billing.downloadReceipt' | t }}
+                    <button type="button" (click)="pickCollectStudent(hit)">
+                      <app-user-avatar [src]="hit.photoUrl" [alt]="hit.fullName" size="sm" />
+                      <span>
+                        <strong>{{ hit.fullName }}</strong>
+                        <small>{{ hit.studentCode || hit.phoneNumber || '—' }}</small>
+                      </span>
                     </button>
                   </li>
                 }
               </ul>
-            </section>
+            }
+          </div>
+        </label>
+
+        @if (loadingOutstanding()) {
+          <app-page-loader titleKey="billing.outstanding" [compact]="true" />
+        } @else if (collectOutstanding(); as sheet) {
+          @if (!sheet.lessons.length) {
+            <p class="text-sm text-muted">{{ 'billing.noDebts' | t }}</p>
+          } @else {
+            <p class="text-sm text-muted">
+              {{ 'teacherPayments.studentDue' | t }}:
+              <strong class="text-ink">{{ sheet.remaining | number: '1.0-2' }}</strong>
+            </p>
+            <div class="grid gap-2">
+              @for (lesson of sheet.lessons; track lesson.lessonId) {
+                <button
+                  type="button"
+                  class="flex items-center justify-between rounded-xl border border-line px-3 py-3"
+                  [class.border-primary-400]="collectLessonId() === lesson.lessonId"
+                  [class.bg-primary-50]="collectLessonId() === lesson.lessonId"
+                  (click)="selectCollectLesson(lesson)"
+                >
+                  <strong>{{ lesson.lessonTitle }}</strong>
+                  <span>{{ lesson.remaining | number: '1.0-2' }}</span>
+                </button>
+              }
+            </div>
+
+            @if (collectLesson(); as lesson) {
+              <div class="grid gap-2">
+                <div class="flex items-center justify-between gap-3 text-sm">
+                  <h3 class="font-bold">{{ 'teacherPayments.selectCharges' | t }}</h3>
+                  <span class="text-muted">{{ 'teacherPayments.maxAmount' | t }}: {{ selectedRemaining() | number: '1.0-2' }}</span>
+                </div>
+                @for (charge of lesson.charges; track charge.id) {
+                  <label class="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-3">
+                    <input type="checkbox" [checked]="isChargeSelected(charge.id)" (change)="toggleCharge(charge.id)" />
+                    <span class="min-w-0 flex-1">
+                      <strong>{{ chargeTypeKey(charge.type) | t }}</strong>
+                      <small class="block text-muted">{{ charge.createdAtUtc | date: 'yyyy-MM-dd' }}</small>
+                    </span>
+                    <em>{{ charge.remaining | number: '1.0-2' }}</em>
+                  </label>
+                }
+              </div>
+
+              <form class="grid gap-3 sm:grid-cols-2" [formGroup]="collectForm" (ngSubmit)="submitCollect()">
+                <label class="grid gap-1.5">
+                  <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'billing.amount' | t }}</span>
+                  <input class="field" type="number" min="0.01" step="0.01" formControlName="amount" />
+                  <button type="button" class="text-start text-sm font-bold text-info" (click)="fillMaxAmount()">
+                    {{ 'teacherPayments.payAllSelected' | t }}
+                  </button>
+                </label>
+                <label class="grid gap-1.5">
+                  <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'billing.method' | t }}</span>
+                  <select class="field" formControlName="method">
+                    @for (method of paymentMethods; track method.value) {
+                      <option [ngValue]="method.value">{{ method.key | t }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="grid gap-1.5 sm:col-span-2">
+                  <span class="text-xs font-bold uppercase tracking-wide text-muted">{{ 'billing.note' | t }}</span>
+                  <input class="field" type="text" formControlName="note" />
+                </label>
+                <button class="btn-primary sm:col-span-2" type="submit" [disabled]="collecting()">
+                  {{ collecting() ? ('classroom.loading' | t) : ('billing.confirmCollect' | t) }}
+                </button>
+              </form>
+            }
           }
+        } @else {
+          <p class="text-sm text-muted">{{ 'teacherPayments.pickStudentFirst' | t }}</p>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (detailOpen()) {
+  <div class="ld-backdrop" (click)="closeDetail()">
+    <aside class="ld-drawer" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header class="flex items-start justify-between gap-3 border-b border-line p-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-muted">
+            {{ detailKind() === 'Payment' ? ('billing.payments' | t) : ('billing.charges' | t) }}
+          </p>
+          <h2 class="mt-1 text-lg font-extrabold">{{ 'teacherPayments.entryDetail' | t }}</h2>
+        </div>
+        <button type="button" class="ld-icon" (click)="closeDetail()">×</button>
+      </header>
+      <div class="grid gap-4 p-4">
+        @if (loadingDetail()) {
+          <app-page-loader titleKey="billing.ledger" [compact]="true" />
+        }
+        @if (chargeDetail(); as detail) {
+          <p class="font-extrabold">{{ detail.charge.studentName }}</p>
+          <p class="text-sm text-muted">{{ detail.charge.lessonTitle }}</p>
+          <p class="text-sm text-muted">{{ chargeContext(detail.charge) }}</p>
+          @if (chargeSession(detail.charge); as session) {
+            <p class="text-sm text-muted">{{ session }}</p>
+          }
+          <dl class="grid gap-2 text-sm">
+            <div class="flex justify-between gap-4 border-b border-line py-2">
+              <dt class="text-muted">{{ 'lessons.academicYear' | t }}</dt>
+              <dd>{{ detail.charge.academicYearName || '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-4 border-b border-line py-2">
+              <dt class="text-muted">{{ 'teacherPayments.stage' | t }}</dt>
+              <dd>{{ detail.charge.educationStageName || '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-4 border-b border-line py-2">
+              <dt class="text-muted">{{ 'billing.type' | t }}</dt>
+              <dd>{{ chargeTypeKey(detail.charge.type) | t }}</dd>
+            </div>
+            <div class="flex justify-between gap-4 border-b border-line py-2">
+              <dt class="text-muted">{{ 'billing.amount' | t }}</dt>
+              <dd>{{ detail.charge.amount | number: '1.0-2' }}</dd>
+            </div>
+            <div class="flex justify-between gap-4 border-b border-line py-2">
+              <dt class="text-muted">{{ 'billing.remaining' | t }}</dt>
+              <dd>{{ detail.charge.remaining | number: '1.0-2' }}</dd>
+            </div>
+          </dl>
+          @for (row of detail.allocations; track row.paymentId) {
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-3">
+              <span>#{{ row.receiptNumber }}</span>
+              <strong>{{ row.amount | number: '1.0-2' }}</strong>
+              <button type="button" class="text-sm font-bold text-info" (click)="downloadPayment(row.paymentId, row.receiptNumber)">
+                {{ 'billing.receipt' | t }}
+              </button>
+            </div>
+          }
+        }
+        @if (paymentDetail(); as detail) {
+          <p class="font-extrabold">{{ detail.payment.studentName }}</p>
+          <p class="text-sm text-muted">{{ detail.payment.lessonTitle }} · #{{ detail.payment.receiptNumber }}</p>
+          <button
+            type="button"
+            class="btn-primary"
+            [disabled]="downloading()"
+            (click)="downloadPayment(detail.payment.id, detail.payment.receiptNumber)"
+          >
+            {{ 'billing.downloadReceipt' | t }}
+          </button>
         }
       </div>
     </aside>

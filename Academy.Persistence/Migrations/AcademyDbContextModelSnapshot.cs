@@ -22,6 +22,38 @@ namespace Academy.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Academy.Domain.Entities.AcademicYear", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("SortOrder");
+
+                    b.ToTable("AcademicYears", (string)null);
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<int>("Id")
@@ -383,6 +415,8 @@ namespace Academy.Persistence.Migrations
 
                     b.HasIndex("StudentId");
 
+                    b.HasIndex("TeacherId", "CreatedAtUtc");
+
                     b.HasIndex("TeacherId", "StudentId");
 
                     b.HasIndex("LessonId", "StudentId", "Status");
@@ -465,9 +499,6 @@ namespace Academy.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("EducationTypeId")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -486,9 +517,10 @@ namespace Academy.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EducationTypeId", "NameEn");
+                    b.HasIndex("NameEn")
+                        .IsUnique();
 
-                    b.HasIndex("EducationTypeId", "SortOrder");
+                    b.HasIndex("SortOrder");
 
                     b.ToTable("EducationStages", (string)null);
                 });
@@ -529,37 +561,6 @@ namespace Academy.Persistence.Migrations
                     b.ToTable("EducationSubjects", (string)null);
                 });
 
-            modelBuilder.Entity("Academy.Domain.Entities.EducationType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NameAr")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("NameEn")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NameEn");
-
-                    b.ToTable("EducationTypes", (string)null);
-                });
-
             modelBuilder.Entity("Academy.Domain.Entities.EducationYear", b =>
                 {
                     b.Property<int>("Id")
@@ -589,7 +590,8 @@ namespace Academy.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EducationStageId", "NameEn");
+                    b.HasIndex("EducationStageId", "NameEn")
+                        .IsUnique();
 
                     b.HasIndex("EducationStageId", "SortOrder");
 
@@ -807,6 +809,9 @@ namespace Academy.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AcademicYearId")
+                        .HasColumnType("int");
+
                     b.Property<int>("AreaId")
                         .HasColumnType("int");
 
@@ -828,9 +833,6 @@ namespace Academy.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("EducationSubjectId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EducationTypeId")
                         .HasColumnType("int");
 
                     b.Property<int>("EducationYearId")
@@ -870,6 +872,8 @@ namespace Academy.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AcademicYearId");
+
                     b.HasIndex("AreaId");
 
                     b.HasIndex("CountryId");
@@ -878,11 +882,15 @@ namespace Academy.Persistence.Migrations
 
                     b.HasIndex("EducationSubjectId");
 
-                    b.HasIndex("EducationTypeId");
-
                     b.HasIndex("EducationYearId");
 
                     b.HasIndex("TeacherId");
+
+                    b.HasIndex("TeacherId", "AcademicYearId");
+
+                    b.HasIndex("TeacherId", "CreatedAtUtc");
+
+                    b.HasIndex("TeacherId", "AcademicYearId", "EducationStageId");
 
                     b.ToTable("Lessons", (string)null);
                 });
@@ -1413,6 +1421,8 @@ namespace Academy.Persistence.Migrations
 
                     b.HasIndex("LessonId", "StudentId");
 
+                    b.HasIndex("TeacherId", "PaidAtUtc");
+
                     b.HasIndex("TeacherId", "ReceiptNumber")
                         .IsUnique();
 
@@ -1787,17 +1797,6 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Governorate");
                 });
 
-            modelBuilder.Entity("Academy.Domain.Entities.EducationStage", b =>
-                {
-                    b.HasOne("Academy.Domain.Entities.EducationType", "EducationType")
-                        .WithMany("Stages")
-                        .HasForeignKey("EducationTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("EducationType");
-                });
-
             modelBuilder.Entity("Academy.Domain.Entities.EducationSubject", b =>
                 {
                     b.HasOne("Academy.Domain.Entities.EducationYear", "EducationYear")
@@ -1904,6 +1903,12 @@ namespace Academy.Persistence.Migrations
 
             modelBuilder.Entity("Academy.Domain.Entities.Lesson", b =>
                 {
+                    b.HasOne("Academy.Domain.Entities.AcademicYear", "AcademicYear")
+                        .WithMany("Lessons")
+                        .HasForeignKey("AcademicYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Academy.Domain.Entities.Area", "Area")
                         .WithMany("Lessons")
                         .HasForeignKey("AreaId")
@@ -1928,12 +1933,6 @@ namespace Academy.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Academy.Domain.Entities.EducationType", "EducationType")
-                        .WithMany("Lessons")
-                        .HasForeignKey("EducationTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Academy.Domain.Entities.EducationYear", "EducationYear")
                         .WithMany("Lessons")
                         .HasForeignKey("EducationYearId")
@@ -1946,6 +1945,8 @@ namespace Academy.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("AcademicYear");
+
                     b.Navigation("Area");
 
                     b.Navigation("Country");
@@ -1953,8 +1954,6 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("EducationStage");
 
                     b.Navigation("EducationSubject");
-
-                    b.Navigation("EducationType");
 
                     b.Navigation("EducationYear");
 
@@ -2304,6 +2303,11 @@ namespace Academy.Persistence.Migrations
                     b.Navigation("Teacher");
                 });
 
+            modelBuilder.Entity("Academy.Domain.Entities.AcademicYear", b =>
+                {
+                    b.Navigation("Lessons");
+                });
+
             modelBuilder.Entity("Academy.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Navigation("RoleClaims");
@@ -2370,13 +2374,6 @@ namespace Academy.Persistence.Migrations
             modelBuilder.Entity("Academy.Domain.Entities.EducationSubject", b =>
                 {
                     b.Navigation("Lessons");
-                });
-
-            modelBuilder.Entity("Academy.Domain.Entities.EducationType", b =>
-                {
-                    b.Navigation("Lessons");
-
-                    b.Navigation("Stages");
                 });
 
             modelBuilder.Entity("Academy.Domain.Entities.EducationYear", b =>

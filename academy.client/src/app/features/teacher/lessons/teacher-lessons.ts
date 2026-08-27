@@ -1,15 +1,18 @@
 import { DatePipe } from '@angular/common';
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subject, catchError, of, switchMap } from 'rxjs';
 import {
+  AcademicYearDto,
+  AcademicYearsClient,
   AreaDto,
   BillingType,
   CreateLessonRequest,
   EducationStageDto,
+  EducationStagesClient,
   EducationSubjectDto,
-  EducationTypeDto,
-  EducationTypesClient,
   EducationYearDto,
   LessonDto,
   LessonsClient,
@@ -38,13 +41,17 @@ import { PaginatorComponent } from '../../../shared/paginator/paginator';
 export class TeacherLessonsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly lessonsApi = inject(LessonsClient);
-  private readonly educationApi = inject(EducationTypesClient);
+  private readonly academicYearsApi = inject(AcademicYearsClient);
+  private readonly stagesApi = inject(EducationStagesClient);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly list$ = new Subject<boolean>();
+  private readonly counts$ = new Subject<void>();
 
   readonly BillingType = BillingType;
   readonly loading = signal(true);
   readonly ready = signal(false);
-  readonly loadingTypes = signal(false);
+  readonly loadingAcademicYears = signal(false);
   readonly loadingStages = signal(false);
   readonly loadingYears = signal(false);
   readonly loadingSubjects = signal(false);
@@ -59,18 +66,18 @@ export class TeacherLessonsComponent implements OnInit {
   readonly pageSize = DEFAULT_PAGE_SIZE;
   readonly totalCount = signal(0);
   readonly allLessonsCount = signal(0);
-  readonly typeCounts = signal<Record<number, number>>({});
-  readonly educationTypes = signal<EducationTypeDto[]>([]);
+  readonly yearCounts = signal<Record<number, number>>({});
+  readonly academicYears = signal<AcademicYearDto[]>([]);
   readonly educationStages = signal<EducationStageDto[]>([]);
   readonly educationYears = signal<EducationYearDto[]>([]);
   readonly educationSubjects = signal<EducationSubjectDto[]>([]);
   readonly cityAreas = signal<AreaDto[]>([]);
-  readonly selectedTypeId = signal<number | null>(null);
+  readonly selectedAcademicYearId = signal<number | null>(null);
   readonly editingLessonId = signal<number | null>(null);
   readonly formOpen = signal(false);
 
-  readonly selectedType = computed(
-    () => this.educationTypes().find((item) => item.id === this.selectedTypeId()) ?? null,
+  readonly selectedAcademicYear = computed(
+    () => this.academicYears().find((item) => item.id === this.selectedAcademicYearId()) ?? null,
   );
 
   readonly form = this.fb.nonNullable.group({
@@ -85,10 +92,66 @@ export class TeacherLessonsComponent implements OnInit {
     startDate: ['', [Validators.required]],
   });
 
+  constructor() {
+    this.counts$
+      .pipe(
+        switchMap(() =>
+          this.lessonsApi.getMyLessonCounts().pipe(
+            catchError(() => of(null)),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((data) => {
+        this.allLessonsCount.set(data?.total ?? 0);
+        const map: Record<number, number> = {};
+        for (const row of data?.byAcademicYear ?? []) {
+          map[row.academicYearId] = row.count;
+        }
+        this.yearCounts.set(map);
+      });
+
+    this.list$
+      .pipe(
+        switchMap((showSpinner) => {
+          const yearId = this.selectedAcademicYearId();
+          if (!yearId) {
+            this.lessons.set([]);
+            this.totalCount.set(0);
+            this.loading.set(false);
+            return of(null);
+          }
+
+          if (showSpinner) this.loading.set(true);
+          this.error.set(null);
+          return this.lessonsApi.getMyLessons(yearId, undefined, this.page(), this.pageSize).pipe(
+            catchError((err) => {
+              this.loading.set(false);
+              this.error.set(this.apiError(err, 'Failed to load lessons.'));
+              return of(null);
+            }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((data) => {
+        if (!data) return;
+        const yearId = this.selectedAcademicYearId();
+        this.lessons.set(data.items ?? []);
+        this.totalCount.set(data.totalCount);
+        this.page.set(data.page);
+        if (yearId) {
+          this.yearCounts.update((map) => ({ ...map, [yearId]: data.totalCount }));
+        }
+        this.loading.set(false);
+      });
+  }
+
   ngOnInit(): void {
-    this.loadEducationTypes();
+    this.loadAcademicYears();
+    this.loadEducationStages();
     this.loadCityAreas();
-    this.loadAllLessonsCount();
+    this.counts$.next();
     this.ready.set(true);
     this.loading.set(false);
 
@@ -100,60 +163,12 @@ export class TeacherLessonsComponent implements OnInit {
   }
 
   refresh(): void {
-    this.loadAllLessonsCount();
-    this.loadTypeCounts(this.educationTypes());
-    if (this.selectedTypeId()) this.loadLessons();
-  }
-
-  loadAllLessonsCount(): void {
-    this.lessonsApi.getMyLessons(undefined, 1, 1).subscribe({
-      next: (data) => this.allLessonsCount.set(data.totalCount),
-      error: () => undefined,
-    });
-  }
-
-  loadTypeCounts(types: EducationTypeDto[]): void {
-    if (!types.length) {
-      this.typeCounts.set({});
-      return;
-    }
-
-    for (const type of types) {
-      this.lessonsApi.getMyLessons(type.id, 1, 1).subscribe({
-        next: (data) => {
-          this.typeCounts.update((map) => ({ ...map, [type.id]: data.totalCount }));
-        },
-        error: () => {
-          this.typeCounts.update((map) => ({ ...map, [type.id]: 0 }));
-        },
-      });
-    }
+    this.counts$.next();
+    if (this.selectedAcademicYearId()) this.loadLessons();
   }
 
   loadLessons(showSpinner = true): void {
-    const typeId = this.selectedTypeId();
-    if (!typeId) {
-      this.lessons.set([]);
-      this.totalCount.set(0);
-      return;
-    }
-
-    if (showSpinner) this.loading.set(true);
-    this.error.set(null);
-
-    this.lessonsApi.getMyLessons(typeId, this.page(), this.pageSize).subscribe({
-      next: (data) => {
-        this.lessons.set(data.items ?? []);
-        this.totalCount.set(data.totalCount);
-        this.page.set(data.page);
-        this.typeCounts.update((map) => ({ ...map, [typeId]: data.totalCount }));
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(this.apiError(err, 'Failed to load lessons.'));
-      },
-    });
+    this.list$.next(showSpinner);
   }
 
   onPageChange(page: number): void {
@@ -163,21 +178,20 @@ export class TeacherLessonsComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  selectType(typeId: number): void {
-    if (this.selectedTypeId() === typeId && !this.formOpen()) return;
+  selectAcademicYear(yearId: number): void {
+    if (this.selectedAcademicYearId() === yearId && !this.formOpen()) return;
 
-    this.selectedTypeId.set(typeId);
+    this.selectedAcademicYearId.set(yearId);
     this.page.set(1);
     this.success.set(null);
     this.error.set(null);
     this.closeForm();
     this.resetCurriculum();
-    this.loadStages(typeId);
     this.loadLessons();
   }
 
   openCreate(): void {
-    if (!this.selectedTypeId()) return;
+    if (!this.selectedAcademicYearId()) return;
     this.error.set(null);
     this.success.set(null);
     this.cancelEdit();
@@ -195,26 +209,24 @@ export class TeacherLessonsComponent implements OnInit {
     if (this.formOpen()) this.closeForm();
   }
 
-  lessonsCountForType(typeId: number): number {
-    return this.typeCounts()[typeId] ?? 0;
+  lessonsCountForYear(yearId: number): number {
+    return this.yearCounts()[yearId] ?? 0;
   }
 
   onStagePicked(): void {
-    const typeId = this.selectedTypeId();
     const stageId = this.form.controls.educationStageId.value;
     this.form.patchValue({ educationYearId: 0, educationSubjectId: 0 });
     this.educationYears.set([]);
     this.educationSubjects.set([]);
-    if (typeId && stageId) this.loadYears(typeId, stageId);
+    if (stageId) this.loadYears(stageId);
   }
 
   onYearPicked(): void {
-    const typeId = this.selectedTypeId();
     const stageId = this.form.controls.educationStageId.value;
     const yearId = this.form.controls.educationYearId.value;
     this.form.patchValue({ educationSubjectId: 0 });
     this.educationSubjects.set([]);
-    if (typeId && stageId && yearId) this.loadSubjects(typeId, stageId, yearId);
+    if (stageId && yearId) this.loadSubjects(stageId, yearId);
   }
 
   startEdit(lesson: LessonDto): void {
@@ -223,7 +235,7 @@ export class TeacherLessonsComponent implements OnInit {
     this.error.set(null);
     this.success.set(null);
     this.editingLessonId.set(lesson.id);
-    this.selectedTypeId.set(lesson.educationTypeId);
+    this.selectedAcademicYearId.set(lesson.academicYearId);
     this.formOpen.set(true);
 
     const billingType =
@@ -241,9 +253,8 @@ export class TeacherLessonsComponent implements OnInit {
       startDate: this.toDateInput(lesson.startDate),
     });
 
-    this.loadStages(lesson.educationTypeId);
-    this.loadYears(lesson.educationTypeId, lesson.educationStageId);
-    this.loadSubjects(lesson.educationTypeId, lesson.educationStageId, lesson.educationYearId);
+    this.loadYears(lesson.educationStageId);
+    this.loadSubjects(lesson.educationStageId, lesson.educationYearId);
   }
 
   cancelEdit(): void {
@@ -266,9 +277,9 @@ export class TeacherLessonsComponent implements OnInit {
     this.error.set(null);
     this.success.set(null);
 
-    const typeId = this.selectedTypeId();
-    if (!typeId) {
-      this.error.set('Select an education type first.');
+    const yearId = this.selectedAcademicYearId();
+    if (!yearId) {
+      this.error.set('Select an academic year first.');
       return;
     }
 
@@ -291,7 +302,7 @@ export class TeacherLessonsComponent implements OnInit {
     }
 
     const payload = {
-      educationTypeId: typeId,
+      academicYearId: yearId,
       educationStageId: value.educationStageId,
       educationYearId: value.educationYearId,
       educationSubjectId: value.educationSubjectId,
@@ -314,8 +325,7 @@ export class TeacherLessonsComponent implements OnInit {
           this.success.set('updated');
           this.closeForm();
           this.loadLessons(false);
-          this.loadAllLessonsCount();
-          this.loadTypeCounts(this.educationTypes());
+          this.counts$.next();
         },
         error: (err) => {
           this.saving.set(false);
@@ -332,8 +342,7 @@ export class TeacherLessonsComponent implements OnInit {
         this.closeForm();
         this.page.set(1);
         this.loadLessons(false);
-        this.loadAllLessonsCount();
-        this.loadTypeCounts(this.educationTypes());
+        this.counts$.next();
       },
       error: (err) => {
         this.saving.set(false);
@@ -362,8 +371,7 @@ export class TeacherLessonsComponent implements OnInit {
         this.deletingId.set(null);
         this.success.set('deleted');
         this.loadLessons(false);
-        this.loadAllLessonsCount();
-        this.loadTypeCounts(this.educationTypes());
+        this.counts$.next();
       },
       error: (err) => {
         this.deletingId.set(null);
@@ -383,25 +391,24 @@ export class TeacherLessonsComponent implements OnInit {
     return d.toISOString().slice(0, 10);
   }
 
-  private loadEducationTypes(): void {
-    this.loadingTypes.set(true);
-    this.educationApi.getTypes(true).subscribe({
+  private loadAcademicYears(): void {
+    this.loadingAcademicYears.set(true);
+    this.academicYearsApi.get(true).subscribe({
       next: (items) => {
-        const types = items ?? [];
-        this.educationTypes.set(types);
-        this.loadingTypes.set(false);
-        this.loadTypeCounts(types);
+        this.academicYears.set(items ?? []);
+        this.loadingAcademicYears.set(false);
+        this.counts$.next();
       },
       error: () => {
-        this.loadingTypes.set(false);
-        this.error.set('Failed to load education types.');
+        this.loadingAcademicYears.set(false);
+        this.error.set('Failed to load academic years.');
       },
     });
   }
 
-  private loadStages(typeId: number): void {
+  private loadEducationStages(): void {
     this.loadingStages.set(true);
-    this.educationApi.getStages(typeId, true).subscribe({
+    this.stagesApi.getStages(true).subscribe({
       next: (items) => {
         this.educationStages.set(items ?? []);
         this.loadingStages.set(false);
@@ -413,9 +420,9 @@ export class TeacherLessonsComponent implements OnInit {
     });
   }
 
-  private loadYears(typeId: number, stageId: number): void {
+  private loadYears(stageId: number): void {
     this.loadingYears.set(true);
-    this.educationApi.getYears(typeId, stageId, true).subscribe({
+    this.stagesApi.getYears(stageId, true).subscribe({
       next: (items) => {
         this.educationYears.set(items ?? []);
         this.loadingYears.set(false);
@@ -427,9 +434,9 @@ export class TeacherLessonsComponent implements OnInit {
     });
   }
 
-  private loadSubjects(typeId: number, stageId: number, yearId: number): void {
+  private loadSubjects(stageId: number, yearId: number): void {
     this.loadingSubjects.set(true);
-    this.educationApi.getSubjects(typeId, stageId, yearId, true).subscribe({
+    this.stagesApi.getSubjects(stageId, yearId, true).subscribe({
       next: (items) => {
         this.educationSubjects.set(items ?? []);
         this.loadingSubjects.set(false);
@@ -456,7 +463,6 @@ export class TeacherLessonsComponent implements OnInit {
   }
 
   private resetCurriculum(): void {
-    this.educationStages.set([]);
     this.educationYears.set([]);
     this.educationSubjects.set([]);
     this.form.patchValue({

@@ -10,7 +10,7 @@ public sealed class AdminLessonListItemDto
 
     public required string TeacherName { get; init; }
 
-    public required string EducationTypeName { get; init; }
+    public required string AcademicYearName { get; init; }
 
     public required string EducationStageName { get; init; }
 

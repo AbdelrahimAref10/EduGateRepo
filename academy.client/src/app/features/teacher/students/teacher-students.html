@@ -49,319 +49,64 @@
   @if (error()) {
     <div class="ts-alert ts-alert-danger" role="alert">{{ error() }}</div>
   }
-  @if (success() === 'transferred') {
-    <div class="ts-alert ts-alert-ok" role="status">{{ 'myStudents.transferred' | t }}</div>
-  }
   @if (copied()) {
     <div class="ts-alert ts-alert-ok" role="status">{{ 'myStudents.copied' | t }}</div>
   }
 
-  <div class="ts-shell" [class.has-student]="selectedStudentId()">
-    <section class="ts-board ts-list">
-      <div class="ts-board-head">
-        <h2>{{ 'myStudents.count' | t }}</h2>
-        <span class="ts-count">{{ studentsCount() }}</span>
+  <section class="ts-board">
+    <div class="ts-board-head">
+      <h2>{{ 'myStudents.count' | t }}</h2>
+      <span class="ts-count">{{ studentsCount() }}</span>
+    </div>
+
+    @if (loading()) {
+      <app-page-loader titleKey="myStudents.loading" [compact]="true" />
+    } @else if (students().length === 0) {
+      <div class="ts-empty">
+        <div class="ts-blank-art" aria-hidden="true"></div>
+        <p>{{ searching() ? ('myStudents.emptySearch' | t) : ('myStudents.empty' | t) }}</p>
       </div>
-
-      @if (loading()) {
-        <app-page-loader titleKey="myStudents.loading" [compact]="true" />
-      } @else if (students().length === 0) {
-        <div class="ts-empty">
-          <p>{{ searching() ? ('myStudents.emptySearch' | t) : ('myStudents.empty' | t) }}</p>
-        </div>
-      } @else {
-        <div class="ts-table-wrap">
-          <table class="ts-table">
-            <thead>
-              <tr>
-                <th>{{ 'myStudents.student' | t }}</th>
-                <th>{{ 'myStudents.code' | t }}</th>
-                <th>{{ 'myStudents.phone' | t }}</th>
-                <th>{{ 'myStudents.parents' | t }}</th>
-                <th>{{ 'myStudents.lessons' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (student of students(); track student.studentId) {
-                <tr
-                  class="ts-row"
-                  [class.is-on]="selectedStudentId() === student.studentId"
-                  (click)="openStudent(student)"
-                >
-                  <td>
-                    <span class="ts-person">
-                      <app-user-avatar [src]="student.photoUrl" [alt]="student.fullName" size="md" />
-                      <span>
-                        <strong>{{ student.fullName }}</strong>
-                        <em>{{ 'myStudents.openProfile' | t }}</em>
-                      </span>
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      class="ts-code"
-                      (click)="copyCode(student.studentCode); $event.stopPropagation()"
-                      [disabled]="!student.studentCode"
-                      [attr.title]="'myStudents.copyCode' | t"
-                    >
-                      {{ student.studentCode || '—' }}
-                    </button>
-                  </td>
-                  <td>
-                    @if (student.phoneNumber) {
-                      <a class="ts-phone" [href]="'tel:' + student.phoneNumber" (click)="$event.stopPropagation()">
-                        {{ student.phoneNumber }}
-                      </a>
-                    } @else {
-                      <span class="ts-muted">{{ 'myStudents.noPhone' | t }}</span>
-                    }
-                  </td>
-                  <td>
-                    <span class="ts-parents">{{ parentsLabel(student) }}</span>
-                  </td>
-                  <td>
-                    <span class="ts-pill">{{ student.lessonsCount }}</span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </section>
-
-    <section class="ts-detail">
-      @if (!selectedStudentId()) {
-        <div class="ts-board ts-blank">
-          <div class="ts-blank-art" aria-hidden="true"></div>
-          <p>{{ 'myStudents.pickStudent' | t }}</p>
-        </div>
-      } @else {
-        <article class="ts-board ts-profile">
-          <div class="ts-profile-head">
-            <button type="button" class="ts-back" (click)="backToList()">
-              {{ 'myStudents.back' | t }}
-            </button>
-            @if (selectedStudent(); as student) {
-              <div class="ts-profile-id">
-                <app-user-avatar [src]="student.photoUrl" [alt]="student.fullName" size="lg" />
-                <div class="min-w-0">
-                  <p class="ts-kicker ts-kicker-ink">{{ 'myStudents.student' | t }}</p>
-                  <h2>{{ student.fullName }}</h2>
-                  <div class="ts-meta">
-                    @if (student.studentCode) {
-                      <button type="button" class="ts-code is-soft" (click)="copyCode(student.studentCode)">
-                        {{ student.studentCode }}
-                      </button>
-                    }
-                    @if (student.phoneNumber) {
-                      <a class="ts-phone" [href]="'tel:' + student.phoneNumber">{{ student.phoneNumber }}</a>
-                    }
-                  </div>
-                </div>
-              </div>
-              <div class="ts-parents-card">
-                <p>{{ 'myStudents.parents' | t }}</p>
-                @if (student.parents.length === 0) {
-                  <span>{{ 'myStudents.noParent' | t }}</span>
-                } @else {
-                  <ul>
-                    @for (parent of student.parents; track parent.parentStudentId) {
-                      <li>
-                        <strong>{{ parent.fullName }}</strong>
-                        @if (parent.phoneNumber) {
-                          <a [href]="'tel:' + parent.phoneNumber">{{ parent.phoneNumber }}</a>
-                        }
-                      </li>
-                    }
-                  </ul>
-                }
-              </div>
-            } @else if (!loading()) {
-              <p class="ts-muted">{{ 'myStudents.studentMissing' | t }}</p>
-            }
-          </div>
-        </article>
-
-        <div class="ts-split">
-          <section class="ts-board">
-            <div class="ts-board-head">
-              <h2>{{ 'myStudents.lessons' | t }}</h2>
-            </div>
-
-            @if (loadingLessons()) {
-              <app-page-loader titleKey="myStudents.loadingLessons" [compact]="true" />
-            } @else if (lessons().length === 0) {
-              <p class="ts-empty-inline">{{ 'myStudents.emptyLessons' | t }}</p>
-            } @else {
-              <div class="ts-lessons">
-                @for (lesson of lessons(); track lesson.lessonId) {
-                  <button
-                    type="button"
-                    class="ts-lesson"
-                    [class.is-on]="selectedLessonId() === lesson.lessonId"
-                    (click)="openLesson(lesson)"
-                  >
-                    <span class="ts-lesson-top">
-                      <strong>{{ lesson.subject }}</strong>
-                      <em [class.is-live]="lesson.isActive">
-                        {{ lesson.isActive ? ('lessons.started' | t) : ('lessons.notStarted' | t) }}
-                      </em>
-                    </span>
-                    <span class="ts-chips">
-                      <span>{{ lesson.educationTypeName }}</span>
-                      <span>{{ lesson.educationStageName }}</span>
-                      <span>{{ lesson.educationYearName }}</span>
-                      <span>{{ billingKey(lesson.billingType) | t }}</span>
-                    </span>
-                    <span class="ts-lesson-group">
-                      {{ lesson.assignedGroupName || ('myStudents.unassigned' | t) }}
-                    </span>
-                  </button>
-                }
-              </div>
-            }
-          </section>
-
-          <section class="ts-board">
-            <div class="ts-board-head">
-              <h2>{{ 'myStudents.group' | t }}</h2>
-            </div>
-
-            @if (!selectedLessonId()) {
-              <p class="ts-empty-inline">{{ 'myStudents.pickLesson' | t }}</p>
-            } @else if (loadingGroup()) {
-              <app-page-loader titleKey="myStudents.loadingGroup" [compact]="true" />
-            } @else if (groupMissing()) {
-              <div class="ts-empty">
-                <p>{{ 'myStudents.noGroup' | t }}</p>
-              </div>
-            } @else if (group(); as current) {
-              <div class="ts-group">
-                <div class="ts-group-top">
-                  <div>
-                    <p class="ts-kicker ts-kicker-ink">{{ selectedLesson()?.subject }}</p>
-                    <h3>{{ current.name }}</h3>
-                  </div>
-                  <span class="ts-status" [class.is-full]="current.isFull" [class.is-ended]="current.hasEnded">
-                    {{ groupStatusKey(current) | t }}
-                  </span>
-                </div>
-
-                <dl class="ts-facts">
-                  <div>
-                    <dt>{{ 'myStudents.schedule' | t }}</dt>
-                    <dd>{{ formatSchedule(current) }}</dd>
-                  </div>
-                  <div>
-                    <dt>{{ 'myStudents.place' | t }}</dt>
-                    <dd>{{ current.cityName }} · {{ current.areaName }} — {{ current.address }}</dd>
-                  </div>
-                  <div>
-                    <dt>{{ 'myStudents.period' | t }}</dt>
-                    <dd>
-                      {{ current.periodStartDate | date: 'yyyy-MM-dd' }}
-                      —
-                      {{ current.periodEndDate | date: 'yyyy-MM-dd' }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{{ 'myStudents.capacity' | t }}</dt>
-                    <dd>
-                      {{ capacityLabel(current) }}
-                      <span class="ts-bar" aria-hidden="true">
-                        <i [style.width.%]="capacityPercent(current)"></i>
-                      </span>
-                    </dd>
-                  </div>
-                  @if (current.notes) {
-                    <div>
-                      <dt>{{ 'myStudents.notes' | t }}</dt>
-                      <dd>{{ current.notes }}</dd>
-                    </div>
-                  }
-                </dl>
-
-                <button type="button" class="ts-btn-primary" (click)="openTransfer()">
-                  {{ 'myStudents.transfer' | t }}
-                </button>
-              </div>
-            }
-          </section>
-        </div>
-      }
-    </section>
-  </div>
-</section>
-
-@if (transferOpen()) {
-  <div class="ts-overlay" (click)="closeTransfer()" role="presentation">
-    <aside class="ts-drawer" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <div class="ts-drawer-head">
-        <div>
-          <p class="ts-kicker ts-kicker-ink">{{ selectedStudent()?.fullName }}</p>
-          <h2>{{ 'myStudents.transferTitle' | t }}</h2>
-          <p class="ts-drawer-sub">{{ 'myStudents.transferSub' | t }}</p>
-        </div>
-        <button type="button" class="ts-icon-btn" (click)="closeTransfer()" [attr.aria-label]="'common.close' | t">
-          ×
-        </button>
-      </div>
-
-      @if (loadingGroups()) {
-        <app-page-loader titleKey="myStudents.loadingGroups" [compact]="true" />
-      } @else if (transferGroups().length === 0) {
-        <p class="ts-empty-inline">{{ 'myStudents.noGroups' | t }}</p>
-      } @else {
-        <div class="ts-options">
-          @for (option of transferGroups(); track option.id) {
-            <button
-              type="button"
-              class="ts-option"
-              [class.is-on]="targetGroupId() === option.id"
-              [class.is-current]="option.isCurrentStudentGroup"
-              [disabled]="!canSelectGroup(option) || transferring()"
-              (click)="pickTarget(option)"
+    } @else {
+      <div class="ts-grid">
+        @for (student of students(); track student.studentId) {
+          <article class="ts-card">
+            <a
+              class="ts-card-main"
+              [routerLink]="['/teacher/students', student.studentId]"
+              (click)="remember(student)"
             >
-              <span class="ts-option-top">
-                <strong>{{ option.name }}</strong>
-                <em>
-                  @if (option.isCurrentStudentGroup) {
-                    {{ 'myStudents.current' | t }}
-                  } @else if (!canSelectGroup(option)) {
-                    {{ 'myStudents.cannotSelect' | t }}
-                  } @else {
-                    {{ groupStatusKey(option) | t }}
-                  }
-                </em>
-              </span>
-              <span class="ts-option-meta">{{ formatSchedule(option) }}</span>
-              <span class="ts-option-meta">{{ option.cityName }} · {{ option.areaName }}</span>
-              <span class="ts-option-cap">
-                {{ capacityLabel(option) }}
-                <span class="ts-bar" aria-hidden="true">
-                  <i [style.width.%]="capacityPercent(option)"></i>
+              <app-user-avatar [src]="student.photoUrl" [alt]="student.fullName" size="lg" />
+              <span class="min-w-0">
+                <strong>{{ student.fullName }}</strong>
+                <em>{{ parentsOf(student) }}</em>
+                <span class="ts-card-meta">
+                  <span class="ts-pill">{{ student.lessonsCount }} {{ 'myStudents.lessons' | t }}</span>
+                  <span class="ts-hint">{{ 'myStudents.openLessons' | t }}</span>
                 </span>
               </span>
-            </button>
-          }
-        </div>
-      }
-
-      <div class="ts-drawer-actions">
-        <button type="button" class="ts-btn-soft" (click)="closeTransfer()" [disabled]="transferring()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <button
-          type="button"
-          class="ts-btn-primary"
-          (click)="confirmTransfer()"
-          [disabled]="!targetGroup() || transferring()"
-        >
-          {{ transferring() ? ('myStudents.transferring' | t) : ('myStudents.confirmTransfer' | t) }}
-        </button>
+              <svg class="ts-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+            <div class="ts-card-side">
+              <button
+                type="button"
+                class="ts-code"
+                (click)="copyCode($event, student.studentCode)"
+                [disabled]="!student.studentCode"
+                [attr.title]="'myStudents.copyCode' | t"
+              >
+                {{ student.studentCode || '—' }}
+              </button>
+              @if (student.phoneNumber) {
+                <a class="ts-phone" [href]="'tel:' + student.phoneNumber">{{ student.phoneNumber }}</a>
+              } @else {
+                <span class="ts-muted">{{ 'myStudents.noPhone' | t }}</span>
+              }
+            </div>
+          </article>
+        }
       </div>
-    </aside>
-  </div>
-}
+    }
+  </section>
+</section>

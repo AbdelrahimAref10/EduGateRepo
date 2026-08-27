@@ -5,7 +5,6 @@ using MediatR;
 namespace Academy.Application.Features.SuperAdmin.Education.Commands.UpdateEducationYear;
 
 public sealed record UpdateEducationYearCommand(
-    int EducationTypeId,
     int EducationStageId,
     int YearId,
     string NameAr,

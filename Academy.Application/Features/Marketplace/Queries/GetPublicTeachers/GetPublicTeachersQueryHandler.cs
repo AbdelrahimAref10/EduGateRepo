@@ -25,6 +25,7 @@ public sealed class GetPublicTeachersQueryHandler(
             .Where(t => t.Lessons.Any(l =>
                 l.IsActive
                 && (request.CountryId == null || l.CountryId == request.CountryId)
+                && (request.AcademicYearId == null || l.AcademicYearId == request.AcademicYearId)
                 && (request.EducationStageId == null || l.EducationStageId == request.EducationStageId)
                 && (request.EducationSubjectId == null || l.EducationSubjectId == request.EducationSubjectId)));
 
@@ -44,7 +45,8 @@ public sealed class GetPublicTeachersQueryHandler(
                 ActiveLessonsCount = t.Lessons.Count(l =>
                     l.IsActive
                     && (request.CountryId == null || l.CountryId == request.CountryId)
-                    && (request.EducationStageId == null || l.EducationStageId == request.EducationStageId)
+                    && (request.AcademicYearId == null || l.AcademicYearId == request.AcademicYearId)
+                && (request.EducationStageId == null || l.EducationStageId == request.EducationStageId)
                     && (request.EducationSubjectId == null || l.EducationSubjectId == request.EducationSubjectId)),
                 CountryName = t.User.Area != null
                     ? (language == Domain.Enums.AppLanguage.Arabic
@@ -60,7 +62,8 @@ public sealed class GetPublicTeachersQueryHandler(
                     .Where(l =>
                         l.IsActive
                         && (request.CountryId == null || l.CountryId == request.CountryId)
-                        && (request.EducationStageId == null || l.EducationStageId == request.EducationStageId)
+                        && (request.AcademicYearId == null || l.AcademicYearId == request.AcademicYearId)
+                && (request.EducationStageId == null || l.EducationStageId == request.EducationStageId)
                         && (request.EducationSubjectId == null || l.EducationSubjectId == request.EducationSubjectId))
                     .Select(l => language == Domain.Enums.AppLanguage.Arabic
                         ? l.EducationSubject.NameAr

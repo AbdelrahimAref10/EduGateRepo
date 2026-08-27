@@ -18,10 +18,7 @@ public sealed class UpdateEducationStageCommandHandler(
     {
         var entity = await dbContext.EducationStages
             .AsTracking()
-            .Include(x => x.EducationType)
-            .FirstOrDefaultAsync(
-                x => x.Id == request.StageId && x.EducationTypeId == request.EducationTypeId,
-                cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity is null)
             return Result<EducationStageDto>.NotFound("Education stage was not found.");
@@ -29,14 +26,10 @@ public sealed class UpdateEducationStageCommandHandler(
         var nameEn = request.NameEn.Trim();
 
         var nameTaken = await dbContext.EducationStages
-            .AnyAsync(
-                x => x.Id != request.StageId
-                    && x.EducationTypeId == request.EducationTypeId
-                    && x.NameEn == nameEn,
-                cancellationToken);
+            .AnyAsync(x => x.Id != request.Id && x.NameEn == nameEn, cancellationToken);
 
         if (nameTaken)
-            return Result<EducationStageDto>.Conflict("Education stage already exists for this type.");
+            return Result<EducationStageDto>.Conflict("Education stage already exists.");
 
         entity.NameAr = request.NameAr.Trim();
         entity.NameEn = nameEn;

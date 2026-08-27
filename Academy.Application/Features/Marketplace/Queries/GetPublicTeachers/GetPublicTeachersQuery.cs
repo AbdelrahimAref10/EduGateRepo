@@ -6,6 +6,7 @@ namespace Academy.Application.Features.Marketplace.Queries.GetPublicTeachers;
 
 public sealed record GetPublicTeachersQuery(
     int? CountryId,
+    int? AcademicYearId,
     int? EducationStageId,
     int? EducationSubjectId)
     : IRequest<Result<IReadOnlyList<PublicTeacherListItemDto>>>;

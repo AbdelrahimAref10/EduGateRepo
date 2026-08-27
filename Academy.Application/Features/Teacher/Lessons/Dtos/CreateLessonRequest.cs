@@ -4,7 +4,7 @@ namespace Academy.Application.Features.Teacher.Lessons.Dtos;
 
 public sealed class CreateLessonRequest
 {
-    public int EducationTypeId { get; set; }
+    public int AcademicYearId { get; set; }
 
     public int EducationStageId { get; set; }
 

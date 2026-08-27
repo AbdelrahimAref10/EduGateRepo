@@ -30,7 +30,7 @@ public sealed class BookLessonCommandHandler(
             return Result<BookingDto>.NotFound("Student profile was not found.");
 
         var lesson = await dbContext.Lessons
-            .Include(x => x.EducationType)
+            .Include(x => x.AcademicYear)
             .Include(x => x.EducationStage)
             .Include(x => x.EducationYear)
             .Include(x => x.Teacher)
@@ -90,10 +90,7 @@ public sealed class BookLessonCommandHandler(
             StudentId = booking.StudentId,
             Status = booking.Status.ToString(),
             Subject = lesson.Subject,
-            EducationTypeName = LocalizedNames.Pick(
-                lesson.EducationType.NameAr,
-                lesson.EducationType.NameEn,
-                language),
+            AcademicYearName = lesson.AcademicYear.Name,
             EducationStageName = LocalizedNames.Pick(
                 lesson.EducationStage.NameAr,
                 lesson.EducationStage.NameEn,

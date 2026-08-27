@@ -15,8 +15,7 @@ public sealed class DeleteEducationSubjectCommandHandler(IApplicationDbContext d
             .FirstOrDefaultAsync(
                 x => x.Id == request.SubjectId
                     && x.EducationYearId == request.EducationYearId
-                    && x.EducationYear.EducationStageId == request.EducationStageId
-                    && x.EducationYear.EducationStage.EducationTypeId == request.EducationTypeId,
+                    && x.EducationYear.EducationStageId == request.EducationStageId,
                 cancellationToken);
 
         if (entity is null)

@@ -73,6 +73,7 @@ public sealed class ChargeConfiguration : IEntityTypeConfiguration<Charge>
 
         builder.HasIndex(x => new { x.LessonId, x.StudentId, x.Status });
         builder.HasIndex(x => new { x.TeacherId, x.StudentId });
+        builder.HasIndex(x => new { x.TeacherId, x.CreatedAtUtc });
         builder.HasIndex(x => x.LessonGroupSessionId);
         builder.HasIndex(x => new { x.LessonId, x.StudentId, x.Type, x.CycleStartDate });
     }

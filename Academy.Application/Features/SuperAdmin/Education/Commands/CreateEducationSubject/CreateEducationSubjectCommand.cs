@@ -5,7 +5,6 @@ using MediatR;
 namespace Academy.Application.Features.SuperAdmin.Education.Commands.CreateEducationSubject;
 
 public sealed record CreateEducationSubjectCommand(
-    int EducationTypeId,
     int EducationStageId,
     int EducationYearId,
     string NameAr,

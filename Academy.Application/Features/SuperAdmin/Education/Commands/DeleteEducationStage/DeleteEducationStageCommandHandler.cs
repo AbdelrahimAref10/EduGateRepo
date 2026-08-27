@@ -12,17 +12,15 @@ public sealed class DeleteEducationStageCommandHandler(IApplicationDbContext dbC
     {
         var entity = await dbContext.EducationStages
             .AsTracking()
-            .FirstOrDefaultAsync(
-                x => x.Id == request.StageId && x.EducationTypeId == request.EducationTypeId,
-                cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity is null)
             return Result.NotFound("Education stage was not found.");
 
-        if (await dbContext.EducationYears.AnyAsync(x => x.EducationStageId == request.StageId, cancellationToken))
-            return Result.Conflict("لا يمكن حذف المرحلة لأنها تحتوي على سنوات دراسية. احذف السنوات أولاً.");
+        if (await dbContext.EducationYears.AnyAsync(x => x.EducationStageId == request.Id, cancellationToken))
+            return Result.Conflict("لا يمكن حذف المرحلة لأنها تحتوي على صفوف. احذف الصفوف أولاً.");
 
-        if (await dbContext.Lessons.AnyAsync(x => x.EducationStageId == request.StageId, cancellationToken))
+        if (await dbContext.Lessons.AnyAsync(x => x.EducationStageId == request.Id, cancellationToken))
             return Result.Conflict("لا يمكن حذف المرحلة لأنها مرتبطة بدروس.");
 
         dbContext.EducationStages.Remove(entity);

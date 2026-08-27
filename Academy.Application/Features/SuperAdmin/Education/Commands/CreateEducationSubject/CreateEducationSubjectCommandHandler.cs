@@ -19,11 +19,8 @@ public sealed class CreateEducationSubjectCommandHandler(
     {
         var year = await dbContext.EducationYears
             .Include(x => x.EducationStage)
-                .ThenInclude(x => x.EducationType)
             .FirstOrDefaultAsync(
-                x => x.Id == request.EducationYearId
-                    && x.EducationStageId == request.EducationStageId
-                    && x.EducationStage.EducationTypeId == request.EducationTypeId,
+                x => x.Id == request.EducationYearId && x.EducationStageId == request.EducationStageId,
                 cancellationToken);
 
         if (year is null)

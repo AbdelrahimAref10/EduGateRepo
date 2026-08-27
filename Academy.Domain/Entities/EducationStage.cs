@@ -3,14 +3,10 @@ using Academy.Domain.Common;
 namespace Academy.Domain.Entities;
 
 /// <summary>
-/// Educational stage under an education type (e.g. Primary, Preparatory).
+/// Educational stage managed by SuperAdmin (e.g. Primary, Preparatory).
 /// </summary>
 public class EducationStage : BaseEntity
 {
-    public int EducationTypeId { get; set; }
-
-    public EducationType EducationType { get; set; } = null!;
-
     public string NameAr { get; set; } = null!;
 
     public string NameEn { get; set; } = null!;

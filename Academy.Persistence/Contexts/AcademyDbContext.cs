@@ -38,7 +38,7 @@ public sealed class AcademyDbContext
 
     public DbSet<Area> Areas => Set<Area>();
 
-    public DbSet<EducationType> EducationTypes => Set<EducationType>();
+    public DbSet<AcademicYear> AcademicYears => Set<AcademicYear>();
 
     public DbSet<EducationStage> EducationStages => Set<EducationStage>();
 

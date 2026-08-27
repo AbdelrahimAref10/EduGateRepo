@@ -3,25 +3,26 @@ import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { EMPTY, Subject, catchError, forkJoin, of, switchMap } from 'rxjs';
 import {
   AddGroupMemberRequest,
   BillingClient,
   ChargeSettlement,
   CreateMakeupSessionRequest,
   DayOfWeek,
-  LedgerStudentRowDto,
+  LedgerChargeRowDto,
+  LedgerPaymentRowDto,
   LessonGroupDto,
   LessonGroupSessionDto,
   LessonStudentDto,
   LessonsClient,
-  PaymentDto,
-  StudentLessonLedgerDto,
 } from '../../../core/api/academy-api.generated';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
+import { PaginatorComponent } from '../../../shared/paginator/paginator';
 
 type GroupPanel = 'sessions' | 'members' | 'booked' | 'ledger';
 
@@ -36,6 +37,7 @@ type GroupPanel = 'sessions' | 'members' | 'booked' | 'ledger';
     RouterLink,
     UserAvatarComponent,
     PageLoaderComponent,
+    PaginatorComponent,
   ],
   templateUrl: './teacher-group-manage.html',
   styleUrl: './teacher-group-manage.css',
@@ -49,6 +51,8 @@ export class TeacherGroupManageComponent implements OnInit {
   private readonly i18n = inject(TranslationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly ledger$ = new Subject<void>();
+  private readonly studentSheet$ = new Subject<number | null>();
 
   readonly lessonId = signal(0);
   readonly groupId = signal(0);
@@ -73,10 +77,19 @@ export class TeacherGroupManageComponent implements OnInit {
   readonly lessonMonthlyPrice = signal<number | null>(null);
   readonly sessions = signal<LessonGroupSessionDto[]>([]);
   readonly unassignedStudents = signal<LessonStudentDto[]>([]);
-  readonly ledgerRows = signal<LedgerStudentRowDto[]>([]);
+  readonly ledgerRows = signal<LedgerChargeRowDto[]>([]);
+  readonly ledgerPage = signal(1);
+  readonly ledgerPageSize = 10;
+  readonly ledgerTotal = signal(0);
   readonly panel = signal<GroupPanel | null>(null);
 
-  readonly studentLedger = signal<StudentLessonLedgerDto | null>(null);
+  readonly studentSheet = signal<{
+    studentName: string;
+    lessonTitle: string;
+    remaining: number;
+    charges: LedgerChargeRowDto[];
+    payments: LedgerPaymentRowDto[];
+  } | null>(null);
   readonly loadingStudentLedger = signal(false);
   readonly makeupOpen = signal(false);
   readonly savingMakeup = signal(false);
@@ -100,6 +113,94 @@ export class TeacherGroupManageComponent implements OnInit {
     amount: [null as number | null],
     settlement: [ChargeSettlement.Standalone as ChargeSettlement],
   });
+
+  constructor() {
+    this.ledger$
+      .pipe(
+        switchMap(() => {
+          const lessonId = this.lessonId();
+          const groupId = this.groupId();
+          if (!lessonId || !groupId) return EMPTY;
+          this.loadingLedger.set(true);
+          return this.billingApi
+            .getOutstanding(
+              undefined,
+              undefined,
+              undefined,
+              lessonId,
+              groupId,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              this.ledgerPage(),
+              this.ledgerPageSize,
+            )
+            .pipe(
+              catchError((err) => {
+                this.loadingLedger.set(false);
+                this.ledgerReady.set(true);
+                this.error.set(this.readApiError(err, 'Failed to load ledger.'));
+                return EMPTY;
+              }),
+            );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((page) => {
+        this.ledgerRows.set(page.items ?? []);
+        this.ledgerTotal.set(page.totalCount ?? 0);
+        this.ledgerReady.set(true);
+        this.loadingLedger.set(false);
+      });
+
+    this.studentSheet$
+      .pipe(
+        switchMap((studentId) => {
+          if (!studentId) {
+            this.studentSheet.set(null);
+            this.loadingStudentLedger.set(false);
+            return EMPTY;
+          }
+          this.loadingStudentLedger.set(true);
+          const lessonId = this.lessonId();
+          return forkJoin({
+            outstanding: this.billingApi.getStudentOutstanding(studentId),
+            payments: this.billingApi.getPayments(
+              studentId,
+              undefined,
+              undefined,
+              lessonId,
+              this.groupId() || undefined,
+              undefined,
+              undefined,
+              undefined,
+              1,
+              10,
+            ),
+          }).pipe(
+            catchError((err) => {
+              this.loadingStudentLedger.set(false);
+              this.error.set(this.readApiError(err, 'Failed to load student ledger.'));
+              return of(null);
+            }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((data) => {
+        this.loadingStudentLedger.set(false);
+        if (!data) return;
+        const lesson = data.outstanding.lessons.find((item) => item.lessonId === this.lessonId());
+        this.studentSheet.set({
+          studentName: data.outstanding.studentName,
+          lessonTitle: lesson?.lessonTitle ?? '',
+          remaining: lesson?.remaining ?? 0,
+          charges: lesson?.charges ?? [],
+          payments: data.payments.items ?? [],
+        });
+      });
+  }
 
   ngOnInit(): void {
     this.lessonId.set(Number(this.route.snapshot.paramMap.get('lessonId')));
@@ -179,51 +280,24 @@ export class TeacherGroupManageComponent implements OnInit {
 
   ensureLedger(force = false): void {
     if (!force && this.ledgerReady()) return;
-    const lessonId = this.lessonId();
-    const groupId = this.groupId();
-    if (!lessonId || !groupId || this.loadingLedger()) return;
+    this.ledger$.next();
+  }
 
-    this.loadingLedger.set(true);
-    this.billingApi
-      .getGroupLedger(lessonId, groupId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => {
-          this.ledgerRows.set(rows ?? []);
-          this.ledgerReady.set(true);
-          this.loadingLedger.set(false);
-        },
-        error: (err) => {
-          this.loadingLedger.set(false);
-          this.ledgerReady.set(true);
-          this.error.set(this.readApiError(err, 'Failed to load ledger.'));
-        },
-      });
+  onLedgerPageChange(page: number): void {
+    this.ledgerPage.set(page);
+    this.ledgerReady.set(false);
+    this.ledger$.next();
   }
 
   openStudentLedger(studentId: number): void {
-    this.loadingStudentLedger.set(true);
-    this.studentLedger.set(null);
-    this.billingApi
-      .getStudentLedger(this.lessonId(), studentId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (data) => {
-          this.studentLedger.set(data);
-          this.loadingStudentLedger.set(false);
-        },
-        error: (err) => {
-          this.loadingStudentLedger.set(false);
-          this.error.set(this.readApiError(err, 'Failed to load student ledger.'));
-        },
-      });
+    this.studentSheet$.next(studentId);
   }
 
   closeStudentLedger(): void {
-    this.studentLedger.set(null);
+    this.studentSheet$.next(null);
   }
 
-  downloadReceipt(payment: PaymentDto): void {
+  downloadReceipt(payment: { id: number; receiptNumber?: number }): void {
     this.billingApi.downloadReceipt(payment.id).subscribe({
       next: (file) => this.saveBlob(file.data, file.fileName || `receipt-${payment.receiptNumber}.pdf`),
       error: (err) => this.error.set(this.readApiError(err, 'Failed to download receipt.')),

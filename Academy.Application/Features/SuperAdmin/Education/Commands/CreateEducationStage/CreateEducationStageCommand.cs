@@ -4,8 +4,5 @@ using MediatR;
 
 namespace Academy.Application.Features.SuperAdmin.Education.Commands.CreateEducationStage;
 
-public sealed record CreateEducationStageCommand(
-    int EducationTypeId,
-    string NameAr,
-    string NameEn,
-    int SortOrder) : IRequest<Result<EducationStageDto>>;
+public sealed record CreateEducationStageCommand(string NameAr, string NameEn, int SortOrder)
+    : IRequest<Result<EducationStageDto>>;

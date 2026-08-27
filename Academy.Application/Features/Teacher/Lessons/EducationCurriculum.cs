@@ -7,9 +7,22 @@ namespace Academy.Application.Features.Teacher.Lessons;
 
 internal static class EducationCurriculum
 {
+    public static async Task<Result<AcademicYear>> ResolveAcademicYearAsync(
+        IApplicationDbContext dbContext,
+        int academicYearId,
+        CancellationToken cancellationToken)
+    {
+        var academicYear = await dbContext.AcademicYears
+            .FirstOrDefaultAsync(x => x.Id == academicYearId && x.IsActive, cancellationToken);
+
+        if (academicYear is null)
+            return Result<AcademicYear>.NotFound("Academic year was not found.");
+
+        return Result<AcademicYear>.Success(academicYear);
+    }
+
     public static async Task<Result<EducationSubject>> ResolveSubjectAsync(
         IApplicationDbContext dbContext,
-        int educationTypeId,
         int educationStageId,
         int educationYearId,
         int educationSubjectId,
@@ -18,13 +31,11 @@ internal static class EducationCurriculum
         var subject = await dbContext.EducationSubjects
             .Include(x => x.EducationYear)
                 .ThenInclude(x => x.EducationStage)
-                    .ThenInclude(x => x.EducationType)
             .FirstOrDefaultAsync(
                 x => x.Id == educationSubjectId
                      && x.IsActive
                      && x.EducationYear.IsActive
-                     && x.EducationYear.EducationStage.IsActive
-                     && x.EducationYear.EducationStage.EducationType.IsActive,
+                     && x.EducationYear.EducationStage.IsActive,
                 cancellationToken);
 
         if (subject is null)
@@ -35,9 +46,6 @@ internal static class EducationCurriculum
 
         if (subject.EducationYear.EducationStageId != educationStageId)
             return Result<EducationSubject>.Failure("Education year does not belong to the selected stage.");
-
-        if (subject.EducationYear.EducationStage.EducationTypeId != educationTypeId)
-            return Result<EducationSubject>.Failure("Education stage does not belong to the selected type.");
 
         return Result<EducationSubject>.Success(subject);
     }

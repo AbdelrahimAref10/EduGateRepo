@@ -50,6 +50,7 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .IsUnique();
 
         builder.HasIndex(x => new { x.LessonId, x.StudentId });
+        builder.HasIndex(x => new { x.TeacherId, x.PaidAtUtc });
         builder.HasIndex(x => x.PaidAtUtc);
     }
 }

@@ -15,11 +15,13 @@ using Academy.Application.Features.Teacher.Lessons.Commands.UpdateLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Dtos;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroup;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroupSessions;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroupOptions;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonGroups;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonManage;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetLessonStudents;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyCityAreas;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetUnassignedLessonStudents;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessonCounts;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessons;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
@@ -38,7 +40,8 @@ public sealed class LessonsController(ISender sender) : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<LessonDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyLessons(
-        [FromQuery] int? educationTypeId,
+        [FromQuery] int? academicYearId,
+        [FromQuery] int? educationStageId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 9,
         CancellationToken cancellationToken = default)
@@ -48,8 +51,20 @@ public sealed class LessonsController(ISender sender) : ControllerBase
             return Unauthorized();
 
         var result = await sender.Send(
-            new GetMyLessonsQuery(userId.Value, educationTypeId, page, pageSize),
+            new GetMyLessonsQuery(userId.Value, academicYearId, educationStageId, page, pageSize),
             cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("counts")]
+    [ProducesResponseType(typeof(TeacherLessonCountsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyLessonCounts(CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(new GetMyLessonCountsQuery(userId.Value), cancellationToken);
         return result.ToActionResult();
     }
 
@@ -94,7 +109,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         var result = await sender.Send(
             new CreateLessonCommand(
                 userId.Value,
-                request.EducationTypeId,
+                request.AcademicYearId,
                 request.EducationStageId,
                 request.EducationYearId,
                 request.EducationSubjectId,
@@ -127,7 +142,7 @@ public sealed class LessonsController(ISender sender) : ControllerBase
             new UpdateLessonCommand(
                 userId.Value,
                 lessonId,
-                request.EducationTypeId,
+                request.AcademicYearId,
                 request.EducationStageId,
                 request.EducationYearId,
                 request.EducationSubjectId,
@@ -179,6 +194,19 @@ public sealed class LessonsController(ISender sender) : ControllerBase
             return Unauthorized();
 
         var result = await sender.Send(new GetUnassignedLessonStudentsQuery(userId.Value, lessonId), cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{lessonId:int}/group-options")]
+    [ProducesResponseType(typeof(IReadOnlyList<LessonGroupOptionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLessonGroupOptions(int lessonId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(new GetLessonGroupOptionsQuery(userId.Value, lessonId), cancellationToken);
         return result.ToActionResult();
     }
 

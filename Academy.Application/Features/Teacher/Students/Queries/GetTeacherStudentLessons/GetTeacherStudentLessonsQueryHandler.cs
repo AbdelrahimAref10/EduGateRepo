@@ -43,7 +43,7 @@ public sealed class GetTeacherStudentLessonsQueryHandler(
             {
                 LessonId = x.LessonId,
                 Subject = isArabic ? x.Lesson.EducationSubject.NameAr : x.Lesson.EducationSubject.NameEn,
-                EducationTypeName = isArabic ? x.Lesson.EducationType.NameAr : x.Lesson.EducationType.NameEn,
+                AcademicYearName = x.Lesson.AcademicYear.Name,
                 EducationStageName = isArabic ? x.Lesson.EducationStage.NameAr : x.Lesson.EducationStage.NameEn,
                 EducationYearName = isArabic ? x.Lesson.EducationYear.NameAr : x.Lesson.EducationYear.NameEn,
                 BillingType = x.Lesson.BillingType.ToString(),
@@ -80,7 +80,7 @@ public sealed class GetTeacherStudentLessonsQueryHandler(
                 {
                     LessonId = x.LessonId,
                     Subject = x.Subject,
-                    EducationTypeName = x.EducationTypeName,
+                    AcademicYearName = x.AcademicYearName,
                     EducationStageName = x.EducationStageName,
                     EducationYearName = x.EducationYearName,
                     BillingType = x.BillingType,

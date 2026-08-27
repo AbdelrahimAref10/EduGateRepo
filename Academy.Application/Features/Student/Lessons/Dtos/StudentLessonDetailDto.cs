@@ -16,7 +16,7 @@ public sealed class StudentLessonDetailDto
 
     public string? TeacherPhotoUrl { get; init; }
 
-    public required string EducationTypeName { get; init; }
+    public required string AcademicYearName { get; init; }
 
     public required string EducationStageName { get; init; }
 

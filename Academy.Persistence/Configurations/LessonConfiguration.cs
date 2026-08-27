@@ -56,9 +56,9 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             .HasForeignKey(x => x.AreaId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(x => x.EducationType)
+        builder.HasOne(x => x.AcademicYear)
             .WithMany(x => x.Lessons)
-            .HasForeignKey(x => x.EducationTypeId)
+            .HasForeignKey(x => x.AcademicYearId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.EducationStage)
@@ -77,9 +77,12 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.TeacherId);
+        builder.HasIndex(x => new { x.TeacherId, x.CreatedAtUtc });
+        builder.HasIndex(x => new { x.TeacherId, x.AcademicYearId });
+        builder.HasIndex(x => new { x.TeacherId, x.AcademicYearId, x.EducationStageId });
         builder.HasIndex(x => x.CountryId);
         builder.HasIndex(x => x.AreaId);
-        builder.HasIndex(x => x.EducationTypeId);
+        builder.HasIndex(x => x.AcademicYearId);
         builder.HasIndex(x => x.EducationStageId);
         builder.HasIndex(x => x.EducationYearId);
         builder.HasIndex(x => x.EducationSubjectId);

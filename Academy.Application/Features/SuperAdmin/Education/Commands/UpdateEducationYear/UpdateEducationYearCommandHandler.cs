@@ -19,11 +19,8 @@ public sealed class UpdateEducationYearCommandHandler(
         var entity = await dbContext.EducationYears
             .AsTracking()
             .Include(x => x.EducationStage)
-                .ThenInclude(x => x.EducationType)
             .FirstOrDefaultAsync(
-                x => x.Id == request.YearId
-                    && x.EducationStageId == request.EducationStageId
-                    && x.EducationStage.EducationTypeId == request.EducationTypeId,
+                x => x.Id == request.YearId && x.EducationStageId == request.EducationStageId,
                 cancellationToken);
 
         if (entity is null)

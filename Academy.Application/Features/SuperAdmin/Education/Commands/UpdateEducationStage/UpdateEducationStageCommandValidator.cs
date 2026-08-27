@@ -6,8 +6,7 @@ public sealed class UpdateEducationStageCommandValidator : AbstractValidator<Upd
 {
     public UpdateEducationStageCommandValidator()
     {
-        RuleFor(x => x.EducationTypeId).GreaterThan(0);
-        RuleFor(x => x.StageId).GreaterThan(0);
+        RuleFor(x => x.Id).GreaterThan(0);
         RuleFor(x => x.NameAr).NotEmpty().MaximumLength(150);
         RuleFor(x => x.NameEn).NotEmpty().MaximumLength(150);
         RuleFor(x => x.SortOrder).GreaterThanOrEqualTo(0);

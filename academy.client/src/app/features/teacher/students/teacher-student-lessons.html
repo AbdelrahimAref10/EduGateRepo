@@ -1,0 +1,116 @@
+<section class="ts-page animate-fade-up">
+  <nav class="ts-crumb" aria-label="breadcrumb">
+    <a routerLink="/teacher/students">{{ 'myStudents.title' | t }}</a>
+    <span aria-hidden="true">/</span>
+    <span>{{ student()?.fullName || ('myStudents.student' | t) }}</span>
+  </nav>
+
+  @if (error()) {
+    <div class="ts-alert ts-alert-danger" role="alert">{{ error() }}</div>
+  }
+  @if (copied()) {
+    <div class="ts-alert ts-alert-ok" role="status">{{ 'myStudents.copied' | t }}</div>
+  }
+
+  <article class="ts-board ts-profile">
+    @if (student(); as current) {
+      <div class="ts-profile-head">
+        <div class="ts-profile-id">
+          <app-user-avatar [src]="current.photoUrl" [alt]="current.fullName" size="lg" />
+          <div class="min-w-0">
+            <p class="ts-kicker ts-kicker-ink">{{ 'myStudents.student' | t }}</p>
+            <h2>{{ current.fullName }}</h2>
+            <div class="ts-meta">
+              @if (current.studentCode) {
+                <button type="button" class="ts-code is-soft" (click)="copyCode(current.studentCode)">
+                  {{ current.studentCode }}
+                </button>
+              }
+              @if (current.phoneNumber) {
+                <a class="ts-phone" [href]="'tel:' + current.phoneNumber">{{ current.phoneNumber }}</a>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="ts-parents-card">
+          <p>{{ 'myStudents.parents' | t }}</p>
+          @if (current.parents.length === 0) {
+            <span>{{ 'myStudents.noParent' | t }}</span>
+          } @else {
+            <ul>
+              @for (parent of current.parents; track parent.parentStudentId) {
+                <li>
+                  <strong>{{ parent.fullName }}</strong>
+                  @if (parent.phoneNumber) {
+                    <a [href]="'tel:' + parent.phoneNumber">{{ parent.phoneNumber }}</a>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+      <div class="ts-actions">
+        <a class="ts-btn-soft" routerLink="/teacher/students">{{ 'myStudents.back' | t }}</a>
+        <a
+          class="ts-btn-soft"
+          [routerLink]="['/teacher/payments']"
+          [queryParams]="{ studentId: current.studentId }"
+        >
+          {{ 'myStudents.collectPayment' | t }}
+        </a>
+      </div>
+    } @else if (loadingStudent()) {
+      <app-page-loader titleKey="myStudents.loading" [compact]="true" />
+    } @else {
+      <p class="ts-muted">{{ 'myStudents.studentMissing' | t }}</p>
+    }
+  </article>
+
+  <section class="ts-board">
+    <div class="ts-board-head">
+      <div>
+        <h2>{{ 'myStudents.lessons' | t }}</h2>
+        <p class="ts-board-sub">{{ 'myStudents.lessonsSub' | t }}</p>
+      </div>
+      <span class="ts-count">{{ lessons().length }}</span>
+    </div>
+
+    @if (loading()) {
+      <app-page-loader titleKey="myStudents.loadingLessons" [compact]="true" />
+    } @else if (lessons().length === 0) {
+      <div class="ts-empty">
+        <p>{{ 'myStudents.emptyLessons' | t }}</p>
+      </div>
+    } @else {
+      <div class="ts-lessons">
+        @for (lesson of lessons(); track lesson.lessonId) {
+          <a
+            class="ts-lesson"
+            [routerLink]="['/teacher/students', studentId(), 'lessons', lesson.lessonId]"
+            (click)="rememberLessons()"
+          >
+            <span class="ts-lesson-top">
+              <strong>{{ lesson.subject }}</strong>
+              <em [class.is-live]="lesson.isActive">
+                {{ lesson.isActive ? ('lessons.started' | t) : ('lessons.notStarted' | t) }}
+              </em>
+            </span>
+            <span class="ts-chips">
+              <span>{{ lesson.academicYearName }}</span>
+              <span>{{ lesson.educationStageName }}</span>
+              <span>{{ lesson.educationYearName }}</span>
+              <span>{{ billingOf(lesson.billingType) | t }}</span>
+            </span>
+            <span class="ts-lesson-foot">
+              <span class="ts-lesson-group">
+                {{ lesson.assignedGroupName || ('myStudents.unassigned' | t) }}
+              </span>
+              <span class="ts-hint">{{ 'myStudents.openGroup' | t }}</span>
+            </span>
+          </a>
+        }
+      </div>
+    }
+  </section>
+</section>

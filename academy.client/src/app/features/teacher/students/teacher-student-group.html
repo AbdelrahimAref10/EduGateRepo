@@ -1,0 +1,201 @@
+<section class="ts-page animate-fade-up">
+  <nav class="ts-crumb" aria-label="breadcrumb">
+    <a routerLink="/teacher/students">{{ 'myStudents.title' | t }}</a>
+    <span aria-hidden="true">/</span>
+    <a [routerLink]="['/teacher/students', studentId()]">
+      {{ student()?.fullName || ('myStudents.student' | t) }}
+    </a>
+    <span aria-hidden="true">/</span>
+    <span>{{ lesson()?.subject || ('myStudents.group' | t) }}</span>
+  </nav>
+
+  @if (error()) {
+    <div class="ts-alert ts-alert-danger" role="alert">{{ error() }}</div>
+  }
+  @if (success()) {
+    <div class="ts-alert ts-alert-ok" role="status">{{ 'myStudents.transferred' | t }}</div>
+  }
+
+  <article class="ts-board">
+    <div class="ts-board-head">
+      <div class="min-w-0">
+        <p class="ts-kicker ts-kicker-ink">{{ student()?.fullName }}</p>
+        <h2>{{ lesson()?.subject || ('myStudents.group' | t) }}</h2>
+        <p class="ts-board-sub">{{ 'myStudents.groupPageSub' | t }}</p>
+      </div>
+    </div>
+
+    @if (lesson(); as current) {
+      <div class="ts-chips">
+        <span>{{ current.academicYearName }}</span>
+        <span>{{ current.educationStageName }}</span>
+        <span>{{ current.educationYearName }}</span>
+        <span>{{ billingOf(current.billingType) | t }}</span>
+        <span [class.is-live]="current.isActive">
+          {{ current.isActive ? ('lessons.started' | t) : ('lessons.notStarted' | t) }}
+        </span>
+      </div>
+    }
+
+    <div class="ts-actions">
+      <a class="ts-btn-soft" [routerLink]="['/teacher/students', studentId()]">
+        {{ 'myStudents.backToLessons' | t }}
+      </a>
+      @if (lessonId()) {
+        <a class="ts-btn-soft" [routerLink]="['/teacher/lessons', lessonId()]">
+          {{ 'lessons.manage' | t }}
+        </a>
+      }
+      @if (studentId()) {
+        <a
+          class="ts-btn-soft"
+          [routerLink]="['/teacher/payments']"
+          [queryParams]="{ studentId: studentId() }"
+        >
+          {{ 'myStudents.collectPayment' | t }}
+        </a>
+      }
+    </div>
+  </article>
+
+  <section class="ts-board">
+    <div class="ts-board-head">
+      <h2>{{ 'myStudents.group' | t }}</h2>
+    </div>
+
+    @if (loading()) {
+      <app-page-loader titleKey="myStudents.loadingGroup" [compact]="true" />
+    } @else if (groupMissing()) {
+      <div class="ts-empty">
+        <div class="ts-blank-art" aria-hidden="true"></div>
+        <p>{{ 'myStudents.noGroup' | t }}</p>
+        @if (lessonId()) {
+          <a class="ts-btn-primary" [routerLink]="['/teacher/lessons', lessonId()]">
+            {{ 'myStudents.assignInLesson' | t }}
+          </a>
+        }
+      </div>
+    } @else if (group(); as current) {
+      <div class="ts-group">
+        <div class="ts-group-top">
+          <div>
+            <p class="ts-kicker ts-kicker-ink">{{ lesson()?.subject }}</p>
+            <h3>{{ current.name }}</h3>
+          </div>
+          <span class="ts-status" [class.is-full]="current.isFull" [class.is-ended]="current.hasEnded">
+            {{ statusKey(current) | t }}
+          </span>
+        </div>
+
+        <dl class="ts-facts">
+          <div>
+            <dt>{{ 'myStudents.schedule' | t }}</dt>
+            <dd>{{ scheduleOf(current) }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'myStudents.place' | t }}</dt>
+            <dd>{{ current.cityName }} · {{ current.areaName }} — {{ current.address }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'myStudents.period' | t }}</dt>
+            <dd>
+              {{ current.periodStartDate | date: 'yyyy-MM-dd' }}
+              —
+              {{ current.periodEndDate | date: 'yyyy-MM-dd' }}
+            </dd>
+          </div>
+          <div>
+            <dt>{{ 'myStudents.capacity' | t }}</dt>
+            <dd>
+              {{ capacityOf(current) }}
+              <span class="ts-bar" aria-hidden="true">
+                <i [style.width.%]="capacityPct(current)"></i>
+              </span>
+            </dd>
+          </div>
+          @if (current.notes) {
+            <div>
+              <dt>{{ 'myStudents.notes' | t }}</dt>
+              <dd>{{ current.notes }}</dd>
+            </div>
+          }
+        </dl>
+
+        <button type="button" class="ts-btn-primary" (click)="openTransfer()">
+          {{ 'myStudents.transfer' | t }}
+        </button>
+      </div>
+    }
+  </section>
+</section>
+
+@if (transferOpen()) {
+  <div class="ts-overlay" (click)="closeTransfer()" role="presentation">
+    <aside class="ts-drawer" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="ts-drawer-head">
+        <div>
+          <p class="ts-kicker ts-kicker-ink">{{ student()?.fullName }}</p>
+          <h2>{{ 'myStudents.transferTitle' | t }}</h2>
+          <p class="ts-drawer-sub">{{ 'myStudents.transferSub' | t }}</p>
+        </div>
+        <button type="button" class="ts-icon-btn" (click)="closeTransfer()" [attr.aria-label]="'common.close' | t">
+          ×
+        </button>
+      </div>
+
+      @if (loadingGroups()) {
+        <app-page-loader titleKey="myStudents.loadingGroups" [compact]="true" />
+      } @else if (transferGroups().length === 0) {
+        <p class="ts-empty-inline">{{ 'myStudents.noGroups' | t }}</p>
+      } @else {
+        <div class="ts-options">
+          @for (option of transferGroups(); track option.id) {
+            <button
+              type="button"
+              class="ts-option"
+              [class.is-on]="targetGroupId() === option.id"
+              [class.is-current]="option.isCurrentStudentGroup"
+              [disabled]="!canPick(option) || transferring()"
+              (click)="pickTarget(option)"
+            >
+              <span class="ts-option-top">
+                <strong>{{ option.name }}</strong>
+                <em>
+                  @if (option.isCurrentStudentGroup) {
+                    {{ 'myStudents.current' | t }}
+                  } @else if (!canPick(option)) {
+                    {{ 'myStudents.cannotSelect' | t }}
+                  } @else {
+                    {{ statusKey(option) | t }}
+                  }
+                </em>
+              </span>
+              <span class="ts-option-meta">{{ scheduleOf(option) }}</span>
+              <span class="ts-option-meta">{{ option.cityName }} · {{ option.areaName }}</span>
+              <span class="ts-option-cap">
+                {{ capacityOf(option) }}
+                <span class="ts-bar" aria-hidden="true">
+                  <i [style.width.%]="capacityPct(option)"></i>
+                </span>
+              </span>
+            </button>
+          }
+        </div>
+      }
+
+      <div class="ts-drawer-actions">
+        <button type="button" class="ts-btn-soft" (click)="closeTransfer()" [disabled]="transferring()">
+          {{ 'common.cancel' | t }}
+        </button>
+        <button
+          type="button"
+          class="ts-btn-primary"
+          (click)="confirmTransfer()"
+          [disabled]="!targetGroup() || transferring()"
+        >
+          {{ transferring() ? ('myStudents.transferring' | t) : ('myStudents.confirmTransfer' | t) }}
+        </button>
+      </div>
+    </aside>
+  </div>
+}

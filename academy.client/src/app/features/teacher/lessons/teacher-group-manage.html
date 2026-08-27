@@ -260,6 +260,13 @@
         <div class="tgm-panel-head">
           <h2>{{ 'billing.groupLedger' | t }}</h2>
           <p>{{ 'billing.peopleHint' | t }}</p>
+          <a
+            class="tgm-primary"
+            [routerLink]="['/teacher/payments']"
+            [queryParams]="{ lessonId: lessonId(), groupId: groupId(), tab: 'outstanding' }"
+          >
+            {{ 'billing.goToPayments' | t }}
+          </a>
         </div>
         @if (loadingLedger() && !ledgerReady()) {
           <app-page-loader titleKey="billing.ledger" [compact]="true" />
@@ -267,7 +274,7 @@
           <p class="tgm-empty">{{ 'billing.noDebts' | t }}</p>
         } @else {
           <div class="tgm-ledger">
-            @for (row of ledgerRows(); track row.studentId) {
+            @for (row of ledgerRows(); track row.id) {
               <article class="tgm-ledger-row">
                 <div class="flex min-w-0 items-center gap-3">
                   <app-user-avatar [src]="row.photoUrl" [alt]="row.studentName" size="sm" />
@@ -277,18 +284,18 @@
                   </div>
                 </div>
                 <div class="tgm-ledger-meta">
-                  <strong>{{ row.outstandingAmount | number: '1.0-2' }}</strong>
-                  <span>{{ row.openChargesCount }} {{ 'billing.openCharges' | t }}</span>
+                  <strong>{{ row.remaining | number: '1.0-2' }}</strong>
+                  <span>{{ chargeTypeKey(row.type) | t }} · {{ row.status }}</span>
                 </div>
                 <div class="tgm-session-actions">
                   <button type="button" class="tgm-ghost-ink" (click)="openStudentLedger(row.studentId)">
                     {{ 'billing.viewLedger' | t }}
                   </button>
-                  @if (row.outstandingAmount > 0) {
+                  @if (row.remaining > 0) {
                     <a
                       class="tgm-primary"
                       [routerLink]="['/teacher/payments']"
-                      [queryParams]="{ lessonId: lessonId(), studentId: row.studentId }"
+                      [queryParams]="{ lessonId: lessonId(), groupId: groupId(), studentId: row.studentId, tab: 'outstanding' }"
                     >
                       {{ 'billing.goToPayments' | t }}
                     </a>
@@ -297,20 +304,27 @@
               </article>
             }
           </div>
+          <app-paginator
+            [page]="ledgerPage()"
+            [pageSize]="ledgerPageSize"
+            [totalCount]="ledgerTotal()"
+            [disabled]="loadingLedger()"
+            (pageChange)="onLedgerPageChange($event)"
+          />
         }
       </section>
     }
   }
 </section>
 
-@if (studentLedger(); as ledger) {
+@if (studentSheet(); as ledger) {
   <div class="tgm-modal-backdrop" (click)="closeStudentLedger()">
     <div class="tgm-modal tgm-modal-wide" (click)="$event.stopPropagation()" role="dialog">
       <header class="tgm-modal-head">
         <div>
           <p class="tgm-modal-kicker">{{ 'billing.studentLedger' | t }}</p>
-          <h3>{{ ledger.studentName }} · {{ ledger.subject }}</h3>
-          <p>{{ 'billing.outstanding' | t }}: {{ ledger.outstandingAmount | number: '1.0-2' }}</p>
+          <h3>{{ ledger.studentName }} · {{ ledger.lessonTitle }}</h3>
+          <p>{{ 'billing.outstanding' | t }}: {{ ledger.remaining | number: '1.0-2' }}</p>
         </div>
         <button type="button" class="tgm-ghost" (click)="closeStudentLedger()">×</button>
       </header>
@@ -325,6 +339,8 @@
               </div>
               <strong>{{ c.remaining | number: '1.0-2' }} / {{ c.amount | number: '1.0-2' }}</strong>
             </div>
+          } @empty {
+            <p class="tgm-empty">{{ 'billing.noDebts' | t }}</p>
           }
         </div>
         <h4>{{ 'billing.payments' | t }}</h4>

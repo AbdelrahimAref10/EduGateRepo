@@ -19,11 +19,8 @@ public sealed class GetEducationSubjectsByYearQueryHandler(
     {
         var year = await dbContext.EducationYears
             .Include(x => x.EducationStage)
-                .ThenInclude(x => x.EducationType)
             .FirstOrDefaultAsync(
-                x => x.Id == request.EducationYearId
-                    && x.EducationStageId == request.EducationStageId
-                    && x.EducationStage.EducationTypeId == request.EducationTypeId,
+                x => x.Id == request.EducationYearId && x.EducationStageId == request.EducationStageId,
                 cancellationToken);
 
         if (year is null)
@@ -40,9 +37,6 @@ public sealed class GetEducationSubjectsByYearQueryHandler(
         var stageName = language == AppLanguage.Arabic
             ? year.EducationStage.NameAr
             : year.EducationStage.NameEn;
-        var typeName = language == AppLanguage.Arabic
-            ? year.EducationStage.EducationType.NameAr
-            : year.EducationStage.EducationType.NameEn;
 
         var items = await query
             .OrderBy(x => x.SortOrder)
@@ -54,8 +48,6 @@ public sealed class GetEducationSubjectsByYearQueryHandler(
                 EducationYearName = yearName,
                 EducationStageId = year.EducationStageId,
                 EducationStageName = stageName,
-                EducationTypeId = year.EducationStage.EducationTypeId,
-                EducationTypeName = typeName,
                 Name = language == AppLanguage.Arabic ? x.NameAr : x.NameEn,
                 NameAr = x.NameAr,
                 NameEn = x.NameEn,

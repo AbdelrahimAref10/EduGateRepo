@@ -18,10 +18,7 @@ public sealed class CreateEducationYearCommandHandler(
         CancellationToken cancellationToken)
     {
         var stage = await dbContext.EducationStages
-            .Include(x => x.EducationType)
-            .FirstOrDefaultAsync(
-                x => x.Id == request.EducationStageId && x.EducationTypeId == request.EducationTypeId,
-                cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == request.EducationStageId, cancellationToken);
 
         if (stage is null)
             return Result<EducationYearDto>.NotFound("Education stage was not found.");

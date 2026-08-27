@@ -1,8 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
+  AcademicYearsClient,
   CountriesClient,
-  EducationTypesClient,
+  EducationStagesClient,
   PublicMarketplaceClient,
   PublicTeacherListItemDto,
 } from '../../../core/api/academy-api.generated';
@@ -25,7 +26,8 @@ export class StudentDiscoverComponent implements OnInit {
   readonly catalog = new MarketplaceCatalog(
     inject(PublicMarketplaceClient),
     inject(CountriesClient),
-    inject(EducationTypesClient),
+    inject(AcademicYearsClient),
+    inject(EducationStagesClient),
     inject(TranslationService),
   );
 

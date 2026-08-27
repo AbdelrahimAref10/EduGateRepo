@@ -17,7 +17,7 @@ public sealed class GetPublicHighlightsQueryHandler(
         CancellationToken cancellationToken)
     {
         var teachersResult = await new GetPublicTeachers.GetPublicTeachersQueryHandler(dbContext, requestLanguage)
-            .Handle(new GetPublicTeachers.GetPublicTeachersQuery(null, null, null), cancellationToken);
+            .Handle(new GetPublicTeachers.GetPublicTeachersQuery(null, null, null, null), cancellationToken);
 
         var teachers = (teachersResult.Value ?? [])
             .Take(8)
@@ -29,7 +29,7 @@ public sealed class GetPublicHighlightsQueryHandler(
             .AsNoTracking()
             .Include(x => x.Teacher)
                 .ThenInclude(x => x.User)
-            .Include(x => x.EducationType)
+            .Include(x => x.AcademicYear)
             .Include(x => x.EducationStage)
             .Include(x => x.EducationYear)
             .Include(x => x.EducationSubject)

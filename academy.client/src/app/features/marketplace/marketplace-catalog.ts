@@ -1,11 +1,12 @@
 import { signal } from '@angular/core';
 import {
+  AcademicYearDto,
+  AcademicYearsClient,
   CountriesClient,
   CountryDto,
   EducationStageDto,
+  EducationStagesClient,
   EducationSubjectDto,
-  EducationTypeDto,
-  EducationTypesClient,
   EducationYearDto,
   PublicMarketplaceClient,
   PublicTeacherListItemDto,
@@ -17,12 +18,12 @@ export class MarketplaceCatalog {
   readonly error = signal<string | null>(null);
   readonly teachers = signal<PublicTeacherListItemDto[]>([]);
   readonly countries = signal<CountryDto[]>([]);
-  readonly types = signal<EducationTypeDto[]>([]);
+  readonly academicYears = signal<AcademicYearDto[]>([]);
   readonly stages = signal<EducationStageDto[]>([]);
   readonly years = signal<EducationYearDto[]>([]);
   readonly subjects = signal<EducationSubjectDto[]>([]);
   readonly countryId = signal<number | null>(null);
-  readonly typeId = signal<number | null>(null);
+  readonly academicYearId = signal<number | null>(null);
   readonly stageId = signal<number | null>(null);
   readonly yearId = signal<number | null>(null);
   readonly subjectId = signal<number | null>(null);
@@ -30,7 +31,8 @@ export class MarketplaceCatalog {
   constructor(
     private readonly marketplaceApi: PublicMarketplaceClient,
     private readonly countriesApi: CountriesClient,
-    private readonly educationApi: EducationTypesClient,
+    private readonly academicYearsApi: AcademicYearsClient,
+    private readonly stagesApi: EducationStagesClient,
     private readonly i18n: TranslationService,
   ) {}
 
@@ -38,8 +40,11 @@ export class MarketplaceCatalog {
     this.countriesApi.getCountries(true).subscribe({
       next: (items) => this.countries.set(items ?? []),
     });
-    this.educationApi.getTypes(true).subscribe({
-      next: (items) => this.types.set(items ?? []),
+    this.academicYearsApi.get(true).subscribe({
+      next: (items) => this.academicYears.set(items ?? []),
+    });
+    this.stagesApi.getStages(true).subscribe({
+      next: (items) => this.stages.set(items ?? []),
     });
     this.loadTeachers();
   }
@@ -48,7 +53,7 @@ export class MarketplaceCatalog {
     this.loading.set(true);
     this.error.set(null);
     this.marketplaceApi
-      .getTeachers(this.countryId(), this.stageId(), this.subjectId())
+      .getTeachers(this.countryId(), this.academicYearId(), this.stageId(), this.subjectId())
       .subscribe({
         next: (items) => {
           this.teachers.set(items ?? []);
@@ -66,20 +71,8 @@ export class MarketplaceCatalog {
     this.loadTeachers();
   }
 
-  onType(value: string): void {
-    const id = value ? Number(value) : null;
-    this.typeId.set(id);
-    this.stageId.set(null);
-    this.yearId.set(null);
-    this.subjectId.set(null);
-    this.stages.set([]);
-    this.years.set([]);
-    this.subjects.set([]);
-    if (id) {
-      this.educationApi.getStages(id, true).subscribe({
-        next: (items) => this.stages.set(items ?? []),
-      });
-    }
+  onAcademicYear(value: string): void {
+    this.academicYearId.set(value ? Number(value) : null);
     this.loadTeachers();
   }
 
@@ -90,9 +83,8 @@ export class MarketplaceCatalog {
     this.subjectId.set(null);
     this.years.set([]);
     this.subjects.set([]);
-    const typeId = this.typeId();
-    if (id && typeId) {
-      this.educationApi.getYears(typeId, id, true).subscribe({
+    if (id) {
+      this.stagesApi.getYears(id, true).subscribe({
         next: (items) => this.years.set(items ?? []),
       });
     }
@@ -104,10 +96,9 @@ export class MarketplaceCatalog {
     this.yearId.set(id);
     this.subjectId.set(null);
     this.subjects.set([]);
-    const typeId = this.typeId();
     const stageId = this.stageId();
-    if (id && typeId && stageId) {
-      this.educationApi.getSubjects(typeId, stageId, id, true).subscribe({
+    if (id && stageId) {
+      this.stagesApi.getSubjects(stageId, id, true).subscribe({
         next: (items) => this.subjects.set(items ?? []),
       });
     }

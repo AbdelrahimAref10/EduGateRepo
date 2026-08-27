@@ -29,12 +29,13 @@ public sealed class PublicMarketplaceController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<PublicTeacherListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTeachers(
         [FromQuery] int? countryId,
+        [FromQuery] int? academicYearId,
         [FromQuery] int? educationStageId,
         [FromQuery] int? educationSubjectId,
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(
-            new GetPublicTeachersQuery(countryId, educationStageId, educationSubjectId),
+            new GetPublicTeachersQuery(countryId, academicYearId, educationStageId, educationSubjectId),
             cancellationToken);
 
         return result.ToActionResult();

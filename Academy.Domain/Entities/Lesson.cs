@@ -4,13 +4,21 @@ using Academy.Domain.Enums;
 namespace Academy.Domain.Entities;
 
 /// <summary>
-/// Annual lesson offered by a teacher for a subject, stage, and education year.
+/// Annual lesson offered by a teacher for an academic year, grade, and subject.
 /// </summary>
 public class Lesson : BaseEntity
 {
     public int TeacherId { get; set; }
 
     public Teacher Teacher { get; set; } = null!;
+
+    public int AcademicYearId { get; set; }
+
+    public AcademicYear AcademicYear { get; set; } = null!;
+
+    public int EducationStageId { get; set; }
+
+    public EducationStage EducationStage { get; set; } = null!;
 
     public int EducationSubjectId { get; set; }
 
@@ -20,14 +28,6 @@ public class Lesson : BaseEntity
     /// Denormalized subject name snapshot for notifications and listings.
     /// </summary>
     public string Subject { get; set; } = null!;
-
-    public int EducationTypeId { get; set; }
-
-    public EducationType EducationType { get; set; } = null!;
-
-    public int EducationStageId { get; set; }
-
-    public EducationStage EducationStage { get; set; } = null!;
 
     public int EducationYearId { get; set; }
 

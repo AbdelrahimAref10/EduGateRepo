@@ -21,7 +21,7 @@ public interface IApplicationDbContext
 
     DbSet<Area> Areas { get; }
 
-    DbSet<EducationType> EducationTypes { get; }
+    DbSet<AcademicYear> AcademicYears { get; }
 
     DbSet<EducationStage> EducationStages { get; }
 

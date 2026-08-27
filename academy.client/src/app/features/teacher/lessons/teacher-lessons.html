@@ -24,8 +24,8 @@
         <strong>{{ allLessonsCount() }}</strong>
       </div>
       <div class="tl-stat">
-        <span>{{ 'lessons.educationTypes' | t }}</span>
-        <strong>{{ educationTypes().length }}</strong>
+        <span>{{ 'lessons.academicYears' | t }}</span>
+        <strong>{{ academicYears().length }}</strong>
       </div>
     </div>
   </header>
@@ -45,24 +45,24 @@
 
   <section class="tl-board">
     <div class="tl-board-head">
-      <h2>{{ 'lessons.educationTypes' | t }}</h2>
+      <h2>{{ 'lessons.academicYears' | t }}</h2>
     </div>
 
-    @if (loadingTypes()) {
-      <app-page-loader titleKey="lessons.loadingTypes" [compact]="true" />
-    } @else if (educationTypes().length === 0) {
-      <p class="tl-empty">{{ 'lessons.emptyTypes' | t }}</p>
+    @if (loadingAcademicYears()) {
+      <app-page-loader titleKey="lessons.loadingAcademicYears" [compact]="true" />
+    } @else if (academicYears().length === 0) {
+      <p class="tl-empty">{{ 'lessons.emptyAcademicYears' | t }}</p>
     } @else {
       <div class="tl-types">
-        @for (type of educationTypes(); track type.id) {
+        @for (year of academicYears(); track year.id) {
           <button
             type="button"
             class="tl-type"
-            [class.is-on]="selectedTypeId() === type.id"
-            (click)="selectType(type.id)"
+            [class.is-on]="selectedAcademicYearId() === year.id"
+            (click)="selectAcademicYear(year.id)"
           >
-            <span class="tl-type-name">{{ type.name }}</span>
-            <strong>{{ lessonsCountForType(type.id) }}</strong>
+            <span class="tl-type-name">{{ year.name }}</span>
+            <strong>{{ lessonsCountForYear(year.id) }}</strong>
             <em>{{ 'lessons.myCount' | t }}</em>
           </button>
         }
@@ -70,11 +70,11 @@
     }
   </section>
 
-  @if (selectedType(); as type) {
+  @if (selectedAcademicYear(); as year) {
     <section class="tl-board">
       <div class="tl-board-head">
         <div class="min-w-0">
-          <p class="tl-kicker tl-kicker-ink">{{ type.name }}</p>
+          <p class="tl-kicker tl-kicker-ink">{{ year.name }}</p>
           <h2>{{ 'lessons.myLessons' | t }}</h2>
         </div>
         <button type="button" class="tl-btn-primary" (click)="openCreate()">
@@ -86,7 +86,7 @@
         <app-page-loader titleKey="lessons.loading" [compact]="true" />
       } @else if (lessons().length === 0) {
         <div class="tl-blank">
-          <p>{{ 'lessons.emptyForType' | t }}</p>
+          <p>{{ 'lessons.emptyForAcademicYear' | t }}</p>
           <button type="button" class="tl-btn-primary" (click)="openCreate()">
             {{ 'lessons.addFirstLesson' | t }}
           </button>
@@ -154,19 +154,19 @@
         />
       }
     </section>
-  } @else if (!loadingTypes() && educationTypes().length) {
+  } @else if (!loadingAcademicYears() && academicYears().length) {
     <section class="tl-blank tl-blank-board">
-      <p>{{ 'lessons.pickType' | t }}</p>
+      <p>{{ 'lessons.pickAcademicYear' | t }}</p>
     </section>
   }
 </section>
 
-  @if (formOpen() && selectedType(); as type) {
+  @if (formOpen() && selectedAcademicYear(); as year) {
     <div class="tl-overlay" (click)="closeForm()">
       <aside class="tl-drawer" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
         <header class="tl-drawer-head">
           <div>
-            <p class="tl-kicker tl-kicker-ink">{{ type.name }}</p>
+            <p class="tl-kicker tl-kicker-ink">{{ year.name }}</p>
             <h2>{{ editingLessonId() ? ('lessons.editTitle' | t) : ('lessons.createTitle' | t) }}</h2>
           </div>
           <button

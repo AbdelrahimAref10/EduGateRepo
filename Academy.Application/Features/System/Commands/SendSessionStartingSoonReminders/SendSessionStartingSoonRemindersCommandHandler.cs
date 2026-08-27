@@ -28,18 +28,26 @@ public sealed class SendSessionStartingSoonRemindersCommandHandler(
         var toDate = DateOnly.FromDateTime(windowEnd);
 
         var candidates = await dbContext.LessonGroupSessions
-            .AsTracking()
-            .Include(s => s.LessonGroup)
-                .ThenInclude(g => g.Lesson)
+            .AsNoTracking()
             .Where(s =>
                 s.StartedAtUtc == null
                 && s.EndedAtUtc == null
                 && s.StartingSoonReminderSentAtUtc == null
                 && s.SessionDate >= fromDate
                 && s.SessionDate <= toDate)
+            .Select(s => new
+            {
+                s.Id,
+                s.LessonGroupId,
+                s.SessionDate,
+                s.StartTime,
+                GroupName = s.LessonGroup.Name,
+                Subject = s.LessonGroup.Lesson.Subject
+            })
             .ToListAsync(cancellationToken);
 
         var sent = 0;
+        var remindedIds = new List<int>();
 
         foreach (var session in candidates)
         {
@@ -52,13 +60,13 @@ public sealed class SendSessionStartingSoonRemindersCommandHandler(
                 .Select(m => new { m.StudentId, m.Student.UserId })
                 .ToListAsync(cancellationToken);
 
-            session.StartingSoonReminderSentAtUtc = now;
+            remindedIds.Add(session.Id);
 
             if (members.Count == 0)
                 continue;
 
-            var subject = session.LessonGroup.Lesson.Subject;
-            var groupName = session.LessonGroup.Name;
+            var subject = session.Subject;
+            var groupName = session.GroupName;
             var studentUserIds = members.Select(m => m.UserId).Distinct().ToList();
 
             await notificationService.CreateAsync(
@@ -97,8 +105,14 @@ public sealed class SendSessionStartingSoonRemindersCommandHandler(
             sent++;
         }
 
-        if (candidates.Count > 0)
-            await dbContext.SaveChangesAsync(cancellationToken);
+        if (remindedIds.Count > 0)
+        {
+            await dbContext.LessonGroupSessions
+                .Where(s => remindedIds.Contains(s.Id))
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(s => s.StartingSoonReminderSentAtUtc, now),
+                    cancellationToken);
+        }
 
         if (sent > 0)
             logger.LogInformation("Sent starting-soon reminders for {Count} sessions.", sent);

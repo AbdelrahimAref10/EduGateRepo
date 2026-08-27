@@ -26,7 +26,7 @@ export interface AppNotification {
 }
 
 const SOUND_URL = '/assets/sounds/notification.wav';
-const POLL_MS = 3000;
+const POLL_MS = 30_000;
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
@@ -158,7 +158,6 @@ export class NotificationService {
             /*allowSound*/ this.syncReady || force,
           );
           this.syncReady = true;
-          this.notifyUi();
         });
       },
       error: () => undefined,
@@ -166,10 +165,14 @@ export class NotificationService {
   }
 
   private mergeApiItems(incoming: AppNotification[], allowSound: boolean): void {
-    const previousIds = new Set(this.itemsSignal().map((x) => x.id));
+    const previous = this.itemsSignal();
+    const previousIds = new Set(previous.map((x) => x.id));
     const hadSync = this.syncReady;
+    const sameSnapshot =
+      previous.length === incoming.length &&
+      previous.every((item, i) => item.id === incoming[i]?.id && item.read === incoming[i]?.read);
 
-    this.itemsSignal.set(incoming);
+    if (!sameSnapshot) this.itemsSignal.set(incoming);
     for (const item of incoming) {
       this.seenIds.add(item.id);
     }
@@ -316,7 +319,8 @@ export class NotificationService {
     // Run outside Angular to avoid timer spam, then re-enter zone on updates.
     this.zone.runOutsideAngular(() => {
       this.pollTimer = setInterval(() => {
-        this.pullFromApi(true);
+        if (this.hub?.state === signalR.HubConnectionState.Connected) return;
+        this.pullFromApi(false);
       }, POLL_MS);
     });
   }

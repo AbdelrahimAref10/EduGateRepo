@@ -32,7 +32,7 @@ public sealed class ConfirmBookingCommandHandler(
         var booking = await dbContext.LessonBookings
             .AsTracking()
             .Include(x => x.Lesson)
-                .ThenInclude(x => x.EducationType)
+                .ThenInclude(x => x.AcademicYear)
             .Include(x => x.Lesson)
                 .ThenInclude(x => x.EducationStage)
             .Include(x => x.Lesson)
@@ -104,10 +104,7 @@ public sealed class ConfirmBookingCommandHandler(
             StudentPhotoUrl = ImageService.DisplayValue(booking.Student.User.ProfilePhoto),
             StudentCode = booking.Student.StudentCode,
             Subject = booking.Lesson.Subject,
-            EducationTypeName = LocalizedNames.Pick(
-                booking.Lesson.EducationType.NameAr,
-                booking.Lesson.EducationType.NameEn,
-                language),
+            AcademicYearName = booking.Lesson.AcademicYear.Name,
             EducationStageName = LocalizedNames.Pick(
                 booking.Lesson.EducationStage.NameAr,
                 booking.Lesson.EducationStage.NameEn,

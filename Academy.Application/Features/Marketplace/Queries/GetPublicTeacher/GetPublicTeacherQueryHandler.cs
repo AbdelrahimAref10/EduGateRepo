@@ -37,7 +37,7 @@ public sealed class GetPublicTeacherQueryHandler(
             .AsNoTracking()
             .Include(x => x.Teacher)
                 .ThenInclude(x => x.User)
-            .Include(x => x.EducationType)
+            .Include(x => x.AcademicYear)
             .Include(x => x.EducationStage)
             .Include(x => x.EducationYear)
             .Include(x => x.EducationSubject)

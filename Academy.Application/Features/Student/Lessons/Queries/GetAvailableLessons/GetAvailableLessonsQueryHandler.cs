@@ -44,10 +44,8 @@ public sealed class GetAvailableLessonsQueryHandler(
                 Subject = language == AppLanguage.Arabic
                     ? x.EducationSubject.NameAr
                     : x.EducationSubject.NameEn,
-                EducationTypeId = x.EducationTypeId,
-                EducationTypeName = language == AppLanguage.Arabic
-                    ? x.EducationType.NameAr
-                    : x.EducationType.NameEn,
+                AcademicYearId = x.AcademicYearId,
+                AcademicYearName = x.AcademicYear.Name,
                 EducationStageId = x.EducationStageId,
                 EducationStageName = language == AppLanguage.Arabic
                     ? x.EducationStage.NameAr
@@ -88,8 +86,8 @@ public sealed class GetAvailableLessonsQueryHandler(
                     TeacherName = lesson.TeacherName,
                     TeacherPhotoUrl = ImageService.DisplayValue(lesson.TeacherPhotoUrl),
                     Subject = lesson.Subject,
-                    EducationTypeId = lesson.EducationTypeId,
-                    EducationTypeName = lesson.EducationTypeName,
+                    AcademicYearId = lesson.AcademicYearId,
+                    AcademicYearName = lesson.AcademicYearName,
                     EducationStageId = lesson.EducationStageId,
                     EducationStageName = lesson.EducationStageName,
                     EducationYearId = lesson.EducationYearId,

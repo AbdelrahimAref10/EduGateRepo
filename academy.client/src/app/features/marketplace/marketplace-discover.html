@@ -39,17 +39,17 @@
           </select>
         </label>
         <label>
-          <span>{{ 'lessons.educationType' | t }}</span>
-          <select (change)="catalog.onType($any($event.target).value)">
-            <option value="">{{ 'marketplace.anyType' | t }}</option>
-            @for (type of catalog.types(); track type.id) {
-              <option [value]="type.id">{{ type.name }}</option>
+          <span>{{ 'lessons.academicYear' | t }}</span>
+          <select (change)="catalog.onAcademicYear($any($event.target).value)">
+            <option value="">{{ 'marketplace.anyAcademicYear' | t }}</option>
+            @for (year of catalog.academicYears(); track year.id) {
+              <option [value]="year.id">{{ year.name }}</option>
             }
           </select>
         </label>
         <label>
           <span>{{ 'lessons.educationStage' | t }}</span>
-          <select (change)="catalog.onStage($any($event.target).value)" [disabled]="!catalog.typeId()">
+          <select (change)="catalog.onStage($any($event.target).value)">
             <option value="">{{ 'marketplace.anyStage' | t }}</option>
             @for (stage of catalog.stages(); track stage.id) {
               <option [value]="stage.id">{{ stage.name }}</option>

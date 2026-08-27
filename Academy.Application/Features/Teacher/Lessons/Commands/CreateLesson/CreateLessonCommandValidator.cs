@@ -8,7 +8,7 @@ public sealed class CreateLessonCommandValidator : AbstractValidator<CreateLesso
     public CreateLessonCommandValidator()
     {
         RuleFor(x => x.UserId).GreaterThan(0);
-        RuleFor(x => x.EducationTypeId).GreaterThan(0);
+        RuleFor(x => x.AcademicYearId).GreaterThan(0);
         RuleFor(x => x.EducationStageId).GreaterThan(0);
         RuleFor(x => x.EducationYearId).GreaterThan(0);
         RuleFor(x => x.EducationSubjectId).GreaterThan(0);

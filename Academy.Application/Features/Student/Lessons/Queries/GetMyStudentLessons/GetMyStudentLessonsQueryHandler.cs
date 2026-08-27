@@ -35,7 +35,7 @@ public sealed class GetMyStudentLessonsQueryHandler(
                 .ThenInclude(x => x.Teacher)
                     .ThenInclude(x => x.User)
             .Include(x => x.Lesson)
-                .ThenInclude(x => x.EducationType)
+                .ThenInclude(x => x.AcademicYear)
             .Include(x => x.Lesson)
                 .ThenInclude(x => x.EducationStage)
             .Include(x => x.Lesson)
@@ -91,10 +91,7 @@ public sealed class GetMyStudentLessonsQueryHandler(
                 Subject = booking.Lesson.Subject,
                 TeacherName = $"{booking.Lesson.Teacher.User.FirstName} {booking.Lesson.Teacher.User.LastName}".Trim(),
                 TeacherPhotoUrl = ImageService.DisplayValue(booking.Lesson.Teacher.User.ProfilePhoto),
-                EducationTypeName = LocalizedNames.Pick(
-                    booking.Lesson.EducationType.NameAr,
-                    booking.Lesson.EducationType.NameEn,
-                    language),
+                AcademicYearName = booking.Lesson.AcademicYear.Name,
                 EducationStageName = LocalizedNames.Pick(
                     booking.Lesson.EducationStage.NameAr,
                     booking.Lesson.EducationStage.NameEn,

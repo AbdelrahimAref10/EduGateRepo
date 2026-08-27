@@ -38,9 +38,7 @@ public sealed class GetPendingBookingsQueryHandler(
                 StudentPhotoUrl = x.Student.User.ProfilePhoto,
                 StudentCode = x.Student.StudentCode,
                 Subject = x.Lesson.Subject,
-                EducationTypeName = language == AppLanguage.Arabic
-                    ? x.Lesson.EducationType.NameAr
-                    : x.Lesson.EducationType.NameEn,
+                AcademicYearName = x.Lesson.AcademicYear.Name,
                 EducationStageName = language == AppLanguage.Arabic
                     ? x.Lesson.EducationStage.NameAr
                     : x.Lesson.EducationStage.NameEn,

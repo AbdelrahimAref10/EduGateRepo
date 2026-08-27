@@ -6,7 +6,6 @@ public sealed class CreateEducationSubjectCommandValidator : AbstractValidator<C
 {
     public CreateEducationSubjectCommandValidator()
     {
-        RuleFor(x => x.EducationTypeId).GreaterThan(0);
         RuleFor(x => x.EducationStageId).GreaterThan(0);
         RuleFor(x => x.EducationYearId).GreaterThan(0);
         RuleFor(x => x.NameAr).NotEmpty().MaximumLength(150);

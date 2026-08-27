@@ -7,27 +7,20 @@ namespace Academy.Application.Features.SuperAdmin.Education;
 
 internal static class EducationMappings
 {
-    public static EducationTypeDto ToTypeDto(EducationType entity, AppLanguage language, int stagesCount)
+    public static AcademicYearDto ToAcademicYearDto(AcademicYear entity, int lessonsCount)
         => new()
         {
             Id = entity.Id,
-            Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, language),
-            NameAr = entity.NameAr,
-            NameEn = entity.NameEn,
+            Name = entity.Name,
             SortOrder = entity.SortOrder,
             IsActive = entity.IsActive,
-            StagesCount = stagesCount
+            LessonsCount = lessonsCount
         };
 
     public static EducationStageDto ToStageDto(EducationStage entity, AppLanguage language, int yearsCount)
         => new()
         {
             Id = entity.Id,
-            EducationTypeId = entity.EducationTypeId,
-            EducationTypeName = LocalizedNames.Pick(
-                entity.EducationType.NameAr,
-                entity.EducationType.NameEn,
-                language),
             Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, language),
             NameAr = entity.NameAr,
             NameEn = entity.NameEn,
@@ -44,11 +37,6 @@ internal static class EducationMappings
             EducationStageName = LocalizedNames.Pick(
                 entity.EducationStage.NameAr,
                 entity.EducationStage.NameEn,
-                language),
-            EducationTypeId = entity.EducationStage.EducationTypeId,
-            EducationTypeName = LocalizedNames.Pick(
-                entity.EducationStage.EducationType.NameAr,
-                entity.EducationStage.EducationType.NameEn,
                 language),
             Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, language),
             NameAr = entity.NameAr,
@@ -71,11 +59,6 @@ internal static class EducationMappings
             EducationStageName = LocalizedNames.Pick(
                 entity.EducationYear.EducationStage.NameAr,
                 entity.EducationYear.EducationStage.NameEn,
-                language),
-            EducationTypeId = entity.EducationYear.EducationStage.EducationTypeId,
-            EducationTypeName = LocalizedNames.Pick(
-                entity.EducationYear.EducationStage.EducationType.NameAr,
-                entity.EducationYear.EducationStage.EducationType.NameEn,
                 language),
             Name = LocalizedNames.Pick(entity.NameAr, entity.NameEn, language),
             NameAr = entity.NameAr,

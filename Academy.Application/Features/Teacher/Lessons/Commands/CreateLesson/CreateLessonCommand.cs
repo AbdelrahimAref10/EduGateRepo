@@ -7,7 +7,7 @@ namespace Academy.Application.Features.Teacher.Lessons.Commands.CreateLesson;
 
 public sealed record CreateLessonCommand(
     int UserId,
-    int EducationTypeId,
+    int AcademicYearId,
     int EducationStageId,
     int EducationYearId,
     int EducationSubjectId,

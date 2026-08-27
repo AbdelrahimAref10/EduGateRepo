@@ -12,9 +12,9 @@ public sealed class PublicLessonCardDto
 
     public required string Subject { get; init; }
 
-    public required int EducationTypeId { get; init; }
+    public required int AcademicYearId { get; init; }
 
-    public required string EducationTypeName { get; init; }
+    public required string AcademicYearName { get; init; }
 
     public required int EducationStageId { get; init; }
 

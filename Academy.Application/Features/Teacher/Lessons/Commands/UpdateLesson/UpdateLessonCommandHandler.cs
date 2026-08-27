@@ -57,9 +57,16 @@ public sealed class UpdateLessonCommandHandler(
         if (area is null)
             return Result<LessonDto>.Failure("Selected area was not found or does not belong to your city.");
 
+        var academicYearResult = await EducationCurriculum.ResolveAcademicYearAsync(
+            dbContext,
+            request.AcademicYearId,
+            cancellationToken);
+
+        if (!academicYearResult.IsSuccess)
+            return Result<LessonDto>.Failure(academicYearResult.Error, academicYearResult.StatusCode);
+
         var resolved = await EducationCurriculum.ResolveSubjectAsync(
             dbContext,
-            request.EducationTypeId,
             request.EducationStageId,
             request.EducationYearId,
             request.EducationSubjectId,
@@ -68,15 +75,15 @@ public sealed class UpdateLessonCommandHandler(
         if (!resolved.IsSuccess)
             return Result<LessonDto>.Failure(resolved.Error, resolved.StatusCode);
 
+        var academicYear = academicYearResult.Value!;
         var subject = resolved.Value!;
         var year = subject.EducationYear;
         var stage = year.EducationStage;
-        var type = stage.EducationType;
 
+        lesson.AcademicYearId = academicYear.Id;
+        lesson.EducationStageId = stage.Id;
         lesson.EducationSubjectId = subject.Id;
         lesson.Subject = LocalizedNames.Pick(subject.NameAr, subject.NameEn, requestLanguage.Current);
-        lesson.EducationTypeId = type.Id;
-        lesson.EducationStageId = stage.Id;
         lesson.EducationYearId = year.Id;
         lesson.BillingType = request.BillingType;
         lesson.SessionPrice = request.BillingType == BillingType.PerSession ? request.SessionPrice : null;
@@ -88,7 +95,7 @@ public sealed class UpdateLessonCommandHandler(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        lesson.EducationType = type;
+        lesson.AcademicYear = academicYear;
         lesson.EducationStage = stage;
         lesson.EducationYear = year;
         lesson.EducationSubject = subject;

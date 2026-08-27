@@ -44,9 +44,16 @@ public sealed class CreateLessonCommandHandler(
         if (area is null)
             return Result<LessonDto>.Failure("Selected area was not found or does not belong to your city.");
 
+        var academicYearResult = await EducationCurriculum.ResolveAcademicYearAsync(
+            dbContext,
+            request.AcademicYearId,
+            cancellationToken);
+
+        if (!academicYearResult.IsSuccess)
+            return Result<LessonDto>.Failure(academicYearResult.Error, academicYearResult.StatusCode);
+
         var resolved = await EducationCurriculum.ResolveSubjectAsync(
             dbContext,
-            request.EducationTypeId,
             request.EducationStageId,
             request.EducationYearId,
             request.EducationSubjectId,
@@ -55,20 +62,20 @@ public sealed class CreateLessonCommandHandler(
         if (!resolved.IsSuccess)
             return Result<LessonDto>.Failure(resolved.Error, resolved.StatusCode);
 
+        var academicYear = academicYearResult.Value!;
         var subject = resolved.Value!;
         var year = subject.EducationYear;
         var stage = year.EducationStage;
-        var type = stage.EducationType;
         var countryId = area.City.Governorate.CountryId;
         var language = requestLanguage.Current;
 
         var lesson = new Lesson
         {
             TeacherId = teacher.Id,
+            AcademicYearId = academicYear.Id,
+            EducationStageId = stage.Id,
             EducationSubjectId = subject.Id,
             Subject = LocalizedNames.Pick(subject.NameAr, subject.NameEn, language),
-            EducationTypeId = type.Id,
-            EducationStageId = stage.Id,
             EducationYearId = year.Id,
             BillingType = request.BillingType,
             SessionPrice = request.BillingType == BillingType.PerSession ? request.SessionPrice : null,
@@ -95,8 +102,8 @@ public sealed class CreateLessonCommandHandler(
             TeacherId = lesson.TeacherId,
             Subject = LocalizedNames.Pick(subject.NameAr, subject.NameEn, language),
             EducationSubjectId = subject.Id,
-            EducationTypeId = type.Id,
-            EducationTypeName = LocalizedNames.Pick(type.NameAr, type.NameEn, language),
+            AcademicYearId = academicYear.Id,
+            AcademicYearName = academicYear.Name,
             EducationStageId = stage.Id,
             EducationStageName = LocalizedNames.Pick(stage.NameAr, stage.NameEn, language),
             EducationYearId = year.Id,

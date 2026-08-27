@@ -17,25 +17,16 @@ public sealed class CreateEducationStageCommandHandler(
         CreateEducationStageCommand request,
         CancellationToken cancellationToken)
     {
-        var type = await dbContext.EducationTypes
-            .FirstOrDefaultAsync(x => x.Id == request.EducationTypeId, cancellationToken);
-
-        if (type is null)
-            return Result<EducationStageDto>.NotFound("Education type was not found.");
-
         var nameEn = request.NameEn.Trim();
 
         var exists = await dbContext.EducationStages
-            .AnyAsync(
-                x => x.EducationTypeId == request.EducationTypeId && x.NameEn == nameEn,
-                cancellationToken);
+            .AnyAsync(x => x.NameEn == nameEn, cancellationToken);
 
         if (exists)
-            return Result<EducationStageDto>.Conflict("Education stage already exists for this type.");
+            return Result<EducationStageDto>.Conflict("Education stage already exists.");
 
         var entity = new EducationStage
         {
-            EducationTypeId = request.EducationTypeId,
             NameAr = request.NameAr.Trim(),
             NameEn = nameEn,
             SortOrder = request.SortOrder,
@@ -45,7 +36,6 @@ public sealed class CreateEducationStageCommandHandler(
         dbContext.EducationStages.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        entity.EducationType = type;
         return Result<EducationStageDto>.Success(
             EducationMappings.ToStageDto(entity, requestLanguage.Current, yearsCount: 0));
     }

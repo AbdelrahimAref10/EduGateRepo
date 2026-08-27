@@ -32,6 +32,7 @@ public sealed class EducationYearConfiguration : IEntityTypeConfiguration<Educat
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => new { x.EducationStageId, x.SortOrder });
-        builder.HasIndex(x => new { x.EducationStageId, x.NameEn });
+        builder.HasIndex(x => new { x.EducationStageId, x.NameEn })
+            .IsUnique();
     }
 }

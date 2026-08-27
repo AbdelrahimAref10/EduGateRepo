@@ -27,11 +27,8 @@ internal static class LessonMappings
                 lesson.EducationSubject.NameEn,
                 language),
             EducationSubjectId = lesson.EducationSubjectId,
-            EducationTypeId = lesson.EducationTypeId,
-            EducationTypeName = LocalizedNames.Pick(
-                lesson.EducationType.NameAr,
-                lesson.EducationType.NameEn,
-                language),
+            AcademicYearId = lesson.AcademicYearId,
+            AcademicYearName = lesson.AcademicYear.Name,
             EducationStageId = lesson.EducationStageId,
             EducationStageName = LocalizedNames.Pick(
                 lesson.EducationStage.NameAr,

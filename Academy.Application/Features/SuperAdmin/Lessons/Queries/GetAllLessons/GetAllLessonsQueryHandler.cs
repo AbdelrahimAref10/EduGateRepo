@@ -24,7 +24,7 @@ public sealed class GetAllLessonsQueryHandler(
             .AsNoTracking()
             .Include(x => x.Teacher)
                 .ThenInclude(x => x.User)
-            .Include(x => x.EducationType)
+            .Include(x => x.AcademicYear)
             .Include(x => x.EducationStage)
             .Include(x => x.EducationYear)
             .Include(x => x.EducationSubject)
@@ -72,10 +72,7 @@ public sealed class GetAllLessonsQueryHandler(
                     language),
                 TeacherId = lesson.TeacherId,
                 TeacherName = lesson.Teacher.User.FullName,
-                EducationTypeName = LocalizedNames.Pick(
-                    lesson.EducationType.NameAr,
-                    lesson.EducationType.NameEn,
-                    language),
+                AcademicYearName = lesson.AcademicYear.Name,
                 EducationStageName = LocalizedNames.Pick(
                     lesson.EducationStage.NameAr,
                     lesson.EducationStage.NameEn,

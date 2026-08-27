@@ -8,10 +8,6 @@ public sealed class EducationYearDto
 
     public required string EducationStageName { get; init; }
 
-    public required int EducationTypeId { get; init; }
-
-    public required string EducationTypeName { get; init; }
-
     public required string Name { get; init; }
 
     public required string NameAr { get; init; }

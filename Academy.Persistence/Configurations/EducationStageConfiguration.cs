@@ -26,12 +26,8 @@ public sealed class EducationStageConfiguration : IEntityTypeConfiguration<Educa
         builder.Property(x => x.IsActive)
             .IsRequired();
 
-        builder.HasOne(x => x.EducationType)
-            .WithMany(x => x.Stages)
-            .HasForeignKey(x => x.EducationTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasIndex(x => new { x.EducationTypeId, x.SortOrder });
-        builder.HasIndex(x => new { x.EducationTypeId, x.NameEn });
+        builder.HasIndex(x => x.SortOrder);
+        builder.HasIndex(x => x.NameEn)
+            .IsUnique();
     }
 }

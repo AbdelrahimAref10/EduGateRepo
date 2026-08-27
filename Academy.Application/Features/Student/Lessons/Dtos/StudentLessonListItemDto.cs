@@ -14,7 +14,7 @@ public sealed class StudentLessonListItemDto
 
     public string? TeacherPhotoUrl { get; init; }
 
-    public required string EducationTypeName { get; init; }
+    public required string AcademicYearName { get; init; }
 
     public required string EducationStageName { get; init; }
 
@@ -36,4 +36,4 @@ public sealed class StudentLessonListItemDto
 
     public DateOnly? NextSessionDate { get; init; }
 }
-
+
