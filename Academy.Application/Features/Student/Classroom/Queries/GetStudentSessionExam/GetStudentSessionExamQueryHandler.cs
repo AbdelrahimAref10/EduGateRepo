@@ -22,14 +22,14 @@ public sealed class GetStudentSessionExamQueryHandler(IApplicationDbContext dbCo
             .AsTracking()
             .Include(x => x.Questions)
                 .ThenInclude(x => x.Options)
-            .Include(x => x.Attempts.Where(a => a.StudentId == access.Value!.StudentId))
-                .ThenInclude(a => a.Answers)
             .FirstOrDefaultAsync(x => x.LessonGroupSessionId == request.SessionId, cancellationToken);
 
         if (exam is null || exam.Status != ExamStatus.Published)
             return Result<StudentExamDto?>.Success(null);
 
-        var attempt = exam.Attempts.FirstOrDefault();
+        var attempt = await dbContext.ExamAttempts.AsTracking()
+                .Include(a => a.Answers).FirstOrDefaultAsync(x => x.StudentId == access.Value!.StudentId && x.ExamId == exam.Id);
+
         if (attempt is not null)
             await StudentExamProgress.ApplyExpiredQuestionsAsync(dbContext, exam, attempt, cancellationToken);
 
