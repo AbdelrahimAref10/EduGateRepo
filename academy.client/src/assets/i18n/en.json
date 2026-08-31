@@ -1246,5 +1246,31 @@
     "paymentsTitle": "Payment history",
     "paymentsSub": "Payments recorded for your children.",
     "noPayments": "No payments recorded yet."
+  },
+  "learning": {
+    "planNav": "This week",
+    "progressNav": "Progress",
+    "planTitle": "Weekly learning plan",
+    "planSub": "Sessions, exams due, unpaid charges, and teacher notes for this week.",
+    "parentPlanSub": "Your children’s week: sessions, exams, unpaid items, and notes.",
+    "progressTitle": "Learning progress",
+    "progressSub": "Attendance, exam average, last sessions, and outstanding balance per lesson.",
+    "parentProgressSub": "Attendance, scores, and balances for each child and lesson.",
+    "thisWeekSessions": "This week’s sessions",
+    "noSessions": "No sessions this week.",
+    "examsDue": "Exams due",
+    "noExamsDue": "No open exams this week.",
+    "unpaid": "Unpaid this week",
+    "noProgress": "No lesson progress yet. Join a group to start tracking.",
+    "attendance": "Attendance",
+    "examAvg": "Exam average",
+    "examsTaken": "exams",
+    "outstanding": "Outstanding",
+    "lastSessions": "Last 5 sessions",
+    "upcoming": "Upcoming",
+    "lessonsCount": "Lessons",
+    "groupProgress": "Group progress",
+    "hideProgress": "Hide progress",
+    "loadingProgress": "Loading progress…"
   }
 }

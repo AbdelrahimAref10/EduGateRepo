@@ -23,6 +23,8 @@ using Academy.Application.Features.Teacher.Lessons.Queries.GetMyCityAreas;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetUnassignedLessonStudents;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessonCounts;
 using Academy.Application.Features.Teacher.Lessons.Queries.GetMyLessons;
+using Academy.Application.Features.Teacher.Lessons.Queries.GetTeacherGroupProgress;
+using Academy.Application.Features.LearningPath.Dtos;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
 using MediatR;
@@ -289,6 +291,25 @@ public sealed class LessonsController(ISender sender) : ControllerBase
 
         var result = await sender.Send(
             new GetLessonGroupQuery(userId.Value, lessonId, groupId),
+            cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{lessonId:int}/groups/{groupId:int}/progress")]
+    [ProducesResponseType(typeof(TeacherGroupProgressDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetGroupProgress(
+        int lessonId,
+        int groupId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherGroupProgressQuery(userId.Value, lessonId, groupId),
             cancellationToken);
 
         return result.ToActionResult();

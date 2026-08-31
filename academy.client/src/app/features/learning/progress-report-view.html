@@ -1,0 +1,80 @@
+@if (lessons().length === 0) {
+  <p class="text-sm text-muted">{{ 'learning.noProgress' | t }}</p>
+} @else {
+  <div class="space-y-4">
+    @for (lesson of lessons(); track lesson.lessonId + '-' + lesson.studentId) {
+      <article class="rounded-2xl border border-line bg-surface p-4 space-y-3">
+        <header class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-ink">{{ lesson.subject }}</h3>
+            <p class="text-sm text-muted">
+              @if (showStudentName()) {
+                {{ lesson.studentName }} ·
+              }
+              {{ lesson.groupName }} · {{ lesson.teacherName }}
+            </p>
+          </div>
+        </header>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div class="rounded-xl bg-body px-3 py-2">
+            <p class="text-xs font-semibold uppercase text-muted">{{ 'learning.attendance' | t }}</p>
+            <p class="mt-1 text-xl font-bold text-ink">
+              @if (lesson.attendancePercent != null) {
+                {{ lesson.attendancePercent }}%
+              } @else {
+                —
+              }
+            </p>
+            <p class="text-xs text-muted">{{ lesson.sessionsPresent }}/{{ lesson.sessionsHeld }}</p>
+          </div>
+          <div class="rounded-xl bg-body px-3 py-2">
+            <p class="text-xs font-semibold uppercase text-muted">{{ 'learning.examAvg' | t }}</p>
+            <p class="mt-1 text-xl font-bold text-ink">
+              @if (lesson.examAveragePercent != null) {
+                {{ lesson.examAveragePercent }}%
+              } @else {
+                —
+              }
+            </p>
+            <p class="text-xs text-muted">{{ lesson.examsTaken }} {{ 'learning.examsTaken' | t }}</p>
+          </div>
+          <div class="rounded-xl bg-body px-3 py-2">
+            <p class="text-xs font-semibold uppercase text-muted">{{ 'learning.outstanding' | t }}</p>
+            <p class="mt-1 text-xl font-bold text-ink">{{ lesson.outstanding | number: '1.0-2' }}</p>
+          </div>
+        </div>
+        <div>
+          <h4 class="mb-2 text-sm font-semibold text-ink">{{ 'learning.lastSessions' | t }}</h4>
+          @if (lesson.recentSessions.length === 0) {
+            <p class="text-sm text-muted">{{ 'learning.noSessions' | t }}</p>
+          } @else {
+            <ul class="divide-y divide-line rounded-xl border border-line">
+              @for (s of lesson.recentSessions; track s.sessionId) {
+                <li class="flex flex-col gap-1 px-3 py-2 text-sm sm:flex-row sm:justify-between">
+                  <span>
+                    {{ s.sessionDate | date: 'mediumDate' }} · {{ toTime(s.startTime) }}
+                    @if (s.topic) {
+                      · {{ s.topic }}
+                    }
+                  </span>
+                  <span>
+                    @if (!s.hasStarted) {
+                      {{ 'learning.upcoming' | t }}
+                    } @else if (s.isPresent) {
+                      {{ 'parent.present' | t }}
+                    } @else {
+                      {{ 'parent.absent' | t }}
+                    }
+                    @if (s.teacherNotes) {
+                      · {{ s.teacherNotes }}
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </article>
+    }
+  </div>
+}

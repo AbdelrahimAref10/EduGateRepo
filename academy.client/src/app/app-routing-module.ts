@@ -10,7 +10,11 @@ import { ParentAttendanceComponent } from './features/parent/parent-attendance';
 import { ParentChildrenComponent } from './features/parent/parent-children';
 import { ParentExamsComponent } from './features/parent/parent-exams';
 import { ParentPaymentsComponent } from './features/parent/parent-payments';
+import { ParentPlanComponent } from './features/parent/parent-plan';
+import { ParentProgressComponent } from './features/parent/parent-progress';
 import { StudentDashboardComponent } from './features/dashboards/student-dashboard/student-dashboard';
+import { StudentPlanComponent } from './features/student/learning/student-plan';
+import { StudentProgressComponent } from './features/student/learning/student-progress';
 import { SuperAdminDashboardComponent } from './features/dashboards/super-admin-dashboard/super-admin-dashboard';
 import { TeacherDashboardComponent } from './features/dashboards/teacher-dashboard/teacher-dashboard';
 import { ShellLayoutComponent } from './features/layouts/shell-layout/shell-layout';
@@ -124,6 +128,8 @@ const routes: Routes = [
     },
     children: [
       { path: '', component: StudentDashboardComponent },
+      { path: 'plan', component: StudentPlanComponent },
+      { path: 'progress', component: StudentProgressComponent },
       { path: 'lessons', component: StudentMyLessonsComponent },
       { path: 'lessons/:lessonId', component: StudentLessonDetailComponent },
       { path: 'book', component: StudentLessonsComponent },
@@ -145,6 +151,8 @@ const routes: Routes = [
     },
     children: [
       { path: '', component: ParentDashboardComponent },
+      { path: 'plan', component: ParentPlanComponent },
+      { path: 'progress', component: ParentProgressComponent },
       { path: 'children', component: ParentChildrenComponent },
       { path: 'exams', component: ParentExamsComponent },
       { path: 'attendance', component: ParentAttendanceComponent },

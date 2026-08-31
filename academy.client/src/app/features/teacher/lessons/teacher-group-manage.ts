@@ -18,13 +18,15 @@ import {
   LessonsClient,
 } from '../../../core/api/academy-api.generated';
 import { ConfirmDialogService } from '../../../core/ui/confirm-dialog.service';
+import { LearningPathApi, TeacherGroupProgressDto } from '../../../core/api/learning-path-api.service';
+import { ProgressReportViewComponent } from '../../learning/progress-report-view';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
 import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
 import { PaginatorComponent } from '../../../shared/paginator/paginator';
 
-type GroupPanel = 'sessions' | 'members' | 'booked' | 'ledger';
+type GroupPanel = 'sessions' | 'members' | 'booked' | 'ledger' | 'progress';
 
 @Component({
   selector: 'app-teacher-group-manage',
@@ -38,6 +40,7 @@ type GroupPanel = 'sessions' | 'members' | 'booked' | 'ledger';
     UserAvatarComponent,
     PageLoaderComponent,
     PaginatorComponent,
+    ProgressReportViewComponent,
   ],
   templateUrl: './teacher-group-manage.html',
   styleUrl: './teacher-group-manage.css',
@@ -50,6 +53,7 @@ export class TeacherGroupManageComponent implements OnInit {
   private readonly billingApi = inject(BillingClient);
   private readonly i18n = inject(TranslationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly learningApi = inject(LearningPathApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ledger$ = new Subject<void>();
   private readonly studentSheet$ = new Subject<number | null>();
@@ -64,6 +68,9 @@ export class TeacherGroupManageComponent implements OnInit {
   readonly unassignedReady = signal(false);
   readonly loadingLedger = signal(false);
   readonly ledgerReady = signal(false);
+  readonly loadingProgress = signal(false);
+  readonly progressReady = signal(false);
+  readonly groupProgress = signal<TeacherGroupProgressDto | null>(null);
   readonly endingGroup = signal(false);
   readonly deletingGroup = signal(false);
   readonly startingSessionId = signal<number | null>(null);
@@ -256,6 +263,7 @@ export class TeacherGroupManageComponent implements OnInit {
         if (this.panel() === 'sessions') this.ensureSessions(true);
         if (this.panel() === 'booked') this.ensureUnassignedStudents(true);
         if (this.panel() === 'ledger') this.ensureLedger(true);
+        if (this.panel() === 'progress') this.ensureProgress(true);
       },
       error: (err) => {
         this.loading.set(false);
@@ -276,6 +284,26 @@ export class TeacherGroupManageComponent implements OnInit {
     if (next === 'sessions') this.ensureSessions();
     if (next === 'booked') this.ensureUnassignedStudents();
     if (next === 'ledger') this.ensureLedger();
+    if (next === 'progress') this.ensureProgress();
+  }
+
+  ensureProgress(force = false): void {
+    if (!force && this.progressReady()) return;
+    const lessonId = this.lessonId();
+    const groupId = this.groupId();
+    if (!lessonId || !groupId) return;
+    this.loadingProgress.set(true);
+    this.learningApi.getTeacherGroupProgress(lessonId, groupId).subscribe({
+      next: (data) => {
+        this.groupProgress.set(data);
+        this.progressReady.set(true);
+        this.loadingProgress.set(false);
+      },
+      error: (err) => {
+        this.loadingProgress.set(false);
+        this.error.set(this.readApiError(err, 'Failed to load progress.'));
+      },
+    });
   }
 
   ensureLedger(force = false): void {

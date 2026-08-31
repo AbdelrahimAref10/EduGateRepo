@@ -6,21 +6,24 @@ import {
   TeacherStudentLessonDto,
   TeacherStudentListItemDto,
 } from '../../../core/api/academy-api.generated';
+import { LearningPathApi, LessonProgressDto } from '../../../core/api/learning-path-api.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { PageLoaderComponent } from '../../../shared/page-loader/page-loader';
 import { UserAvatarComponent } from '../../../shared/user-avatar/user-avatar';
+import { ProgressReportViewComponent } from '../../learning/progress-report-view';
 import { billingKey, copyText, parsePositiveId, readApiError } from './teacher-students.helpers';
 import { TeacherStudentsNav } from './teacher-students-nav';
 
 @Component({
   selector: 'app-teacher-student-lessons',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, PageLoaderComponent, UserAvatarComponent],
+  imports: [TranslatePipe, RouterLink, PageLoaderComponent, UserAvatarComponent, ProgressReportViewComponent],
   templateUrl: './teacher-student-lessons.html',
   styleUrl: './teacher-students.css',
 })
 export class TeacherStudentLessonsComponent implements OnInit {
   private readonly api = inject(StudentClient);
+  private readonly learningApi = inject(LearningPathApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly nav = inject(TeacherStudentsNav);
@@ -29,6 +32,8 @@ export class TeacherStudentLessonsComponent implements OnInit {
   readonly studentId = signal<number | null>(null);
   readonly student = signal<TeacherStudentListItemDto | null>(null);
   readonly lessons = signal<TeacherStudentLessonDto[]>([]);
+  readonly progress = signal<LessonProgressDto[]>([]);
+  readonly loadingProgress = signal(false);
   readonly loading = signal(true);
   readonly loadingStudent = signal(false);
   readonly error = signal<string | null>(null);
@@ -100,6 +105,18 @@ export class TeacherStudentLessonsComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         this.error.set(readApiError(err, 'Failed to load lessons.'));
+      },
+    });
+
+    this.loadingProgress.set(true);
+    this.learningApi.getTeacherStudentProgress(studentId).subscribe({
+      next: (data) => {
+        this.progress.set(data.lessons ?? []);
+        this.loadingProgress.set(false);
+      },
+      error: (err) => {
+        this.loadingProgress.set(false);
+        this.error.set(readApiError(err, 'Failed to load progress.'));
       },
     });
   }

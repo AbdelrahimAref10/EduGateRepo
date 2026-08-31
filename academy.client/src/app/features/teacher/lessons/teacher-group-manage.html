@@ -105,6 +105,15 @@
       <button
         type="button"
         class="tgm-tile"
+        [class.is-on]="panel() === 'progress'"
+        (click)="togglePanel('progress')"
+      >
+        <span>{{ panel() === 'progress' ? ('learning.hideProgress' | t) : ('learning.groupProgress' | t) }}</span>
+        <strong>{{ groupProgress()?.members?.length || g.members?.length || '—' }}</strong>
+      </button>
+      <button
+        type="button"
+        class="tgm-tile"
         [class.is-on]="panel() === 'ledger'"
         (click)="togglePanel('ledger')"
       >
@@ -186,6 +195,20 @@
               </article>
             }
           </div>
+        }
+      </section>
+    }
+
+    @if (panel() === 'progress') {
+      <section class="tgm-panel">
+        <div class="tgm-panel-head">
+          <h2>{{ 'learning.groupProgress' | t }}</h2>
+          <p>{{ 'learning.progressSub' | t }}</p>
+        </div>
+        @if (loadingProgress() && !progressReady()) {
+          <app-page-loader titleKey="learning.loadingProgress" [compact]="true" />
+        } @else {
+          <app-progress-report-view [lessons]="groupProgress()?.members ?? []" [showStudentName]="true" />
         }
       </section>
     }
