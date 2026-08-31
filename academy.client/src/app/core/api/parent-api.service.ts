@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, shareReplay } from 'rxjs';
 import { API_BASE_URL, StudentExamDto } from './academy-api.generated';
 import { DEFAULT_PAGE_SIZE, PagedResult, mapPagedResult } from './paging';
 
@@ -89,13 +89,21 @@ export interface ParentPaymentItemDto {
 export class ParentApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL, { optional: true }) ?? '';
-
+  private children$?: Observable<ParentChildDto[]>;
   getDashboard(): Observable<ParentDashboardDto> {
     return this.http.get<ParentDashboardDto>(`${this.baseUrl}/api/parent/dashboard`);
   }
 
   getChildren(): Observable<ParentChildDto[]> {
-    return this.http.get<ParentChildDto[]>(`${this.baseUrl}/api/parent/children`);
+      if (!this.children$) {
+          this.children$ = this.http
+            .get<ParentChildDto[]>(`${this.baseUrl}/api/parent/children`)
+            .pipe(
+              shareReplay({ bufferSize: 1, refCount: true })
+            );
+      }
+
+  return this.children$;
   }
 
   linkChild(studentCode: string): Observable<ParentChildDto> {
