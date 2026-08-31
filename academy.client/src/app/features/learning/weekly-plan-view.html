@@ -1,0 +1,88 @@
+<section class="space-y-6">
+  <p class="text-sm text-muted">
+    {{ plan().weekStart | date: 'mediumDate' }} — {{ plan().weekEnd | date: 'mediumDate' }}
+  </p>
+
+  <section class="space-y-3">
+    <h2 class="text-lg font-bold text-ink">{{ 'learning.thisWeekSessions' | t }}</h2>
+    @if (plan().sessions.length === 0) {
+      <p class="text-sm text-muted">{{ 'learning.noSessions' | t }}</p>
+    } @else {
+      <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
+        @for (s of plan().sessions; track s.sessionId + '-' + s.studentId) {
+          <li class="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-semibold text-ink">{{ s.subject }} · {{ s.groupName }}</p>
+              <p class="text-sm text-muted">
+                @if (showStudentName()) {
+                  {{ s.studentName }} ·
+                }
+                {{ s.teacherName }}
+                @if (s.topic) {
+                  · {{ s.topic }}
+                }
+              </p>
+              @if (s.notes) {
+                <p class="mt-1 text-sm text-ink/80">{{ s.notes }}</p>
+              }
+            </div>
+            <div class="text-sm font-medium text-ink">
+              {{ s.sessionDate | date: 'mediumDate' }} · {{ toTime(s.startTime) }}
+              @if (s.hasStarted && s.isPresent === true) {
+                <span class="ms-2 text-emerald-700">{{ 'parent.present' | t }}</span>
+              }
+              @if (s.hasStarted && s.isPresent === false) {
+                <span class="ms-2 text-rose-700">{{ 'parent.absent' | t }}</span>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-lg font-bold text-ink">{{ 'learning.examsDue' | t }}</h2>
+    @if (plan().examsDue.length === 0) {
+      <p class="text-sm text-muted">{{ 'learning.noExamsDue' | t }}</p>
+    } @else {
+      <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
+        @for (e of plan().examsDue; track e.examId + '-' + e.studentId) {
+          <li class="px-4 py-3">
+            <p class="font-semibold text-ink">{{ e.title }}</p>
+            <p class="text-sm text-muted">
+              @if (showStudentName()) {
+                {{ e.studentName }} ·
+              }
+              {{ e.subject }} · {{ e.sessionDate | date: 'mediumDate' }}
+            </p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-lg font-bold text-ink">{{ 'learning.unpaid' | t }}</h2>
+    @if (plan().unpaidCharges.length === 0) {
+      <p class="text-sm text-muted">{{ 'parent.noUnpaid' | t }}</p>
+    } @else {
+      <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
+        @for (c of plan().unpaidCharges; track c.chargeId) {
+          <li class="flex items-center justify-between gap-3 px-4 py-3">
+            <div>
+              <p class="font-semibold text-ink">{{ c.subject }}</p>
+              <p class="text-sm text-muted">
+                @if (showStudentName()) {
+                  {{ c.studentName }} ·
+                }
+                {{ c.type }}
+              </p>
+            </div>
+            <p class="text-sm font-bold text-ink">{{ c.remaining | number: '1.0-2' }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</section>

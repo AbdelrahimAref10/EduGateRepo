@@ -10,6 +10,8 @@ using Academy.Application.Features.Teacher.Students.Queries.GetLessonGroupsForTr
 using Academy.Application.Features.Teacher.Students.Queries.GetMyStudents;
 using Academy.Application.Features.Teacher.Students.Queries.GetTeacherStudentLessonGroup;
 using Academy.Application.Features.Teacher.Students.Queries.GetTeacherStudentLessons;
+using Academy.Application.Features.Teacher.Students.Queries.GetTeacherStudentProgress;
+using Academy.Application.Features.LearningPath.Dtos;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
 using MediatR;
@@ -104,6 +106,21 @@ public sealed class StudentController(ISender sender) : ControllerBase
 
         var result = await sender.Send(
             new GetTeacherStudentLessonsQuery(userId.Value, studentId),
+            cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{studentId:int}/progress")]
+    [ProducesResponseType(typeof(ProgressReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStudentProgress(int studentId, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetTeacherStudentProgressQuery(userId.Value, studentId),
             cancellationToken);
         return result.ToActionResult();
     }

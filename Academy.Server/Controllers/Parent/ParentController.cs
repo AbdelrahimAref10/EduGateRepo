@@ -9,6 +9,9 @@ using Academy.Application.Features.Parent.Queries.GetParentChildExam;
 using Academy.Application.Features.Parent.Queries.GetParentChildExams;
 using Academy.Application.Features.Parent.Queries.GetParentDashboard;
 using Academy.Application.Features.Parent.Queries.GetParentPayments;
+using Academy.Application.Features.Parent.Queries.GetParentProgress;
+using Academy.Application.Features.Parent.Queries.GetParentWeeklyPlan;
+using Academy.Application.Features.LearningPath.Dtos;
 using Academy.Application.Features.Student.Classroom.Dtos;
 using Academy.Domain.Common;
 using Academy.Server.Extensions;
@@ -74,6 +77,38 @@ public sealed class ParentController(ISender sender) : ControllerBase
 
         var result = await sender.Send(
             new UnlinkChildCommand(userId.Value, childStudentId),
+            cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("learning/plan")]
+    [ProducesResponseType(typeof(WeeklyLearningPlanDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWeeklyPlan(
+        [FromQuery] int? childStudentId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetParentWeeklyPlanQuery(userId.Value, childStudentId),
+            cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("learning/progress")]
+    [ProducesResponseType(typeof(ProgressReportDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProgress(
+        [FromQuery] int? childStudentId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+            return Unauthorized();
+
+        var result = await sender.Send(
+            new GetParentProgressQuery(userId.Value, childStudentId),
             cancellationToken);
         return result.ToActionResult();
     }

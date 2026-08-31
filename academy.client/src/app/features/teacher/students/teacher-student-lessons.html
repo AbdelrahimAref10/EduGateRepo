@@ -113,4 +113,18 @@
       </div>
     }
   </section>
+
+  <section class="ts-board">
+    <div class="ts-board-head">
+      <div>
+        <h2>{{ 'learning.progressTitle' | t }}</h2>
+        <p class="ts-board-sub">{{ 'learning.progressSub' | t }}</p>
+      </div>
+    </div>
+    @if (loadingProgress()) {
+      <app-page-loader titleKey="learning.loadingProgress" [compact]="true" />
+    } @else {
+      <app-progress-report-view [lessons]="progress()" />
+    }
+  </section>
 </section>

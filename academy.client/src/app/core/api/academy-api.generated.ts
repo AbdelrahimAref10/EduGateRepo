@@ -3188,6 +3188,7 @@ export interface ILessonsClient {
     getGroup(lessonId: number, groupId: number): Observable<LessonGroupDto>;
     updateGroup(lessonId: number, groupId: number, request: UpdateLessonGroupRequest): Observable<LessonGroupDto>;
     deleteGroup(lessonId: number, groupId: number): Observable<void>;
+    getGroupProgress(lessonId: number, groupId: number): Observable<TeacherGroupProgressDto>;
     getGroupSessions(lessonId: number, groupId: number): Observable<LessonGroupSessionDto[]>;
     endGroup(lessonId: number, groupId: number): Observable<LessonGroupDto>;
     startSession(lessonId: number, groupId: number, sessionId: number): Observable<LessonGroupSessionDto>;
@@ -4246,6 +4247,67 @@ export class LessonsClient implements ILessonsClient {
         return _observableOf(null as any);
     }
 
+    getGroupProgress(lessonId: number, groupId: number): Observable<TeacherGroupProgressDto> {
+        let url_ = this.baseUrl + "/api/teacher/lessons/{lessonId}/groups/{groupId}/progress";
+        if (lessonId === undefined || lessonId === null)
+            throw new globalThis.Error("The parameter 'lessonId' must be defined.");
+        url_ = url_.replace("{lessonId}", encodeURIComponent("" + lessonId));
+        if (groupId === undefined || groupId === null)
+            throw new globalThis.Error("The parameter 'groupId' must be defined.");
+        url_ = url_.replace("{groupId}", encodeURIComponent("" + groupId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetGroupProgress(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetGroupProgress(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<TeacherGroupProgressDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<TeacherGroupProgressDto>;
+        }));
+    }
+
+    protected processGetGroupProgress(response: HttpResponseBase): Observable<TeacherGroupProgressDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TeacherGroupProgressDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
     getGroupSessions(lessonId: number, groupId: number): Observable<LessonGroupSessionDto[]> {
         let url_ = this.baseUrl + "/api/teacher/lessons/{lessonId}/groups/{groupId}/sessions";
         if (lessonId === undefined || lessonId === null)
@@ -4941,6 +5003,7 @@ export interface IStudentClient {
     rejectBooking(bookingId: number): Observable<TeacherBookingDto>;
     getMyStudents(search: string | null | undefined): Observable<TeacherStudentListItemDto[]>;
     getStudentLessons(studentId: number): Observable<TeacherStudentLessonDto[]>;
+    getStudentProgress(studentId: number): Observable<ProgressReportDto>;
     getStudentLessonGroup(studentId: number, lessonId: number): Observable<TeacherStudentGroupDto>;
     getLessonGroupsForTransfer(studentId: number, lessonId: number): Observable<TeacherStudentGroupDto[]>;
     transferStudentGroup(studentId: number, lessonId: number, request: TransferStudentGroupRequest): Observable<number>;
@@ -5325,6 +5388,64 @@ export class StudentClient implements IStudentClient {
             else {
                 result200 = null as any;
             }
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getStudentProgress(studentId: number): Observable<ProgressReportDto> {
+        let url_ = this.baseUrl + "/api/teacher/student/{studentId}/progress";
+        if (studentId === undefined || studentId === null)
+            throw new globalThis.Error("The parameter 'studentId' must be defined.");
+        url_ = url_.replace("{studentId}", encodeURIComponent("" + studentId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetStudentProgress(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetStudentProgress(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ProgressReportDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ProgressReportDto>;
+        }));
+    }
+
+    protected processGetStudentProgress(response: HttpResponseBase): Observable<ProgressReportDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProgressReportDto.fromJS(resultData200);
             return _observableOf(result200);
             }));
         } else if (status === 404) {
@@ -8982,7 +9103,9 @@ export class UsersClient implements IUsersClient {
 }
 
 export interface IStudentDashboardClient {
-    getDashboard(): Observable<FileResponse>;
+    getDashboard(): Observable<WeeklyLearningPlanDto>;
+    getWeeklyPlan(): Observable<WeeklyLearningPlanDto>;
+    getProgress(): Observable<ProgressReportDto>;
 }
 
 @Injectable({
@@ -8998,7 +9121,7 @@ export class StudentDashboardClient implements IStudentDashboardClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getDashboard(): Observable<FileResponse> {
+    getDashboard(): Observable<WeeklyLearningPlanDto> {
         let url_ = this.baseUrl + "/api/student/dashboard";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -9006,7 +9129,7 @@ export class StudentDashboardClient implements IStudentDashboardClient {
             observe: "response",
             responseType: "blob",
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             })
         };
 
@@ -9017,31 +9140,123 @@ export class StudentDashboardClient implements IStudentDashboardClient {
                 try {
                     return this.processGetDashboard(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<FileResponse>;
+                    return _observableThrow(e) as any as Observable<WeeklyLearningPlanDto>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<FileResponse>;
+                return _observableThrow(response_) as any as Observable<WeeklyLearningPlanDto>;
         }));
     }
 
-    protected processGetDashboard(response: HttpResponseBase): Observable<FileResponse> {
+    protected processGetDashboard(response: HttpResponseBase): Observable<WeeklyLearningPlanDto> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
             (response as any).error instanceof Blob ? (response as any).error : undefined;
 
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = WeeklyLearningPlanDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getWeeklyPlan(): Observable<WeeklyLearningPlanDto> {
+        let url_ = this.baseUrl + "/api/student/learning/plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetWeeklyPlan(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetWeeklyPlan(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<WeeklyLearningPlanDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<WeeklyLearningPlanDto>;
+        }));
+    }
+
+    protected processGetWeeklyPlan(response: HttpResponseBase): Observable<WeeklyLearningPlanDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = WeeklyLearningPlanDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getProgress(): Observable<ProgressReportDto> {
+        let url_ = this.baseUrl + "/api/student/learning/progress";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetProgress(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetProgress(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ProgressReportDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ProgressReportDto>;
+        }));
+    }
+
+    protected processGetProgress(response: HttpResponseBase): Observable<ProgressReportDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProgressReportDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9802,6 +10017,8 @@ export interface IParentClient {
     getChildren(): Observable<ParentChildDto[]>;
     linkChild(request: LinkChildRequest): Observable<ParentChildDto>;
     unlinkChild(childStudentId: number): Observable<void>;
+    getWeeklyPlan(childStudentId: number | null | undefined): Observable<WeeklyLearningPlanDto>;
+    getProgress(childStudentId: number | null | undefined): Observable<ProgressReportDto>;
     getExams(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentExamListItemDto>;
     getChildExam(childStudentId: number, sessionId: number): Observable<StudentExamDto>;
     getAttendance(childStudentId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Observable<PagedResultOfParentAttendanceItemDto>;
@@ -10014,6 +10231,106 @@ export class ParentClient implements IParentClient {
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return _observableOf(null as any);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getWeeklyPlan(childStudentId: number | null | undefined): Observable<WeeklyLearningPlanDto> {
+        let url_ = this.baseUrl + "/api/parent/learning/plan?";
+        if (childStudentId !== undefined && childStudentId !== null)
+            url_ += "childStudentId=" + encodeURIComponent("" + childStudentId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetWeeklyPlan(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetWeeklyPlan(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<WeeklyLearningPlanDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<WeeklyLearningPlanDto>;
+        }));
+    }
+
+    protected processGetWeeklyPlan(response: HttpResponseBase): Observable<WeeklyLearningPlanDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = WeeklyLearningPlanDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getProgress(childStudentId: number | null | undefined): Observable<ProgressReportDto> {
+        let url_ = this.baseUrl + "/api/parent/learning/progress?";
+        if (childStudentId !== undefined && childStudentId !== null)
+            url_ += "childStudentId=" + encodeURIComponent("" + childStudentId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetProgress(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetProgress(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ProgressReportDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ProgressReportDto>;
+        }));
+    }
+
+    protected processGetProgress(response: HttpResponseBase): Observable<ProgressReportDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProgressReportDto.fromJS(resultData200);
+            return _observableOf(result200);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -14414,6 +14731,228 @@ export interface ILessonGroupDateInputDto {
     startTime?: string;
 }
 
+export class TeacherGroupProgressDto implements ITeacherGroupProgressDto {
+    lessonId!: number;
+    groupId!: number;
+    subject!: string;
+    groupName!: string;
+    members!: LessonProgressDto[];
+
+    constructor(data?: ITeacherGroupProgressDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.members = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lessonId = _data["lessonId"];
+            this.groupId = _data["groupId"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            if (Array.isArray(_data["members"])) {
+                this.members = [] as any;
+                for (let item of _data["members"])
+                    this.members!.push(LessonProgressDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TeacherGroupProgressDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TeacherGroupProgressDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lessonId"] = this.lessonId;
+        data["groupId"] = this.groupId;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        if (Array.isArray(this.members)) {
+            data["members"] = [];
+            for (let item of this.members)
+                data["members"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ITeacherGroupProgressDto {
+    lessonId: number;
+    groupId: number;
+    subject: string;
+    groupName: string;
+    members: LessonProgressDto[];
+}
+
+export class LessonProgressDto implements ILessonProgressDto {
+    studentId!: number;
+    studentName!: string;
+    lessonId!: number;
+    groupId!: number | undefined;
+    subject!: string;
+    groupName!: string;
+    teacherName!: string;
+    sessionsHeld!: number;
+    sessionsPresent!: number;
+    attendancePercent?: number | undefined;
+    examsTaken!: number;
+    examAveragePercent?: number | undefined;
+    outstanding!: number;
+    recentSessions!: RecentSessionProgressDto[];
+
+    constructor(data?: ILessonProgressDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.recentSessions = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.studentId = _data["studentId"];
+            this.studentName = _data["studentName"];
+            this.lessonId = _data["lessonId"];
+            this.groupId = _data["groupId"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            this.teacherName = _data["teacherName"];
+            this.sessionsHeld = _data["sessionsHeld"];
+            this.sessionsPresent = _data["sessionsPresent"];
+            this.attendancePercent = _data["attendancePercent"];
+            this.examsTaken = _data["examsTaken"];
+            this.examAveragePercent = _data["examAveragePercent"];
+            this.outstanding = _data["outstanding"];
+            if (Array.isArray(_data["recentSessions"])) {
+                this.recentSessions = [] as any;
+                for (let item of _data["recentSessions"])
+                    this.recentSessions!.push(RecentSessionProgressDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): LessonProgressDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LessonProgressDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["studentId"] = this.studentId;
+        data["studentName"] = this.studentName;
+        data["lessonId"] = this.lessonId;
+        data["groupId"] = this.groupId;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        data["teacherName"] = this.teacherName;
+        data["sessionsHeld"] = this.sessionsHeld;
+        data["sessionsPresent"] = this.sessionsPresent;
+        data["attendancePercent"] = this.attendancePercent;
+        data["examsTaken"] = this.examsTaken;
+        data["examAveragePercent"] = this.examAveragePercent;
+        data["outstanding"] = this.outstanding;
+        if (Array.isArray(this.recentSessions)) {
+            data["recentSessions"] = [];
+            for (let item of this.recentSessions)
+                data["recentSessions"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ILessonProgressDto {
+    studentId: number;
+    studentName: string;
+    lessonId: number;
+    groupId: number | undefined;
+    subject: string;
+    groupName: string;
+    teacherName: string;
+    sessionsHeld: number;
+    sessionsPresent: number;
+    attendancePercent?: number | undefined;
+    examsTaken: number;
+    examAveragePercent?: number | undefined;
+    outstanding: number;
+    recentSessions: RecentSessionProgressDto[];
+}
+
+export class RecentSessionProgressDto implements IRecentSessionProgressDto {
+    sessionId!: number;
+    sessionDate!: Date;
+    startTime!: string;
+    topic?: string | undefined;
+    teacherNotes?: string | undefined;
+    hasStarted!: boolean;
+    isPresent?: boolean | undefined;
+
+    constructor(data?: IRecentSessionProgressDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.sessionId = _data["sessionId"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.startTime = _data["startTime"];
+            this.topic = _data["topic"];
+            this.teacherNotes = _data["teacherNotes"];
+            this.hasStarted = _data["hasStarted"];
+            this.isPresent = _data["isPresent"];
+        }
+    }
+
+    static fromJS(data: any): RecentSessionProgressDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecentSessionProgressDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["sessionId"] = this.sessionId;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["startTime"] = this.startTime;
+        data["topic"] = this.topic;
+        data["teacherNotes"] = this.teacherNotes;
+        data["hasStarted"] = this.hasStarted;
+        data["isPresent"] = this.isPresent;
+        return data;
+    }
+}
+
+export interface IRecentSessionProgressDto {
+    sessionId: number;
+    sessionDate: Date;
+    startTime: string;
+    topic?: string | undefined;
+    teacherNotes?: string | undefined;
+    hasStarted: boolean;
+    isPresent?: boolean | undefined;
+}
+
 export class UpdateLessonGroupRequest implements IUpdateLessonGroupRequest {
     name?: string;
     dates?: LessonGroupDateInputDto[];
@@ -14803,6 +15342,53 @@ export interface ITeacherStudentLessonDto {
     isActive: boolean;
     assignedGroupId?: number | undefined;
     assignedGroupName?: string | undefined;
+}
+
+export class ProgressReportDto implements IProgressReportDto {
+    lessons!: LessonProgressDto[];
+
+    constructor(data?: IProgressReportDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.lessons = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["lessons"])) {
+                this.lessons = [] as any;
+                for (let item of _data["lessons"])
+                    this.lessons!.push(LessonProgressDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ProgressReportDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProgressReportDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.lessons)) {
+            data["lessons"] = [];
+            for (let item of this.lessons)
+                data["lessons"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IProgressReportDto {
+    lessons: LessonProgressDto[];
 }
 
 export class TeacherStudentGroupDto implements ITeacherStudentGroupDto {
@@ -18671,6 +19257,299 @@ export interface IBookingDto {
     educationYearName: string;
     startDate: Date;
     createdAtUtc: Date;
+}
+
+export class WeeklyLearningPlanDto implements IWeeklyLearningPlanDto {
+    weekStart!: Date;
+    weekEnd!: Date;
+    sessions!: WeeklyPlanSessionDto[];
+    unpaidCharges!: WeeklyPlanChargeDto[];
+    examsDue!: WeeklyPlanExamDto[];
+
+    constructor(data?: IWeeklyLearningPlanDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.sessions = [];
+            this.unpaidCharges = [];
+            this.examsDue = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.weekStart = _data["weekStart"] ? new Date(_data["weekStart"].toString()) : undefined as any;
+            this.weekEnd = _data["weekEnd"] ? new Date(_data["weekEnd"].toString()) : undefined as any;
+            if (Array.isArray(_data["sessions"])) {
+                this.sessions = [] as any;
+                for (let item of _data["sessions"])
+                    this.sessions!.push(WeeklyPlanSessionDto.fromJS(item));
+            }
+            if (Array.isArray(_data["unpaidCharges"])) {
+                this.unpaidCharges = [] as any;
+                for (let item of _data["unpaidCharges"])
+                    this.unpaidCharges!.push(WeeklyPlanChargeDto.fromJS(item));
+            }
+            if (Array.isArray(_data["examsDue"])) {
+                this.examsDue = [] as any;
+                for (let item of _data["examsDue"])
+                    this.examsDue!.push(WeeklyPlanExamDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): WeeklyLearningPlanDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WeeklyLearningPlanDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["weekStart"] = this.weekStart ? formatDate(this.weekStart) : undefined as any;
+        data["weekEnd"] = this.weekEnd ? formatDate(this.weekEnd) : undefined as any;
+        if (Array.isArray(this.sessions)) {
+            data["sessions"] = [];
+            for (let item of this.sessions)
+                data["sessions"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.unpaidCharges)) {
+            data["unpaidCharges"] = [];
+            for (let item of this.unpaidCharges)
+                data["unpaidCharges"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.examsDue)) {
+            data["examsDue"] = [];
+            for (let item of this.examsDue)
+                data["examsDue"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IWeeklyLearningPlanDto {
+    weekStart: Date;
+    weekEnd: Date;
+    sessions: WeeklyPlanSessionDto[];
+    unpaidCharges: WeeklyPlanChargeDto[];
+    examsDue: WeeklyPlanExamDto[];
+}
+
+export class WeeklyPlanSessionDto implements IWeeklyPlanSessionDto {
+    sessionId!: number;
+    lessonId!: number;
+    studentId!: number;
+    studentName!: string;
+    subject!: string;
+    groupName!: string;
+    teacherName!: string;
+    sessionDate!: Date;
+    startTime!: string;
+    topic?: string | undefined;
+    notes?: string | undefined;
+    hasStarted!: boolean;
+    isPresent?: boolean | undefined;
+
+    constructor(data?: IWeeklyPlanSessionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.sessionId = _data["sessionId"];
+            this.lessonId = _data["lessonId"];
+            this.studentId = _data["studentId"];
+            this.studentName = _data["studentName"];
+            this.subject = _data["subject"];
+            this.groupName = _data["groupName"];
+            this.teacherName = _data["teacherName"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.startTime = _data["startTime"];
+            this.topic = _data["topic"];
+            this.notes = _data["notes"];
+            this.hasStarted = _data["hasStarted"];
+            this.isPresent = _data["isPresent"];
+        }
+    }
+
+    static fromJS(data: any): WeeklyPlanSessionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WeeklyPlanSessionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["sessionId"] = this.sessionId;
+        data["lessonId"] = this.lessonId;
+        data["studentId"] = this.studentId;
+        data["studentName"] = this.studentName;
+        data["subject"] = this.subject;
+        data["groupName"] = this.groupName;
+        data["teacherName"] = this.teacherName;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["startTime"] = this.startTime;
+        data["topic"] = this.topic;
+        data["notes"] = this.notes;
+        data["hasStarted"] = this.hasStarted;
+        data["isPresent"] = this.isPresent;
+        return data;
+    }
+}
+
+export interface IWeeklyPlanSessionDto {
+    sessionId: number;
+    lessonId: number;
+    studentId: number;
+    studentName: string;
+    subject: string;
+    groupName: string;
+    teacherName: string;
+    sessionDate: Date;
+    startTime: string;
+    topic?: string | undefined;
+    notes?: string | undefined;
+    hasStarted: boolean;
+    isPresent?: boolean | undefined;
+}
+
+export class WeeklyPlanChargeDto implements IWeeklyPlanChargeDto {
+    chargeId!: number;
+    studentId!: number;
+    studentName!: string;
+    lessonId!: number;
+    subject!: string;
+    type!: string;
+    remaining!: number;
+
+    constructor(data?: IWeeklyPlanChargeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.chargeId = _data["chargeId"];
+            this.studentId = _data["studentId"];
+            this.studentName = _data["studentName"];
+            this.lessonId = _data["lessonId"];
+            this.subject = _data["subject"];
+            this.type = _data["type"];
+            this.remaining = _data["remaining"];
+        }
+    }
+
+    static fromJS(data: any): WeeklyPlanChargeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WeeklyPlanChargeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["chargeId"] = this.chargeId;
+        data["studentId"] = this.studentId;
+        data["studentName"] = this.studentName;
+        data["lessonId"] = this.lessonId;
+        data["subject"] = this.subject;
+        data["type"] = this.type;
+        data["remaining"] = this.remaining;
+        return data;
+    }
+}
+
+export interface IWeeklyPlanChargeDto {
+    chargeId: number;
+    studentId: number;
+    studentName: string;
+    lessonId: number;
+    subject: string;
+    type: string;
+    remaining: number;
+}
+
+export class WeeklyPlanExamDto implements IWeeklyPlanExamDto {
+    examId!: number;
+    sessionId!: number;
+    studentId!: number;
+    studentName!: string;
+    title!: string;
+    subject!: string;
+    sessionDate!: Date;
+    sessionStarted!: boolean;
+    hasSubmitted!: boolean;
+
+    constructor(data?: IWeeklyPlanExamDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.examId = _data["examId"];
+            this.sessionId = _data["sessionId"];
+            this.studentId = _data["studentId"];
+            this.studentName = _data["studentName"];
+            this.title = _data["title"];
+            this.subject = _data["subject"];
+            this.sessionDate = _data["sessionDate"] ? new Date(_data["sessionDate"].toString()) : undefined as any;
+            this.sessionStarted = _data["sessionStarted"];
+            this.hasSubmitted = _data["hasSubmitted"];
+        }
+    }
+
+    static fromJS(data: any): WeeklyPlanExamDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WeeklyPlanExamDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["examId"] = this.examId;
+        data["sessionId"] = this.sessionId;
+        data["studentId"] = this.studentId;
+        data["studentName"] = this.studentName;
+        data["title"] = this.title;
+        data["subject"] = this.subject;
+        data["sessionDate"] = this.sessionDate ? formatDate(this.sessionDate) : undefined as any;
+        data["sessionStarted"] = this.sessionStarted;
+        data["hasSubmitted"] = this.hasSubmitted;
+        return data;
+    }
+}
+
+export interface IWeeklyPlanExamDto {
+    examId: number;
+    sessionId: number;
+    studentId: number;
+    studentName: string;
+    title: string;
+    subject: string;
+    sessionDate: Date;
+    sessionStarted: boolean;
+    hasSubmitted: boolean;
 }
 
 export class MyTargetReviewDto implements IMyTargetReviewDto {
