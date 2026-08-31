@@ -362,7 +362,7 @@ internal static class LearningPathQueries
         if (teacherId is > 0)
             query = query.Where(m => m.LessonGroup.Lesson.TeacherId == teacherId.Value);
 
-        var rows = await query
+        var rows =  query
             .Select(m => new
             {
                 m.StudentId,
@@ -373,10 +373,9 @@ internal static class LearningPathQueries
                 GroupName = m.LessonGroup.Name,
                 TeacherFirst = m.LessonGroup.Lesson.Teacher.User.FirstName,
                 TeacherLast = m.LessonGroup.Lesson.Teacher.User.LastName
-            })
-            .ToListAsync(cancellationToken);
+            });
 
-        return rows
+        return await rows
             .Select(m => new MembershipRow(
                 m.StudentId,
                 m.StudentName,
@@ -385,7 +384,7 @@ internal static class LearningPathQueries
                 m.Subject,
                 m.GroupName,
                 $"{m.TeacherFirst} {m.TeacherLast}".Trim()))
-            .ToList();
+            .ToListAsync();
     }
 
     private sealed record MembershipRow(
